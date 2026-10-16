@@ -37,9 +37,24 @@ extension BRepModel {
         tolerance: ModelingTolerance,
         integrationOptions: FaceAreaIntegrationOptions = .init()
     ) throws -> FaceAreaMeasurement {
-        try BRepFaceAreaMeasurementEvaluator().measurement(of: faceID, in: self, tolerance: tolerance,
-                                                            integrationOptions: integrationOptions)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try faceAreaMeasurement(of: faceID, tolerance: tolerance,
+            integrationOptions: integrationOptions, using: &execution)
     }
+
+    /// Measures the original face with the caller's cumulative admission owner.
+    public func faceAreaMeasurement(
+        of faceID: FaceID, tolerance: ModelingTolerance,
+        integrationOptions: FaceAreaIntegrationOptions = .init(),
+        using execution: inout OriginalQueryExecution
+    ) throws -> FaceAreaMeasurement {
+        try execution.checkpoint()
+        let result = try BRepFaceAreaMeasurementEvaluator().measurement(of: faceID,
+            in: self, tolerance: tolerance, integrationOptions: integrationOptions, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
 }
 
 /// Measures a face by Green's theorem in its parameter domain. The support's area element is
@@ -61,41 +76,55 @@ struct BRepFaceAreaMeasurementEvaluator {
         of faceID: FaceID,
         in model: BRepModel,
         tolerance: ModelingTolerance,
-        integrationOptions: FaceAreaIntegrationOptions = .init()
+        integrationOptions: FaceAreaIntegrationOptions = .init(),
+        using execution: inout OriginalQueryExecution
     ) throws -> FaceAreaMeasurement {
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID] else {
             throw TopologyError.missingReference("Face area references a missing face or support surface.")
         }
         let integrands: [Integrand]
         switch surface {
-        case .plane, .analytic(.plane): integrands = [.one, .u, .v]
-        case .cylinder, .analytic(.cylinder): integrands = [.one, .cosineU, .sineU, .v]
+        case .plane, .analytic(.plane):
+            try execution.retainStorage(bytes: 3 * MemoryLayout<Integrand>.stride)
+            integrands = [.one, .u, .v]
+        case .cylinder, .analytic(.cylinder):
+            try execution.retainStorage(bytes: 4 * MemoryLayout<Integrand>.stride)
+            integrands = [.one, .cosineU, .sineU, .v]
         case let .analytic(analytic) where analytic.isConeOrTorus:
             return try RevolvedSurfaceFaceAreaIntegrator().measurement(
-                of: face, on: analytic, in: model, tolerance: tolerance
+                of: face, on: analytic, in: model, tolerance: tolerance, using: &execution
             )
         case let .analytic(.sphere(center, radius)):
             return try SphericalFaceAreaIntegrator().measurement(
-                of: face, center: center, radius: radius, in: model, tolerance: tolerance
+                of: face, center: center, radius: radius, in: model, tolerance: tolerance, using: &execution
             )
         default:
-            return try CertifiedSurfaceFaceAreaIntegrator().measurement(
-                of: face, on: surface, in: model, tolerance: tolerance, options: integrationOptions)
+            try integrationOptions.validate(tolerance: tolerance)
+            let policy = try execution.makeContributionHandle(allocationPolicy: execution.effectiveAllocationPolicy, executionLimits: .init(
+                maximumValueDepth: 32, maximumCoefficientDepth: 32, remainingSourceDepth: 16,
+                maximumSubdivisionDepth: integrationOptions.maximumSubdivisionDepth))
+            return try execution.withContributionScope(policy) { execution in
+                try CertifiedSurfaceFaceAreaIntegrator().measurement(of: face, on: surface,
+                    in: model, tolerance: tolerance, options: integrationOptions, using: &execution)
+            }
         }
-        var totals = [Double](repeating: 0, count: integrands.count)
+        var totals = try OriginalParameterQueryStorage.repeated(0.0, count: integrands.count, using: &execution)
         for loopID in face.loops {
+            try execution.consumeWork(1)
             guard let loop = model.loops[loopID], !loop.coedges.isEmpty else {
                 throw TopologyError.missingReference("Face area references a missing or empty loop.")
             }
             for coedge in loop.coedges {
+                try execution.consumeWork(1)
                 guard let curve = coedge.surfaceParameterCurve else {
                     throw TopologyError.invalidTrim(coedge.edgeID)
                 }
                 for (index, integrand) in integrands.enumerated() {
                     totals[index] -= try boundaryIntegral(
                         of: integrand, along: curve, uShift: 0, vShift: 0,
-                        periodicU: surface.isCylinder, tolerance: tolerance
+                        periodicU: surface.isCylinder, tolerance: tolerance, using: &execution
                     )
                 }
             }
@@ -108,11 +137,11 @@ struct BRepFaceAreaMeasurementEvaluator {
             )
         }
         // Moments over the signed area: the loops' traversal sense cancels.
-        let origin = try surface.point(u: 0, v: 0, tolerance: tolerance)
+        let origin = try surface.point(u: 0, v: 0, tolerance: tolerance, using: &execution)
         switch surface {
         case .plane, .analytic(.plane):
-            let alongU = try surface.point(u: 1, v: 0, tolerance: tolerance) - origin
-            let alongV = try surface.point(u: 0, v: 1, tolerance: tolerance) - origin
+            let alongU = try surface.point(u: 1, v: 0, tolerance: tolerance, using: &execution) - origin
+            let alongV = try surface.point(u: 0, v: 1, tolerance: tolerance, using: &execution) - origin
             let element = alongU.cross(alongV).length
             return FaceAreaMeasurement(
                 area: abs(parameterArea) * element,
@@ -127,8 +156,8 @@ struct BRepFaceAreaMeasurementEvaluator {
             default: throw unsupported("Face area lost the cylinder it measures.", tolerance)
             }
             let radialU = origin - axisOrigin
-            let radialV = try surface.point(u: .pi / 2, v: 0, tolerance: tolerance) - axisOrigin
-            let axial = try surface.point(u: 0, v: 1, tolerance: tolerance) - origin
+            let radialV = try surface.point(u: .pi / 2, v: 0, tolerance: tolerance, using: &execution) - axisOrigin
+            let axial = try surface.point(u: 0, v: 1, tolerance: tolerance, using: &execution) - origin
             let element = radialU.length * axial.length
             return FaceAreaMeasurement(
                 area: abs(parameterArea) * element,
@@ -149,8 +178,11 @@ struct BRepFaceAreaMeasurementEvaluator {
         uShift: Double,
         vShift: Double,
         periodicU: Bool,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution
     ) throws -> Double {
+        try execution.consumeWork(1)
+        try execution.admitSourceDepth(0)
         switch curve {
         case let .affine(origin, direction, startParameter, endParameter):
             return segment(
@@ -165,6 +197,7 @@ struct BRepFaceAreaMeasurementEvaluator {
         case let .polyline(points):
             var sum = 0.0
             for index in points.indices.dropFirst() {
+                try execution.consumeWork(1)
                 sum += segment(
                     integrand,
                     from: (points[index - 1].u + uShift, points[index - 1].v + vShift),
@@ -176,22 +209,23 @@ struct BRepFaceAreaMeasurementEvaluator {
             guard !periodicU else {
                 throw unsupported("Face area has no closed form for a harmonic pcurve on a cylinder.", tolerance)
             }
-            return harmonic(
+            return try harmonic(
                 integrand,
                 center: (center.x + uShift, center.y + vShift),
                 cosine: (cosine.x, cosine.y), sine: (sine.x, sine.y),
-                from: startParameter, to: endParameter
+                from: startParameter, to: endParameter, using: &execution
             )
         case let .bSpline(spline):
             guard !periodicU else {
                 throw unsupported("Face area has no closed form for a B-spline pcurve on a cylinder.", tolerance)
             }
-            return try polynomialSpline(integrand, spline, uShift: uShift, vShift: vShift, tolerance: tolerance)
+            return try polynomialSpline(integrand, spline, uShift: uShift, vShift: vShift, tolerance: tolerance, using: &execution)
         case let .periodicTranslation(base, translatedU, translatedV):
-            return try boundaryIntegral(
-                of: integrand, along: base, uShift: uShift + translatedU, vShift: vShift + translatedV,
-                periodicU: periodicU, tolerance: tolerance
-            )
+            return try execution.withSourceDepthOffset(1) { execution in
+                try boundaryIntegral(of: integrand, along: base,
+                    uShift: uShift + translatedU, vShift: vShift + translatedV,
+                    periodicU: periodicU, tolerance: tolerance, using: &execution)
+            }
         default:
             throw unsupported("Face area has no closed form for this face's boundary pcurves.", tolerance)
         }
@@ -232,8 +266,9 @@ struct BRepFaceAreaMeasurementEvaluator {
         cosine: (Double, Double),
         sine: (Double, Double),
         from start: Double,
-        to end: Double
-    ) -> Double {
+        to end: Double,
+        using execution: inout OriginalQueryExecution
+    ) throws -> Double {
         func value(_ t: Double) -> Double {
             let u = center.0 + cosine.0 * cos(t) + sine.0 * sin(t)
             let v = center.1 + cosine.1 * cos(t) + sine.1 * sin(t)
@@ -241,11 +276,20 @@ struct BRepFaceAreaMeasurementEvaluator {
             return primitive(integrand, u: u, v: v) * uPrime
         }
         let count = 8
-        let samples = (0..<count).map { value(2 * .pi * Double($0) / Double(count)) }
-        var result = samples.reduce(0, +) / Double(count) * (end - start)
+        let samples = try OriginalParameterQueryStorage.map(0..<count, using: &execution) { index, _ in
+            value(2 * .pi * Double(index) / Double(count))
+        }
+        var sampleTotal = 0.0
+        for sample in samples {
+            try execution.consumeWork(1)
+            sampleTotal += sample
+        }
+        var result = sampleTotal / Double(count) * (end - start)
         for harmonic in 1...3 {
+            try execution.consumeWork(1)
             var a = 0.0, b = 0.0
             for (index, sample) in samples.enumerated() {
+                try execution.consumeWork(1)
                 let angle = 2 * .pi * Double(harmonic * index) / Double(count)
                 a += sample * cos(angle)
                 b += sample * sin(angle)
@@ -265,19 +309,31 @@ struct BRepFaceAreaMeasurementEvaluator {
         _ spline: BSplineCurve2D,
         uShift: Double,
         vShift: Double,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution
     ) throws -> Double {
-        guard let firstWeight = spline.weights.first,
-              spline.weights.allSatisfy({ abs($0 - firstWeight) <= Double.ulpOfOne * 16 * abs(firstWeight) }) else {
+        guard let firstWeight = spline.weights.first else {
             throw unsupported("Face area has no closed form for a rational B-spline pcurve.", tolerance)
         }
+        for weight in spline.weights {
+            try execution.consumeWork(1)
+            guard abs(weight - firstWeight) <= Double.ulpOfOne * 16 * abs(firstWeight) else {
+                throw unsupported("Face area has no closed form for a rational B-spline pcurve.", tolerance)
+            }
+        }
         let degree = spline.degree
-        let rule = GaussLegendreRule(count: (3 * degree + 1) / 2)
-        let spans = zip(spline.knots, spline.knots.dropFirst()).filter { $1 > $0 }
+        let scaledDegree = degree.multipliedReportingOverflow(by: 3)
+        guard !scaledDegree.overflow else { throw ExactScalarFailure.countOverflow }
+        let numerator = scaledDegree.partialValue.addingReportingOverflow(1)
+        guard !numerator.overflow else { throw ExactScalarFailure.countOverflow }
+        let rule = try GaussLegendreRule(count: numerator.partialValue / 2, using: &execution)
+        let spans = zip(spline.knots, spline.knots.dropFirst())
         var sum = 0.0
         for (low, high) in spans {
-            sum += try rule.integrate(from: low, to: high) { parameter in
-                let geometry = try spline.differentialGeometry(at: parameter, tolerance: tolerance)
+            try execution.consumeWork(1)
+            guard high > low else { continue }
+            sum += try rule.integrate(from: low, to: high, using: &execution) { parameter, execution in
+                let geometry = try spline.differentialGeometry(at: parameter, tolerance: tolerance, using: &execution)
                 let u = geometry.position.x + uShift, v = geometry.position.y + vShift
                 return primitive(integrand, u: u, v: v) * geometry.firstDerivative.x
             }

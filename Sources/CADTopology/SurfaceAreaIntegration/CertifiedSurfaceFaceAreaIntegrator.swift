@@ -30,19 +30,9 @@ struct CertifiedSurfaceFaceAreaIntegrator {
     }
 
     func measurement(of face: Face, on surface: Surface3D, in model: BRepModel,
-        tolerance: ModelingTolerance, options: FaceAreaIntegrationOptions) throws -> FaceAreaMeasurement {
-        try options.validate(tolerance: tolerance)
-        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
-            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32,
-                remainingSourceDepth: 16, maximumSubdivisionDepth: options.maximumSubdivisionDepth))
-        return try measurement(of: face, on: surface, in: model,
-            tolerance: tolerance, options: options, using: &execution)
-    }
-
-    func measurement(of face: Face, on surface: Surface3D, in model: BRepModel,
                      tolerance: ModelingTolerance, options: FaceAreaIntegrationOptions, using execution: inout OriginalQueryExecution) throws -> FaceAreaMeasurement {
         try options.validate(tolerance: tolerance)
-        return try execution.withAllocationScope(policy: .none, workLimit: options.maximumCellCount) { execution in
+        return try execution.withAllocationScope(policy: execution.effectiveAllocationPolicy, workLimit: options.maximumCellCount) { execution in
         let workStart = execution.localWork
         try execution.checkpoint()
         guard face.loops.count <= options.maximumBoundaryCurveCount else {

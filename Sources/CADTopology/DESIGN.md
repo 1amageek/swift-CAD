@@ -48,6 +48,14 @@ flowchart LR
 
 ## Contracts and Invariants
 
+The module-owned `GaussLegendreRule` uses one admitted construction body for
+ordinary and caller-execution initialization. Node and weight storage is
+admitted before growth, and actual Newton/Legendre visits use the same owner;
+the original formulas and 100-iteration ceiling remain unchanged. Each revolved face query prepares its fixed 16-node rule once with its caller
+execution, then reuses the immutable arrays across all terms and pieces without
+cloning. Per-query evaluation also admits every visited node. Face-area routing and
+phase-local policy selection are owned by [SurfaceAreaIntegration](SurfaceAreaIntegration/DESIGN.md).
+
 `SurfaceParameterAreaBounds.zero`, `minimumAbsoluteValue` and `adding` are package-readable
 for the thickened-sheet consumer. The existing signed area enclosure remains
 authoritative: an interval containing zero has no strictly positive absolute

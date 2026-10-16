@@ -44,25 +44,31 @@ struct SphericalFaceAreaIntegrator {
         center: Point3D,
         radius: Double,
         in model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution
     ) throws -> FaceAreaMeasurement {
+        try execution.consumeWork(1)
         let support = Surface3D.analytic(.sphere(center: center, radius: radius))
-        let frame = try Frame(support: support, center: center, radius: radius, tolerance: tolerance)
+        let frame = try Frame(support: support, center: center, radius: radius, tolerance: tolerance, using: &execution)
         var totalTurning = 0.0
         var vectorArea = Vector3D.zero
         var parameterArea = 0.0
         for loopID in face.loops {
+            try execution.consumeWork(1)
             guard let loop = model.loops[loopID], !loop.coedges.isEmpty else {
                 throw TopologyError.missingReference("Face area references a missing or empty loop.")
             }
-            let curves = try loop.coedges.map { coedge -> SurfaceParameterCurve in
+            let curves = try OriginalParameterQueryStorage.map(loop.coedges, using: &execution) { coedge, execution -> SurfaceParameterCurve in
                 guard let curve = coedge.surfaceParameterCurve else {
                     throw TopologyError.invalidTrim(coedge.edgeID)
                 }
                 return curve
             }
-            let arcs = try curves.map { try arc(for: $0, frame: frame, tolerance: tolerance) }
+            let arcs = try OriginalParameterQueryStorage.map(curves, using: &execution) { curve, execution in
+                try arc(for: curve, frame: frame, tolerance: tolerance, using: &execution)
+            }
             for (index, arc) in arcs.enumerated() {
+                try execution.consumeWork(1)
                 let next = arcs[(index + 1) % arcs.count]
                 let normal = arc.endRadial
                 totalTurning += atan2(normal.dot(arc.endTangent.cross(next.startTangent)),
@@ -70,7 +76,7 @@ struct SphericalFaceAreaIntegrator {
                 totalTurning += arc.geodesicTurning
                 vectorArea = vectorArea + arc.vectorArea
             }
-            parameterArea += try signedParameterArea(of: curves, tolerance: tolerance)
+            parameterArea += try signedParameterArea(of: curves, tolerance: tolerance, using: &execution)
         }
         guard abs(parameterArea) > tolerance.angle else {
             throw KernelError(
@@ -101,10 +107,11 @@ struct SphericalFaceAreaIntegrator {
         var center: Point3D
         var radius: Double
 
-        init(support: Surface3D, center: Point3D, radius: Double, tolerance: ModelingTolerance) throws {
-            e0 = (try support.point(u: 0, v: 0, tolerance: tolerance) - center) * (1 / radius)
-            e1 = (try support.point(u: .pi / 2, v: 0, tolerance: tolerance) - center) * (1 / radius)
-            z = (try support.point(u: 0, v: .pi / 2, tolerance: tolerance) - center) * (1 / radius)
+        init(support: Surface3D, center: Point3D, radius: Double, tolerance: ModelingTolerance,
+            using execution: inout OriginalQueryExecution) throws {
+            e0 = (try support.point(u: 0, v: 0, tolerance: tolerance, using: &execution) - center) * (1 / radius)
+            e1 = (try support.point(u: .pi / 2, v: 0, tolerance: tolerance, using: &execution) - center) * (1 / radius)
+            z = (try support.point(u: 0, v: .pi / 2, tolerance: tolerance, using: &execution) - center) * (1 / radius)
             self.center = center
             self.radius = radius
         }
@@ -113,7 +120,10 @@ struct SphericalFaceAreaIntegrator {
         func east(_ u: Double) -> Vector3D { e0 * -sin(u) + e1 * cos(u) }
     }
 
-    private func arc(for curve: SurfaceParameterCurve, frame: Frame, tolerance: ModelingTolerance) throws -> Arc {
+    private func arc(for curve: SurfaceParameterCurve, frame: Frame, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> Arc {
+        try execution.consumeWork(1)
+        try execution.admitSourceDepth(0)
         switch curve {
         case let .sphericalGreatCircle(cosine, sine, start, end):
             let direction: Double = end >= start ? 1 : -1
@@ -153,15 +163,17 @@ struct SphericalFaceAreaIntegrator {
             guard vShift == 0 else {
                 throw unsupported("Face area found a spherical pcurve shifted in latitude.", tolerance)
             }
-            switch base {
-            case let .constantU(u, vStart, vEnd):
-                return try arc(for: .constantU(u: u + uShift, vStart: vStart, vEnd: vEnd), frame: frame, tolerance: tolerance)
-            case let .constantV(v, uStart, uEnd):
-                return try arc(for: .constantV(v: v, uStart: uStart + uShift, uEnd: uEnd + uShift), frame: frame, tolerance: tolerance)
-            case .sphericalGreatCircle where remainder(uShift, 2 * .pi) == 0:
-                return try arc(for: base, frame: frame, tolerance: tolerance)
-            default:
-                throw unsupported("Face area found a shifted spherical pcurve it cannot measure.", tolerance)
+            return try execution.withSourceDepthOffset(1) { execution in
+                switch base {
+                case let .constantU(u, vStart, vEnd):
+                    return try arc(for: .constantU(u: u + uShift, vStart: vStart, vEnd: vEnd), frame: frame, tolerance: tolerance, using: &execution)
+                case let .constantV(v, uStart, uEnd):
+                    return try arc(for: .constantV(v: v, uStart: uStart + uShift, uEnd: uEnd + uShift), frame: frame, tolerance: tolerance, using: &execution)
+                case .sphericalGreatCircle where remainder(uShift, 2 * .pi) == 0:
+                    return try arc(for: base, frame: frame, tolerance: tolerance, using: &execution)
+                default:
+                    throw unsupported("Face area found a shifted spherical pcurve it cannot measure.", tolerance)
+                }
             }
         default:
             throw unsupported(
@@ -174,16 +186,19 @@ struct SphericalFaceAreaIntegrator {
     /// The area the loop encloses in the parameter domain, −∮ v du over sampled pcurves, with
     /// longitudes unwrapped along the loop and a collapsed pole side closed straight. Only its sign
     /// is used. A loop whose longitude does not return is refused: it encloses no region there.
-    private func signedParameterArea(of curves: [SurfaceParameterCurve], tolerance: ModelingTolerance) throws -> Double {
+    private func signedParameterArea(of curves: [SurfaceParameterCurve], tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> Double {
         var points: [SurfaceParameter] = []
         for curve in curves {
+            try execution.consumeWork(1)
             for index in 0...Self.orientationSamplesPerArc {
+                try execution.consumeWork(1)
                 let fraction = Double(index) / Double(Self.orientationSamplesPerArc)
-                var point = try curve.parameter(atNormalizedFraction: fraction, tolerance: tolerance)
+                var point = try curve.parameter(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
                 if let previous = points.last {
                     point.u += 2 * .pi * ((previous.u - point.u) / (2 * .pi)).rounded()
                 }
-                points.append(point)
+                try OriginalParameterQueryStorage.append(point, to: &points, using: &execution)
             }
         }
         guard let first = points.first, let last = points.last,
@@ -191,7 +206,10 @@ struct SphericalFaceAreaIntegrator {
             throw unsupported("Face area found a spherical loop that winds around the polar axis.", tolerance)
         }
         var area = 0.0
-        for (start, end) in zip(points, points.dropFirst() + [first]) {
+        for index in points.indices {
+            try execution.consumeWork(1)
+            let start = points[index]
+            let end = index + 1 < points.count ? points[index + 1] : first
             area -= (end.u - start.u) * (start.v + end.v) / 2
         }
         return area

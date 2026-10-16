@@ -23,6 +23,29 @@ face loops -> continuous UV chains -> signed fan squares
 ```
 
 ## Contracts and Invariants
+### Direct public face measurements
+`BRepModel.faceAreaMeasurement(..., using:)` and its ordinary overload share one
+implementation. The ordinary entry creates one independent Geometry execution;
+plane, cylinder, cone, torus and sphere arithmetic and every lower source query
+use that execution. Closed-form boundary visits, temporary typed arrays and
+quadrature work are admitted before use. Revolved queries prepare one admitted
+16-node rule per request, rather than initializing an unmetered lazy static
+rule; all terms reuse its immutable node and weight arrays. Inline term
+primitives retain the original formulas without separately allocated captures. Unsupported pcurves and existing
+nondegeneracy guards retain their original failures and formulas.
+
+The free-surface dispatch retains its existing selected value/coefficient depth
+32, source depth 16 and option-selected subdivision depth as a same-budget
+contribution. The contribution and certified allocation scope inherit the
+incoming allocation policy, including its secondary work/record charges.
+Incoming independent axes still intersect these selections; no new query
+budget is created. Existing certified integration acceptance and
+work ceilings are unchanged. Every public success crosses a final checkpoint.
+The result owns only its scalar area and centroid, with no borrowed source view.
+Focused direct-admission checks and the existing surface-area numerical suites
+own regression coverage; Native, WASM and Embedded use identical admission and
+state isolation contracts.
+
 Original polyline rails retain their exact adjacent-point clock and original
 point count admission. Their complete continuity is C0 unless an owning lower
 producer proves more; array adjacency cannot certify a smooth normalized join.
