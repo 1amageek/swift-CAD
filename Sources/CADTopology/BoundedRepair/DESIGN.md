@@ -19,6 +19,120 @@ Requested action -> immutable source -> candidate geometry/incidence
 ```
 
 ## Contracts and Invariants
+### Direct repair execution
+
+The outer repairer, action engine and edge-length evaluator borrow the caller's
+direct execution. The classifier, retained source/correspondence, signed volume,
+pcurve and arc-length producers supply their existing direct execution ports.
+The contract below composes those existing ports; implementation
+acceptance is tracked by `U1.NUMERIC.REPAIR` in the project progress record.
+
+The direct public repair requirement receives one exclusive
+`inout OriginalQueryExecution`. Its ordinary convenience entry creates one
+independent Geometry root and delegates once. The public validator and edge-length protocols expose
+their real non-generic direct requirements; an existential never falls back to
+an ordinary entry or casts to the default concrete implementation.
+
+```text
+Caller execution
+  -> request admission -> injected before report
+  -> requested actions in the existing dependency order
+       -> original lower producer on the same execution
+       -> cumulative task-original displacement audit
+       -> accept, or restore candidate and collapsed-curve ledger
+  -> injected after report -> unresolved diagnostics -> final checkpoint
+  -> immutable result
+```
+
+Each visited source record, comparison, collection traversal, temporary/output
+storage and retained change record is admitted through that execution.
+Checked source-storage helpers retain their existing count/overflow policy.
+Persistent source values use COW; staged snapshots retain the existing model
+and collapsed-curve rollback semantics. Restoring those candidate values never
+refunds admitted work or storage. Callback cancellation and resource rejection
+abort the invocation and cannot become an unresolved repair diagnostic or a
+partially published result.
+
+Lower source, algebra, subdivision, iteration and accuracy policies retain
+their existing owning selections. The ordinary root policy cannot widen a
+direct caller's independent effective axes. In particular, nil local algebra
+policy and a selected finite algebra ceiling remain different contracts.
+No repair law, proximity allowance, whole-curve correspondence guard,
+structural identity or branch selection changes as a consequence of adding
+the direct ports.
+
+| Existing phase | Preserved local admission on the shared execution |
+|---|---|
+| Before/after Topology reports | Same-budget contribution scope: value/coefficient 32, source 16, subdivision 32 |
+| Collapsed-wire and duplicate-face helpers | Their former ordinary Topology-root limits in the same reusable contribution scope |
+| Default edge classifier calls | Existing source/subdivision/nil selections, with the former ambient scalar 32 ceiling in a local proof scope |
+| Standalone edge length | Independent ordinary root; original arc options select subdivision 48 and keep nil local algebra policy |
+| Geometry and correspondence | Their original owning options and guards; direct caller limits still intersect |
+| Analytic signed-volume loops | The [owning volume consumer](../DESIGN.md#analytic-pcurve-loop-volume-admission) selects its required local algebra capability on the same execution |
+
+The old repairer had no single global execution ceiling. Replacing its varied
+phase policies with a blanket subdivision 32 would narrow the original arc
+length phase. Removing every phase ceiling would widen the old Topology and
+classifier phases. Local scopes preserve both policies without creating
+another budget or resetting cumulative charges.
+
+The existing `PreparedCurveDifferentialEncloser.positionBounds` accepts a
+closed singleton and is the authority for endpoint displacement audits.
+The positive-width differential enclosure entry cannot consume `[t,t]`.
+That old entry rejects the query before choosing a successful endpoint law;
+it has no successful local algebra policy to preserve for this input. The
+closed endpoint audit explicitly selects algebra depth 32, the existing exact
+producer's supported ceiling, together with the caller's effective source and
+subdivision limits. This selection enables the retained polyline length law;
+it does not increase either independent caller scalar ceiling or create a new
+budget. A zero-depth caller remains zero-depth. Other phases retain their
+existing nil or finite selections.
+The missing-spatial-curve reconstruction counterexample must exercise the
+actual public action and its station audit before this local correction is
+accepted; it does not authorize a new inverse-chart or sampling solver.
+Its constant-U/V prevalidation also consumes the existing prepared owner
+[affine plane-lift continuity contract](../../CADGeometry/DESIGN.md#prepared-affine-plane-lift-continuity).
+The complete original correspondence bound remains the validator's authority.
+
+The finite action obligations below require actual changed source/result
+behavior. Requesting all cases or observing an empty change array is not
+evidence that an action executed correctly.
+
+| Action | Concrete authored defect | Required result |
+|---|---|---|
+| Ownership deduplication | Repeated shell/face/loop ownership IDs | Stable first occurrence retained; exact audited ownership delta |
+| Loop ordering/orientation | Shuffled square uses and an incorrectly directed use | Unique minimum-reversal cycle and corresponding original pcurve direction |
+| Curve representation reconstruction | Missing spatial curve with retained incident surface pcurve | Original surface-lift curve, complete incident correspondence and endpoint displacement audit |
+| Wire vertex sewing | Distinct nearby endpoint IDs at a wire join | Deterministic retained vertex and recorded bounded cumulative displacement |
+| Duplicate wire-use removal | Repeated identical directed coedge | One occurrence removed; a distinct seam or reversed use retained |
+| Small wire-edge collapse | Open short edge whose whole source image lies within the allowance | Edge removed, retained vertex and original collapsed-curve ledger preserved; closed/singular controls retained |
+| Singular boundary restoration | Omitted pole use between pcurves at one topological vertex | Face-local source lift and same-vertex edge with original nonzero UV extent |
+| Periodic chart restoration | Discontinuous intrinsic periodic trim charts | Complete original period translations; finite physical-angle controls keep their own authority |
+| Duplicate face removal | Two same-oriented exact source/trim signatures in a shell | Duplicate and newly orphaned descendants removed; opposite orientations retained |
+| Shell-edge sewing | Distinct edge IDs carrying the same directed/reversed source and trim | Canonical shared edge, preserved coedge traversal and audited source IDs |
+| Shell face orientation | Inconsistent but reconcilable incidence | Consistent face/coedge/pcurve orientation; contradictory control remains explicit |
+| Solid component orientation | Incorrect outer/void role or signed boundary direction | Existing material role and proved signed-volume orientation restored |
+| Unreferenced source pruning | Body-unreachable topology/geometry records | Only unreachable records removed, with complete generated/deleted/affected ledger |
+
+The current malformed test that requests three actions but compares its change
+set with all thirteen cases must instead compare with the actual requested
+actions. Its expected repaired geometry, valid final report and unchanged
+original input remain required.
+
+The outer repairer, action engine and lower edge-length evaluator have distinct
+file ownership. The eight methods in `BoundedBRepRepairEngine` have one owner.
+Fixture authors own separate test files. Shared protocol signatures and this
+design are fixed before those disjoint source edits begin; production-module
+verification begins only after the composing source snapshot is stable.
+
+Verification owns all thirteen changed-action rows, before/after injected
+direct witnesses, independent caller axes, exact-N/N-1 cumulative work/storage,
+entry/in-progress/final cancellation, ambiguous/rejected candidates, rollback
+and result/source lifetime. Every applicable target uses the same immutable
+owners, Sendable requirements and Mutex isolation. Existing unsupported
+inverse/equivalent-chart source domains remain explicit and are not completed
+by an admission-only migration.
+
 Edge classification validates the complete original world-space source once.
 Classification then traverses retained spatial/parameter wrappers without
 revalidating their raw local coefficients under the world-space SI tolerance.
@@ -33,17 +147,20 @@ never inherit a binary intrinsic period merely from their primitive source.
   and mesh position proofs; repair retains its own unchanged physical allowance.
 Vertex sewing moves references only within the requested distance tolerance and records the maximum displacement. Curve replacement preserves every incident directed pcurve by whole-interval proof. Shared edges have one canonical 3D curve. Shell face orientation propagation rejects contradictory incidence. Solid component repair retains explicit outer/void ownership, restores its forward/reversed shell law and uses original signed volume intervals to orient each shell boundary outward before applying its material role. A zero-straddling signed-volume proof leaves an explicit unresolved diagnostic. Generated/deleted topology and geometry are identified explicitly; tolerance is not silently increased. Each action is staged against its pre-action immutable snapshot. Surviving edge endpoint references are compared to the task-original source points; a sequence whose cumulative displacement exceeds the one requested allowance is rolled back with an explicit diagnostic. Each accepted action publishes exact generated/deleted source entity IDs and its cumulative maximum displacement.
 
-Bounded curve validation forwards the producer's actual source-depth visit to
-the same classifier work callback. Its arity adapter preserves that depth; it
-does not replace every visit with depth zero. A throwing caller admission aborts
-classification before an edge kind can be published.
+Bounded curve validation passes the same caller execution directly to the
+classifier's lower source producer. Actual source-depth visits retain their
+independent meaning rather than becoming synthetic depth-zero visits. Caller
+admission rejection aborts classification before an edge kind is published.
 Regression owner: [Native dependency contracts](../../../Tests/CADTopologyTests/NativeDependencyContractTests.swift).
 
 ## Failure, Concurrency, and Constraints
 Cancellation propagates. A missing or ambiguous reconstruction leaves an explicit diagnostic. No partially proved candidate is reported as repaired.
 
 ## Verification and Change Impact
-Behavioral repair tests must exercise missing representations, reversed correspondence, seam preservation, vertex gaps and contradictory shell incidence. This implementation batch precedes all build and runtime verification.
+Behavioral repair tests exercise missing representations, reversed correspondence,
+seam preservation, vertex gaps and contradictory shell incidence. Finite acceptance
+requires the actual thirteen changed actions, independent admission boundaries,
+terminal failures and the real staged rollback composition described above.
 
 The edge geometry classifier distinguishes open, complete closed-period and exact
 singular surface-lift edges. A singular edge has nonzero original UV extent but

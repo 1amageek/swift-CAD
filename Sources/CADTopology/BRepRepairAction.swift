@@ -13,6 +13,29 @@ public enum BRepRepairAction: String, Hashable, Sendable, CaseIterable {
     case orientSolidComponents
     case pruneUnreferencedTopology
 
+    func requires(_ scope: TopologyValidationScope) -> Bool {
+        switch self {
+        case .deduplicateOwnershipReferences, .pruneUnreferencedTopology:
+            scope == .references
+        case .reconstructCurveRepresentations:
+            scope == .references || scope == .pcurves
+        case .sewWireVertices, .removeDuplicateWireUses, .collapseSmallWireEdges:
+            scope == .references || scope == .loops
+        case .restorePeriodicCharts:
+            scope == .loops || scope == .pcurves
+        case .restoreSingularBoundaryUses:
+            scope == .references || scope == .loops || scope == .pcurves
+        case .removeDuplicateFaces, .sewShellEdges:
+            scope == .references || scope == .orientation || scope == .manifold || scope == .watertight
+        case .orientShellFaces:
+            scope == .orientation || scope == .manifold || scope == .watertight
+        case .orientSolidComponents:
+            scope == .references || scope == .orientation || scope == .manifold || scope == .watertight || scope == .volume
+        case .reorderAndOrientLoopCoedges:
+            scope == .loops || scope == .pcurves || scope == .orientation
+        }
+    }
+
     var requiredValidationScopes: Set<TopologyValidationScope> {
         switch self {
         case .deduplicateOwnershipReferences, .pruneUnreferencedTopology:

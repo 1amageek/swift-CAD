@@ -27,11 +27,6 @@ struct OriginalDuplicateFaceRepair {
         let uses: [UseSource]
     }
 
-    func repair(model: inout BRepModel, tolerance: ModelingTolerance,
-        changes: inout [BRepRepairChange]) throws {
-        var execution = try BRepModel.originalValidationExecution()
-        try repair(model: &model, tolerance: tolerance, changes: &changes, using: &execution)
-    }
 
     func repair(model: inout BRepModel, tolerance:ModelingTolerance,
         changes: inout [BRepRepairChange], using execution: inout OriginalQueryExecution) throws {

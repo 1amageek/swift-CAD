@@ -2175,6 +2175,29 @@ Behavioral verification must distinguish a strict interior inclusion from a
 near-boundary residual witness, propagate independent depth/work/storage and
 cancellation failures, and retain prepared source ownership after release.
 
+### Prepared Affine Plane-Lift Continuity
+
+The retained prepared curve owner issues its existing continuity receipt for
+validated bare-plane lifts of authored `constantU` and `constantV` parameter
+curves, as well as the existing positive two-point polyline. Each selected law
+is globally affine on its original normalized closed interval. The issuer
+checks finite authored coefficients, the original positive directed extent,
+the retained preparation tolerance and requested subdomain, and admits the
+source descent on the same execution before retaining the receipt. Reversal
+preserves the authored parameter direction. No sampled agreement, derivative
+hull, reconstructed polyline or new parameterization supplies the proof.
+
+The receipt supplies continuity only; the existing original higher-jet owner
+still evaluates position and derivatives, and the correspondence consumer
+still proves its original complete deviation bound. Other lifted families,
+piecewise corners and unproved joins retain their existing capability result.
+No source, scalar, subdivision, work or storage ceiling is increased. This
+closes the measured straight-line repair prevalidation case where a missing
+continuity receipt selected independent position-box subdivision: 262,144 work
+was exhausted after 4,064 cells while the equivalent admitted affine law used
+one cell. Tests must cover both parameter axes and directions, retained
+subdomains, invalid domains, real public repair and caller failure/cancellation.
+
 ### Sealed Isoparametric Middle-Row Source Law
 
 The existing `ExactIsoparametricPlanarIntersectionGraph` theorem selects the

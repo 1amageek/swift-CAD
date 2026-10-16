@@ -8,4 +8,11 @@ public protocol BRepEdgeLengthEvaluating: Sendable {
         in model: BRepModel,
         tolerance: ModelingTolerance
     ) throws -> CurveArcLengthEnclosure
+
+    func lengthEnclosure(
+        of edge: Edge,
+        in model: BRepModel,
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution
+    ) throws -> CurveArcLengthEnclosure
 }

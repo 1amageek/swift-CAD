@@ -39,6 +39,31 @@ The bounded affine-word correspondence norm path admits its exact temporary
 payload through the composing execution before allocation. The structural
 identity path retains no new norm payload.
 
+### Validated Periodic Chart Reuse in the Bounded Facade
+
+`OriginalBoundedCurveSurfaceCorrespondence` validates the original curve,
+support and complete pcurve before choosing its structural proof. That pcurve
+validation already proves every `periodicTranslation` against the original
+support-period theorem on the same execution. Its bounded structural reader
+may therefore peel those validated outer translations and compare the retained
+base chart with the hosted curve's original chart. Equal support and base laws
+on the existing complete `[0,1]` directed use establish residual zero. A
+nonmatching base continues through the existing bounded proof; an invalid shift
+or incomplete source proof propagates its original failure before comparison.
+
+This reuses the existing ordinary validator's period-transport contract. It
+does not infer a period from near XYZ, flatten the returned pcurve, merge lifts,
+extend source scope or supply continuity to unrelated cylinder lifts. Wrapper
+visits consume work, source validation retains the caller's independent depth
+and scalar ceilings, and a final checkpoint precedes structural publication.
+The caller retains the original lifted UV expression and owner unchanged.
+
+The concrete repair observation is a valid intrinsic cylinder chart loop:
+unwrapping succeeds, the unchanged hosted side has exact zero residual, and
+only its proved period-translated chart previously exhausted bounded residual
+subdivision. Public periodic repair, invalid shifts, foreign bases, source-depth
+refusal, cancellation and retained-source checks own this changed path.
+
 - Spatial curves are finite nonperiodic clamped native B-splines of degree 1...6.
   Every interior knot has multiplicity exactly the degree, so each original
   coefficient slice is a Bezier patch without knot insertion or extraction.

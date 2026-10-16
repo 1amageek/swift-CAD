@@ -39,6 +39,11 @@ struct OriginalPeriodicSeamProof {
                     return try (uv(u, start), uv(u, end))
                 case .constantV(let v, let start, let end):
                     return try (uv(start, v), uv(end, v))
+                case .polyline(let points):
+                    guard points.count == 2 else { return nil }
+                    // The sole Euclidean segment has length/total exactly one over the whole fraction domain.
+                    try usage.consumeWork(4)
+                    return try (uv(points[0].u, points[0].v), uv(points[1].u, points[1].v))
                 case .affine(let origin, let direction, let start, let end):
                     let x = try original(origin.x), y = try original(origin.y)
                     let dx = try original(direction.x), dy = try original(direction.y)

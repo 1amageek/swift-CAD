@@ -64,6 +64,12 @@ Periodic seam comparison composes exact linear chart endpoints through retained
 word images, original parameter gain/axis images and chart-preserving offset
 images. Native control laws remain separate whole-basis comparisons. No endpoint
 sampling establishes equality for a nonlinear traversal.
+Exactly two distinct finite polyline points also define a globally affine
+normalized law: the sole segment's length cancels its identical total length.
+The seam issuer may compare that whole law using its original exact endpoints,
+including reversal and existing image transport. This is the same source theorem
+used by Geometry's original two-point bounds; it does not admit a multi-segment
+polyline from endpoint samples. Zero displacement remains a non-seam result.
 Seam displacements stay as original rational coefficients through support
 period-lattice proof. Nonrepresentable differences are never rounded to a stored
 Double translation before deciding seam identity.

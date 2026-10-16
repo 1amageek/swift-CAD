@@ -67,7 +67,28 @@ struct OriginalBoundedCurveSurfaceCorrespondence {
             try GeometryStructuralComparisonWork.charge(surface: surface, using: &execution)
             try GeometryStructuralComparisonWork.charge(parameterCurve: hosted.parameterCurve, using: &execution)
             try GeometryStructuralComparisonWork.charge(parameterCurve: parameterCurve, using: &execution)
-            if hosted.surface == surface, hosted.parameterCurve == parameterCurve { return 0 }
+            if hosted.surface == surface {
+                if hosted.parameterCurve == parameterCurve {
+                    try execution.checkpoint()
+                    return 0
+                }
+                // Every outer shift already passed original source-period validation above.
+                var originalChart = parameterCurve
+                var translated = false
+                while case .periodicTranslation(let base, _, _) = originalChart {
+                    try execution.consumeWork(1)
+                    originalChart = base
+                    translated = true
+                }
+                if translated {
+                    try GeometryStructuralComparisonWork.charge(parameterCurve: hosted.parameterCurve, using: &execution)
+                    try GeometryStructuralComparisonWork.charge(parameterCurve: originalChart, using: &execution)
+                    if hosted.parameterCurve == originalChart {
+                        try execution.checkpoint()
+                        return 0
+                    }
+                }
+            }
         }
         return nil
     }

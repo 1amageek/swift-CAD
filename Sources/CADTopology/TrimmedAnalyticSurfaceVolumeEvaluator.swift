@@ -369,7 +369,10 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
       parameterCurves,
       on: surface,
       tolerance: tolerance,
-      context: "Analytic pcurve-loop volume", maximumSubdivisionDepth: min(32, execution.effectiveLimits.maximumSubdivisionDepth), remainingSourceDepth: min(16, execution.effectiveLimits.remainingSourceDepth), using: &execution
+      context: "Analytic pcurve-loop volume",
+      maximumSubdivisionDepth: min(32, execution.effectiveLimits.maximumSubdivisionDepth),
+      remainingSourceDepth: min(16, execution.effectiveLimits.remainingSourceDepth),
+      maximumAlgebraicDepth: 32, using: &execution
     )
     let integrationCurves = try OriginalParameterQueryStorage.map(unwrapped, using: &execution) { item, execution in item.translatedCurve }
     guard

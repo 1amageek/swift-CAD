@@ -100,7 +100,11 @@ struct BRepScopedValidationAndRepairTests {
         #expect(result.before.isValid == false)
         #expect(result.after.isValid)
         #expect(result.diagnostics.isEmpty)
-        #expect(Set(result.changes.map(\.action)) == Set(BRepRepairAction.allCases))
+        #expect(Set(result.changes.map(\.action)) == Set([
+            BRepRepairAction.deduplicateOwnershipReferences,
+            .reorderAndOrientLoopCoedges,
+            .pruneUnreferencedTopology,
+        ]))
         #expect(result.model.edges[orphanEdgeID] == nil)
         #expect(result.model.vertices[orphanStartID] == nil)
         #expect(result.model.vertices[orphanEndID] == nil)
@@ -349,7 +353,7 @@ struct BRepScopedValidationAndRepairTests {
             geometry: GeometryStore(
                 curves: curves,
                 surfaces: [
-                    surfaceID: .plane(Plane3D(origin: .origin, normal: .unitZ)),
+                    surfaceID: .plane(Plane3D(origin: .origin, normal: .unitZ, uDirection: .unitX)),
                 ]
             ),
             bodies: [bodyID: Body(id: bodyID, sheetShellIDs: [shellID])],

@@ -4,12 +4,6 @@ import CADGeometry
 
 /// Restores exact parameter incidence omitted at an original collapsed boundary.
 struct OriginalCollapsedWireRestorer {
-    func restore(model: inout BRepModel, tolerance: ModelingTolerance,
-        changes: inout [BRepRepairChange], diagnostics: inout [BRepRepairDiagnostic]) throws {
-        var execution = try BRepModel.originalValidationExecution()
-        try restore(model: &model, tolerance: tolerance, changes: &changes,
-            diagnostics: &diagnostics, using: &execution)
-    }
 
     func restore(model: inout BRepModel, tolerance: ModelingTolerance,
         changes: inout [BRepRepairChange], diagnostics: inout [BRepRepairDiagnostic],

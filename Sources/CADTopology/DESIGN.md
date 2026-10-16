@@ -30,6 +30,7 @@ selected snapshot is distinct from a complete body-owned BRepModel.
 | [GenericShape](GenericShape/DESIGN.md) | child | ShapeRepresenting and ShapeOperating | Owns common dimensional selection and exact rigid-image operations. | Selected closure validation retains the complete-body BRepModel contract. |
 | [Non-Manifold Topology](NonManifoldTopology/DESIGN.md) | child | raw snapshot retention, structural diagnosis and explicit admission | Preserves non-manifold topology for inspection without granting modeling permission. | Clean structure must still pass existing exact geometry/body validation. |
 | [OpenBoundaryLoop](OpenBoundaryLoop/DESIGN.md) | child | ordered boundary cycles and hole eligibility | Provides shared exact topology and rejects a lone face's outer perimeter as a fill target. | Geometry quality remains a modeling contract. |
+| [BoundedRepair](BoundedRepair/DESIGN.md) | child | direct repair, validation and edge-length execution ports | Composes the existing thirteen staged actions on one caller execution. | Phase-local proof policies and spent charges survive candidate rollback. |
 | [CADModeling](../CADModeling/DESIGN.md) | used by | loop containing a stable seed edge | Builds a separate surface from an eligible boundary. | Curve conversion and surface quality remain CADModeling responsibilities. |
 | [RupaCore](../../../RupaKit/Sources/RupaCore/DESIGN.md) | used by | loop edge membership | Marks the same open loop for viewport affordances. | Display identity comes from generated topology IDs. |
 
@@ -109,6 +110,18 @@ retain their independent composing caller policies.
 - `AnalyticPrismaticVolumeEvaluator`'s closed-form frustum takes shells of cones and
   planes only; a shell with a torus among its cones (a cone's rim rounded) is left to
   `TrimmedAnalyticSurfaceVolumeEvaluator`'s flux (`ConicalRimBlendTests`).
+
+### Analytic Pcurve-Loop Volume Admission
+
+The existing analytic pcurve-loop volume consumer explicitly selects algebra
+depth 32 when requesting retained loop unwrapping. This local producer policy
+closes its real six-plane/two-point-polyline signed-volume input; the old call
+omitted that capability and stopped before integration. It is constrained by
+both independent caller scalar ceilings on the same execution, with the
+existing source 16 and subdivision 32 selections. Explicit nil-algebra loop
+queries retain their existing refusal contract. No lower polyline capability,
+formula, tolerance, integration limit or caller budget changes. Solid repair
+uses this same signed-volume consumer rather than a separate repair formula.
 
 ### Geometry Store Bounded Admission
 
