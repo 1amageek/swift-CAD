@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 /// The motion a Topology Transform applies, in the target body's own frame.
 public enum TopologyMotion: Hashable, Sendable {
@@ -7,10 +8,16 @@ public enum TopologyMotion: Hashable, Sendable {
     case scale(DirectScale)
 
     public func validate(tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         switch self {
-        case let .translation(vector): try vector.validate(tolerance: tolerance)
-        case let .rotation(rotation): try rotation.validate(tolerance: tolerance)
-        case let .scale(scale): try scale.validate(tolerance: tolerance)
+        case let .translation(vector): try vector.validate(tolerance: tolerance, using: &execution)
+        case let .rotation(rotation): try rotation.validate(tolerance: tolerance, using: &execution)
+        case let .scale(scale): try scale.validate(tolerance: tolerance, using: &execution)
         }
     }
 

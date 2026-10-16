@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 import CADTopology
 
 /// Delete Face: faces taken out of a solid. Healing, the faces around them grow over where they
@@ -19,17 +20,27 @@ public struct FaceDeleteFeature: Hashable, Sendable {
     }
 
     public func validate() throws {
-        try target.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try target.validate(using: &execution)
         guard faces.isEmpty == false else {
             throw FeatureEvaluationError.invalidGraph("Face Delete requires at least one face target.")
         }
         var seen = Set<StableSubshapeReference>()
         for face in faces {
-            try face.validate()
-            guard seen.insert(face).inserted else {
+            try execution.consumeWork(1)
+            try face.validate(using: &execution)
+            try face.chargeStructuralComparison(using: &execution)
+            guard (try OriginalParameterQueryStorage.insert(face, in: &seen, using: &execution)) else {
                 throw FeatureEvaluationError.invalidGraph("Face Delete targets must be unique.")
             }
         }
+
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)
@@ -72,7 +83,15 @@ public struct FaceDeleteTargetReference: Hashable, Sendable {
         self.featureID = featureID
     }
 
-    public func validate() throws {}
+    public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try execution.checkpoint()
+    }
 
 #if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {

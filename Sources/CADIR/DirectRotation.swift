@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 /// A rotation by `angle` about the axis through `origin` along `axis`, right-handed.
 public struct DirectRotation: Hashable, Sendable {
@@ -13,13 +14,19 @@ public struct DirectRotation: Hashable, Sendable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try tolerance.validate()
         try origin.validate()
         try axis.validate()
         guard axis.length > tolerance.distance else {
             throw GeometryError.invalidVectorLength(axis.length)
         }
-        try angle.validateLiteralQuantities()
+        try angle.validateDocumentLiteralQuantities(using: &execution)
     }
 
 #if !hasFeature(Embedded)

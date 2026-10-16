@@ -43,6 +43,7 @@ public struct FaceRebuildFeature: Hashable, Sendable {
         for face in faces {
             try execution.consumeWork(1)
             try face.validate(using: &execution)
+            try face.chargeStructuralComparison(using: &execution)
             guard seen.insert(face).inserted else {
                 throw FeatureEvaluationError.invalidGraph("Rebuild Face faces must be unique.")
             }
@@ -124,10 +125,10 @@ public enum FaceRebuildMethod: Hashable, Sendable {
     public func validate(using execution: inout OriginalQueryExecution) throws {
         try execution.consumeWork(1)
         switch self {
-        case let .explicit(layout): try layout.validate()
-        case let .tolerance(distance): try distance.validateLiteralQuantities()
+        case let .explicit(layout): try layout.validate(using: &execution)
+        case let .tolerance(distance): try distance.validateDocumentLiteralQuantities(using: &execution)
         case .nominal: break
-        case let .square(refit): try refit.validate()
+        case let .square(refit): try refit.validate(using: &execution)
         case let .given(surface):
             try surface.validate(tolerance: CADIRPersistenceValidation.tolerance, using: &execution)
         }

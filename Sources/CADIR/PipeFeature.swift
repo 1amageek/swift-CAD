@@ -1,4 +1,6 @@
 import CADCore
+import CADTopology
+import CADGeometry
 
 /// A pipe along a curve: a circle (or a regular polygon) of `diameter`, or a custom `profile` (a
 /// region or a planar face), standing across the path at its start, hollow to a wall `thickness`
@@ -114,6 +116,12 @@ public struct PipeFeature: Hashable, Sendable {
 #endif
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         guard vertexCount == 0 || (3...256).contains(vertexCount) else {
             throw FeatureEvaluationError.invalidGraph("A pipe's section is a circle or a polygon of 3 to 256 vertices.")
         }
@@ -121,15 +129,15 @@ public struct PipeFeature: Hashable, Sendable {
             throw FeatureEvaluationError.invalidGraph("A pipe has either a diameter or a custom profile.")
         }
         if let profile {
-            try profile.validate()
+            try profile.validate(using: &execution)
             guard vertexCount == 0, profile.isClosedRegion, profile.featureID != path.featureID else {
                 throw FeatureEvaluationError.invalidGraph(
                     "A pipe's custom profile is a region or a planar face, distinct from its path, without a vertex count."
                 )
             }
         }
-        let targetIDs = targets.map { $0.featureID }
-        guard Set(targetIDs).count == targetIDs.count, !targetIDs.contains(path.featureID) else {
+        let targetIDs = try OriginalParameterQueryStorage.map(targets, using: &execution) { value, execution in value.featureID }
+        guard (try OriginalParameterQueryStorage.set(targetIDs, using: &execution)).count == targetIDs.count, !(try OriginalParameterQueryStorage.contains(targetIDs, using: &execution, predicate: { value, execution in value == path.featureID })) else {
             throw FeatureEvaluationError.invalidGraph("A pipe's targets are unique bodies distinct from its path.")
         }
         switch booleanOperation {
@@ -142,9 +150,15 @@ public struct PipeFeature: Hashable, Sendable {
                 throw FeatureEvaluationError.invalidGraph("A Boolean pipe needs at least one target body.")
             }
         }
-        for expression in expressions {
-            try expression.validateLiteralQuantities()
-        }
+        try angle.validateDocumentLiteralQuantities(using: &execution)
+        try twist.validateDocumentLiteralQuantities(using: &execution)
+        try endScale.validateDocumentLiteralQuantities(using: &execution)
+        try start.validateDocumentLiteralQuantities(using: &execution)
+        try end.validateDocumentLiteralQuantities(using: &execution)
+        try approximationTolerance.validateDocumentLiteralQuantities(using: &execution)
+        try diameter?.validateDocumentLiteralQuantities(using: &execution)
+        try thickness?.validateDocumentLiteralQuantities(using: &execution)
+        try execution.checkpoint()
     }
 
     /// The features the pipe consumes: its custom profile's source, its path and its targets.
@@ -152,6 +166,20 @@ public struct PipeFeature: Hashable, Sendable {
         (profile.map { [FeatureInput(featureID: $0.featureID, role: $0.inputRole)] } ?? [])
             + [FeatureInput(featureID: path.featureID, role: .path)]
             + targets.map { FeatureInput(featureID: $0.featureID, role: .target) }
+    }
+
+    func validationInputs(using execution: inout OriginalQueryExecution) throws -> [FeatureInput] {
+        try execution.consumeWork(1)
+        var result: [FeatureInput] = []
+        if let profile { try OriginalParameterQueryStorage.append(FeatureInput(featureID: profile.featureID, role: profile.inputRole), to: &result, using: &execution) }
+        try OriginalParameterQueryStorage.append(FeatureInput(featureID: path.featureID, role: .path), to: &result, using: &execution)
+        for target in targets {
+            try execution.consumeWork(1)
+            try OriginalParameterQueryStorage.append(FeatureInput(featureID: target.featureID, role: .target), to: &result, using: &execution)
+        }
+
+        try execution.checkpoint()
+        return result
     }
 
     /// The expressions whose parameters the pipe depends on.

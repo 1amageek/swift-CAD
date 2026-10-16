@@ -17,8 +17,16 @@ public struct BSplineSurfaceFeature: Sendable, Hashable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
-        try surface.validate(tolerance: tolerance)
-        try parameterDomain?.validate(containedIn: surface, tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try surface.validate(tolerance: tolerance, using: &execution)
+        try parameterDomain?.validate(containedIn: surface, tolerance: tolerance, using: &execution)
+
+        try execution.checkpoint()
     }
 
     public func resolvedParameterDomain(

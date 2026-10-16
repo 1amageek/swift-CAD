@@ -26,6 +26,16 @@ public enum SubshapeGeometrySignature: Hashable, Sendable {
         }
     }
 
+    func chargeStructuralComparison(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        switch self {
+        case .body(let body): try body.chargeStructuralComparison(using: &execution)
+        case .vertex: try execution.consumeWork(3)
+        case .edge(let edge): try edge.chargeStructuralComparison(using: &execution)
+        case .face(let face): try face.chargeStructuralComparison(using: &execution)
+        }
+    }
+
 #if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case kind

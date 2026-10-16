@@ -31,6 +31,11 @@ public struct BodyGeometrySignature: Hashable, Sendable {
         }
     }
 
+    func chargeStructuralComparison(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        for shell in shells { try shell.chargeStructuralComparison(using: &execution) }
+    }
+
 #if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey, CaseIterable {
         case kind

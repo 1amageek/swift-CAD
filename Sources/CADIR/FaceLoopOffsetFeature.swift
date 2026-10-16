@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 import CADTopology
 
 /// Face outlines offset (Offset Face Loop): the outer loop of each chosen face is offset by
@@ -31,15 +32,27 @@ public struct FaceLoopOffsetFeature: Hashable, Sendable {
     }
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try target.validate()
         guard faces.isEmpty == false else {
             throw FeatureEvaluationError.invalidGraph("Offset Face Loop needs at least one face.")
         }
-        for face in faces { try face.validate() }
-        guard Set(faces).count == faces.count else {
+        for face in faces {
+            try execution.consumeWork(1)
+            try face.validate(using: &execution)
+            try face.chargeStructuralComparison(using: &execution)
+        }
+        guard (try OriginalParameterQueryStorage.set(faces, using: &execution)).count == faces.count else {
             throw FeatureEvaluationError.invalidGraph("Offset Face Loop's faces must be distinct.")
         }
-        try distance.validateLiteralQuantities()
+        try distance.validateDocumentLiteralQuantities(using: &execution)
+
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)

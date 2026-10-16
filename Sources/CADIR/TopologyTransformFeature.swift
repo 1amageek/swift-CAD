@@ -1,4 +1,6 @@
 import CADCore
+import CADTopology
+import CADGeometry
 
 /// Moves faces, edges and vertices of one body together by one motion: every vertex they bound
 /// moves once, so targets that share vertices move consistently.
@@ -18,6 +20,12 @@ public struct TopologyTransformFeature: Hashable, Sendable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try target.validate()
         guard !subshapes.isEmpty else {
             throw FeatureEvaluationError.invalidGraph("Topology Transform requires at least one face, edge or vertex.")
@@ -27,12 +35,15 @@ public struct TopologyTransformFeature: Hashable, Sendable {
         }
         var seen = Set<StableSubshapeReference>()
         for subshape in subshapes {
-            try subshape.validate()
-            guard seen.insert(subshape).inserted else {
+            try execution.consumeWork(1)
+            try subshape.validate(using: &execution)
+            try subshape.chargeStructuralComparison(using: &execution)
+            guard try OriginalParameterQueryStorage.insert(subshape, in: &seen, using: &execution) else {
                 throw FeatureEvaluationError.invalidGraph("Topology Transform targets must be unique.")
             }
         }
-        try motion.validate(tolerance: tolerance)
+        try motion.validate(tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)

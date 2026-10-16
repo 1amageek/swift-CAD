@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 public struct PolySplineSurfaceControlPointOverride: Sendable, Hashable {
     public var patchID: Int
@@ -30,6 +31,12 @@ public struct PolySplineSurfaceControlPointOverride: Sendable, Hashable {
     }
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try address.validate()
         try point.validate()
         guard weight.isFinite else {

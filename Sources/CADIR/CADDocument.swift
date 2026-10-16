@@ -145,23 +145,27 @@ public struct CADDocument: Equatable, Sendable {
     @discardableResult
     public func validate(tolerance:ModelingTolerance, independentShapeLimits:IndependentShapeSourceLimits,
                          using execution: inout OriginalQueryExecution) throws -> IndependentShapeSourceValidation? {
-        try execution.checkpoint()
+        try execution.consumeWork(1)
         try schemaVersion.validate()
+        try execution.consumeWork(1)
         try units.validate()
+        try execution.consumeWork(1)
         try metadata.validate()
-        try parameters.validate()
-        try designGraph.validate(tolerance: tolerance)
-        try designGraph.validateExpressions(using: parameters, tolerance: tolerance)
-        try documentFoundation.validate(in: self)
-        try validateAssembly(tolerance: tolerance)
+        try parameters.validate(using: &execution)
+        try designGraph.validate(tolerance: tolerance, using: &execution)
+        try designGraph.validateExpressions(using: parameters, tolerance: tolerance, execution: &execution)
+        try documentFoundation.validate(in: self, using: &execution)
+        try validateAssembly(tolerance: tolerance, using: &execution)
         let independentValidation = try validateIndependentShapes(tolerance:tolerance,limits:independentShapeLimits,using: &execution)
-        try validateProductAttributes()
+        try validateProductAttributes(using: &execution)
         var dimensionIDs: Set<SelectionDimensionID> = []
         for dimension in selectionDimensions {
+            try execution.consumeWork(1)
+            try execution.retainStorage(count: 1, stride: MemoryLayout<SelectionDimensionID>.stride)
             guard dimensionIDs.insert(dimension.id).inserted else {
                 throw FeatureEvaluationError.invalidGraph("Selection dimension IDs must be unique.")
             }
-            try dimension.validate(parameters: parameters, tolerance: tolerance)
+            try dimension.validate(parameters: parameters, tolerance: tolerance, using: &execution)
         }
         try execution.checkpoint()
         return independentValidation
@@ -190,8 +194,14 @@ public extension CADDocument {
     }
 
     func validateProductAttributes(limits: ProductAttributeLimits = .standard) throws {
-        var budget = try ProductAttributeBudget(limits: limits)
-        try ProductAttributesValidator().validate(productAttributes, in: self, budget: &budget)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validateProductAttributes(limits: limits, using: &execution)
+    }
+
+    func validateProductAttributes(limits: ProductAttributeLimits = .standard,
+        using execution: inout OriginalQueryExecution) throws {
+        var budget = try ProductAttributeBudget(limits: limits, using: &execution)
+        try ProductAttributesValidator().validate(productAttributes, in: self, budget: &budget, using: &execution)
     }
 
     func replacingProductAttributes(_ attributes: ProductAttributes, tolerance: ModelingTolerance) throws -> CADDocument {
@@ -202,9 +212,14 @@ public extension CADDocument {
     }
 
     func validateAssembly(tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validateAssembly(tolerance: tolerance, using: &execution)
+    }
+
+    func validateAssembly(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
         if let assembly {
-            _ = try DocumentAssemblyValidator().expandedOccurrences(of: assembly, in: designGraph,
-                tolerance: tolerance, limits: .standard)
+            _ = try DocumentAssemblyValidator().expand(assembly, in: designGraph,
+                tolerance: tolerance, limits: .standard, using: &execution)
         }
     }
 }

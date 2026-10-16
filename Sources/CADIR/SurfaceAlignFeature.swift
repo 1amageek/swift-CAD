@@ -55,10 +55,16 @@ public struct SurfaceAlignFeature: Hashable, Sendable {
     }
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try target.validate()
         try reference.validate()
-        try targetEdge.validate()
-        try referenceEdge.validate()
+        try targetEdge.validate(using: &execution)
+        try referenceEdge.validate(using: &execution)
         guard target.featureID != reference.featureID else {
             throw FeatureEvaluationError.invalidGraph("Align Surface aligns a sheet to an edge of another body.")
         }
@@ -74,7 +80,8 @@ public struct SurfaceAlignFeature: Hashable, Sendable {
         guard (0...1).contains(partialStart), (0...1).contains(partialEnd), partialEnd > partialStart else {
             throw FeatureEvaluationError.invalidGraph("Align Surface's partial start and end are fractions of the reference edge, the start before the end.")
         }
-        try layout?.validate()
+        try layout?.validate(using: &execution)
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)

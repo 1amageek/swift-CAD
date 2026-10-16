@@ -1,0 +1,397 @@
+{
+  "formatVersion": 1,
+  "scope": "U1.DIRECT_GAPS.IR complete CADDocument validation only; not whole U1-U4 or all seven requirements.",
+  "productionSourceAuthority": {
+    "manifestSHA256": "43e8d1304d37a4589e3c099eeb5c4e80ce518744092e41daec294b8f65f19efb",
+    "IRSources": 818,
+    "CoreSources": 67,
+    "GeometrySources": 2171,
+    "TopologySources": 142
+  },
+  "fixtureAuthority": {
+    "manifestSHA256": "2565851b802fe1cc30c659ee63ac134af36dea156de3247531c69fc8a471a59f",
+    "sharedChecksSHA256": "dafd499124f8327aaa4cb0f39e7dd83868a97b2f1f798926938598dba959faac",
+    "checkCount": 10
+  },
+  "nativeComposition": {
+    "priorAcceptedChecks": [
+      "validNonemptyDocumentPreservesOriginalValidation()",
+      "zeroCallerStorageRefusesWholeDocumentPublication()",
+      "structuralHashAndFixedScratchUseCallerAdmission()",
+      "originalInvalidOrderAndCopyLifetime()",
+      "zeroCallerWorkRefusesWholeDocumentPublication()",
+      "independentSourceAncestryAndNumericAxes()",
+      "measuredExactWorkAndStorageCeilings()",
+      "selectedContributionAndScopeRestoration()"
+    ],
+    "findingOnlyAcceptedChecks": [
+      "terminalCallerCancellationRefusesPublication()",
+      "measuredInteriorCallerCancellationRefusesPublication()"
+    ],
+    "totalUniqueChecks": 10,
+    "initialRunOverallStatus": "failed; do not claim all initial tests green"
+  },
+  "portable": {
+    "asan": "10/10 PASS",
+    "wasm": "10/10 PASS",
+    "embedded": "10/10 PASS",
+    "productsOriginSHA256": "4f9c08841532da5cfb48480dc602fefce9597f063f12b8a6191ebf23b38bf74d"
+  },
+  "ownershipManifest": {
+    "file": "owned-change-set.json",
+    "sha256": "5aafa0f34b355a770e72c61293a40953579e6800547a510963cf85e3cdc61a75"
+  },
+  "failureHistory": [
+    "Original ordinary child-root escape RED preserved.",
+    "Native and ASAN initial cancellation classifier failures preserved; corrected helper recognizes ExactScalarFailure.cancelled without altering production cancellation.",
+    "Parameter terminal checkpoint finding withdrawn: existing Budget.admitting post-observer checkpoint already honors cancellation; no production fix. Existing separate three-input probe is supporting evidence only, not part of these ten cases."
+  ],
+  "artifacts": [
+    {
+      "file": "source-freeze-r3.json.gz",
+      "sha256": "0144474a7859bdc38c4a6f664cdc2b308f38c0f8796d0dd0dcf01ef85c91c189",
+      "bytes": 47162,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-ir-20261017/source-freeze-r3.json",
+      "originSHA256": "43e8d1304d37a4589e3c099eeb5c4e80ce518744092e41daec294b8f65f19efb",
+      "originBytes": 241718,
+      "scope": "Exact 818 IR sources; 125 owned production/design files; original 9 + grouped finding check."
+    },
+    {
+      "file": "fixture-freeze-r4.json.gz",
+      "sha256": "38e35dfb24cd7507434d2619bd14448cee640c32c12e12a751b2065cea85d23f",
+      "bytes": 662,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-ir-20261017/fixture-freeze-r4.json",
+      "originSHA256": "2565851b802fe1cc30c659ee63ac134af36dea156de3247531c69fc8a471a59f",
+      "originBytes": 1105,
+      "scope": "Only cancellation classifier correction; unchanged production/oracles/accounting."
+    },
+    {
+      "file": "core-literal-inverse.json.gz",
+      "sha256": "9a260c77c28ee90d4d9fd6bd0098d378549455801804e09a6034bec9317762b5",
+      "bytes": 430,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-ir-20261017/core-literal-inverse.json",
+      "originSHA256": "a38bd27a1c8ea4f5dea3bc66090b519f3d87bc75a5408a2baabbce4d371f6c17",
+      "originBytes": 699,
+      "scope": "Exact original 13-case literal validation body inverse; additive numeric admission, no layout/witness change."
+    },
+    {
+      "file": "native-full-r3-receipt.json.gz",
+      "sha256": "8450b88ec6484abaa88358463d47777e4edf4448d3f0961480d9ed03eb5237d3",
+      "bytes": 228986,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-full-r3/receipt.json",
+      "originSHA256": "31fe3124e0a44364d3918b557fb6fa73f496a6bffe89a5cfebb36e57453aac49",
+      "originBytes": 1402287,
+      "scope": "Six actual modules: Core/Geometry/Topology strict accepted reuse; IR/Modeling/Kernel fresh."
+    },
+    {
+      "file": "native-CADCore.log.gz",
+      "sha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "bytes": 20,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-core-r1/CADCore.log",
+      "originSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "originBytes": 0,
+      "scope": "Actual compiler log at the module origin retained in native-full-r3 receipt; exit 0."
+    },
+    {
+      "file": "native-CADGeometry.log.gz",
+      "sha256": "4b49d7a6840e38adf19bc82add8d28e43f33d43eac76433e327b6b3818dfa592",
+      "bytes": 9790,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-current-geometry-r2/CADGeometry.log",
+      "originSHA256": "bcd5feb1ed0af63d28f4b52759999cf60a73748c204f7ed56e4642198a97c671",
+      "originBytes": 83123,
+      "scope": "Actual compiler log at the module origin retained in native-full-r3 receipt; exit 0."
+    },
+    {
+      "file": "native-CADTopology.log.gz",
+      "sha256": "fce20e58654a6cf3688a6010b4f58dec707846dd5ed0abd5e19407339e1b730e",
+      "bytes": 1196,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-full-r1/CADTopology.log",
+      "originSHA256": "780b7a5cc863581694621b3c62e862d056aaaf32a15c9fd92d80e2f9d0055e09",
+      "originBytes": 5279,
+      "scope": "Actual compiler log at the module origin retained in native-full-r3 receipt; exit 0."
+    },
+    {
+      "file": "native-CADIR.log.gz",
+      "sha256": "103999c535a11e418bdc55cff0b8c73fc027307c6ff2cd2d0df0ac5627cc7dac",
+      "bytes": 438,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-full-r3/CADIR.log",
+      "originSHA256": "2ab68356905cd813420e5e00842cd1169ed2470341508c3f8475dd0d71d286db",
+      "originBytes": 733,
+      "scope": "Actual compiler log at the module origin retained in native-full-r3 receipt; exit 0."
+    },
+    {
+      "file": "native-CADModeling.log.gz",
+      "sha256": "b8c497db11aff7e4b72212160e2c91f49433ee7a370accbe277972f7d6592ae6",
+      "bytes": 3664,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-full-r3/CADModeling.log",
+      "originSHA256": "748cf7dc02d931f43cc4e44ef2ddef3120c90ddf2dc4ed1ea0b1957f923ec111",
+      "originBytes": 19935,
+      "scope": "Actual compiler log at the module origin retained in native-full-r3 receipt; exit 0."
+    },
+    {
+      "file": "native-CADKernel.log.gz",
+      "sha256": "781d26b9f91374b6b84ba66eb4da0183a88bab84143871939d374bafb49c703c",
+      "bytes": 18750,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-full-r3/CADKernel.log",
+      "originSHA256": "5fc675a90a2f43458de425cd469c98e1bf13897157426fd613f3c12bc6b8326f",
+      "originBytes": 186687,
+      "scope": "Actual compiler log at the module origin retained in native-full-r3 receipt; exit 0."
+    },
+    {
+      "file": "native-initial-receipt.json.gz",
+      "sha256": "41574b3463ef47d8f298b961d54fa4a542bc5a766c9913f90faf9f7cc8c89b20",
+      "bytes": 196834,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-callers-r1/receipt.json",
+      "originSHA256": "199f53df932667c6a3e32b50886dbc491da0c557652cef05b8e0a6702778500d",
+      "originBytes": 612078,
+      "scope": "IR eight PASS, two cancellation classifier failures; unrelated Kernel failure is outside this IR acceptance."
+    },
+    {
+      "file": "native-initial-test-runtime.log.gz",
+      "sha256": "5186eba31cf36dd22bd2db1a9ad94fc42126cb17010f2ee69259282e3b7edafe",
+      "bytes": 1425,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-callers-r1/test-runtime.log",
+      "originSHA256": "2fcbf9e5fd40c303c7ebea2e22881ca980965930879f50dcb2f72ee3337a4daf",
+      "originBytes": 6781,
+      "scope": "IR eight PASS, two cancellation classifier failures; unrelated Kernel failure is outside this IR acceptance."
+    },
+    {
+      "file": "native-initial-results.xml.gz",
+      "sha256": "ea1d42b800dbeeae77c79be4b7803432363be7ba7645d047d3271e4b3f57a12a",
+      "bytes": 1120,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-callers-r1/results.xml",
+      "originSHA256": "0886a732898c8c6712797d274c1070cbad919055bbec5c23f20cff6a01f40ad9",
+      "originBytes": 4625,
+      "scope": "IR eight PASS, two cancellation classifier failures; unrelated Kernel failure is outside this IR acceptance."
+    },
+    {
+      "file": "native-cancel-finding-receipt.json.gz",
+      "sha256": "cf7ed3c8b497ccc06283c45690b1b2203032f50fb4c132359acca782c3f017cd",
+      "bytes": 159048,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-ir-cancel-finding-r2/receipt.json",
+      "originSHA256": "a524fa7f5557753cb046a957d81e07f42a44c28087754dfd112eb045ec214ea3",
+      "originBytes": 506195,
+      "scope": "Only two cancellation cases recompiled and run; 2/2 PASS, not a replay of the prior eight."
+    },
+    {
+      "file": "native-cancel-finding-test-runtime.log.gz",
+      "sha256": "41bb1edc459ff44eeb11ccb1bf2bb88763eb9deb50bfe5437bdca937abb16edc",
+      "bytes": 338,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-ir-cancel-finding-r2/test-runtime.log",
+      "originSHA256": "88d94152a1c39bd0ded8fbd7b0676b1d7b0905116e701cbdc1287be6354b4cfc",
+      "originBytes": 826,
+      "scope": "Only two cancellation cases recompiled and run; 2/2 PASS, not a replay of the prior eight."
+    },
+    {
+      "file": "native-cancel-finding-results.xml.gz",
+      "sha256": "0bb23dec1f48bad18e15d61e51f29e410a6091d84ffd502a0f5f020bb2ab2d4f",
+      "bytes": 264,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-ir-cancel-finding-r2/results.xml",
+      "originSHA256": "fd784f2543689dc9b27ad035bdb825f5be85a4a94912931e1b1dc0ac32bb9e20",
+      "originBytes": 481,
+      "scope": "Only two cancellation cases recompiled and run; 2/2 PASS, not a replay of the prior eight."
+    },
+    {
+      "file": "asan-receipt.json.gz",
+      "sha256": "2dd5e635d91937e706e19f66070fbdecfb13d8835f4eeb3629c155692b6e2c00",
+      "bytes": 438103,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/ir-prefix-clients-r2/asan/receipt.json",
+      "originSHA256": "542aebb14bf51137581f91219faf24f80f9bc84133adb520e59c826de735cc28",
+      "originBytes": 2114953,
+      "scope": "All ten current IR checks PASS on this target, source/product/log drift 0; exact module origins retained in receipt."
+    },
+    {
+      "file": "asan-runtime.log.gz",
+      "sha256": "1583ae75f361913a7a0864d8b06cb7e53b68ae6fe3ffce111936ffd9ebfd5c41",
+      "bytes": 218,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/ir-prefix-clients-r2/asan/runtime.log",
+      "originSHA256": "78a98beffbbdd89e1075a635319cc9f7536fe167c720d6150db4f7c36b749c7d",
+      "originBytes": 457,
+      "scope": "All ten current IR checks PASS on this target, source/product/log drift 0; exact module origins retained in receipt."
+    },
+    {
+      "file": "asan-client-link.log.gz",
+      "sha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "bytes": 20,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/ir-prefix-clients-r2/asan/client-link.log",
+      "originSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "originBytes": 0,
+      "scope": "All ten current IR checks PASS on this target, source/product/log drift 0; exact module origins retained in receipt."
+    },
+    {
+      "file": "asan-CADIR.log.gz",
+      "sha256": "7620b525adb77fdadc491ff512d140810e63fffb98babcd546b0949c44707bf4",
+      "bytes": 444,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/ir-prefix-clients-r1/asan/CADIR.log",
+      "originSHA256": "0fc051d562038db2c9faa2689eb4f9e5490b2920477ad9d2f582b544d6b25cfa",
+      "originBytes": 744,
+      "scope": "Actual target compiler log; ASAN module origins retained from r1, client-only classifier successor r2."
+    },
+    {
+      "file": "asan-CADTopology.log.gz",
+      "sha256": "5c21c7cf3f70dd18081a7f30f186ffe504c2df8120312496c5ecedb410e26d24",
+      "bytes": 1204,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/ir-prefix-clients-r1/asan/CADTopology.log",
+      "originSHA256": "5180e383b8a1b67f83b49f7f89c407810db8c50c89590f2bfce1be91ea5053e3",
+      "originBytes": 5356,
+      "scope": "Actual target compiler log; ASAN module origins retained from r1, client-only classifier successor r2."
+    },
+    {
+      "file": "wasm-receipt.json.gz",
+      "sha256": "47f21877f178e6b4daee4f6d2f179afb29a0d46225275e390e0c36e6d96f4515",
+      "bytes": 327354,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/ir-prefix-clients-r2/wasm/receipt.json",
+      "originSHA256": "c748bfcecee5c51455568d01934dfa6e38643ee85702ee77a2dfb920d8000e40",
+      "originBytes": 1607701,
+      "scope": "All ten current IR checks PASS on this target, source/product/log drift 0; exact module origins retained in receipt."
+    },
+    {
+      "file": "wasm-runtime.log.gz",
+      "sha256": "3dbd782e7300791eab1260e79154f3e1b63a73f6c3c2f54bcc5e705b689cc987",
+      "bytes": 326,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/ir-prefix-clients-r2/wasm/runtime.log",
+      "originSHA256": "43babaf1eaef913086b534f2e5f6cc91e5025289b8714725d335a923128719bf",
+      "originBytes": 624,
+      "scope": "All ten current IR checks PASS on this target, source/product/log drift 0; exact module origins retained in receipt."
+    },
+    {
+      "file": "wasm-client-link.log.gz",
+      "sha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "bytes": 20,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/ir-prefix-clients-r2/wasm/client-link.log",
+      "originSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "originBytes": 0,
+      "scope": "All ten current IR checks PASS on this target, source/product/log drift 0; exact module origins retained in receipt."
+    },
+    {
+      "file": "wasm-CADIR.log.gz",
+      "sha256": "92da18aefd9b94887667c4335585395e5d58d6141b65d953fa1bef7f1d50a68e",
+      "bytes": 445,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/ir-prefix-clients-r2/wasm/CADIR.log",
+      "originSHA256": "5f5730a9cafa39d513ae81e4c6c1433ea0189807867f39ca8290085c62bd9427",
+      "originBytes": 744,
+      "scope": "Actual target compiler log; ASAN module origins retained from r1, client-only classifier successor r2."
+    },
+    {
+      "file": "wasm-CADTopology.log.gz",
+      "sha256": "6190578dd805e4144be40ddb8675ce080701079ed2e6d33e7f66a02baa619c12",
+      "bytes": 1205,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/ir-prefix-clients-r2/wasm/CADTopology.log",
+      "originSHA256": "1b6a6f5129a6f58552f661655e80f00ae5ea80deb50ed17a63d07145ca1b99f7",
+      "originBytes": 5356,
+      "scope": "Actual target compiler log; ASAN module origins retained from r1, client-only classifier successor r2."
+    },
+    {
+      "file": "embedded-receipt.json.gz",
+      "sha256": "b7e74bd0ccffd0a62f8f07b8e93966e15c06a6cf6cc02c7eb2d42be09db11723",
+      "bytes": 327056,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/ir-prefix-clients-r2/embedded/receipt.json",
+      "originSHA256": "e4edf410ddaa40e9670234c724e4c7432cd209bd9525ca2253a5bc58cb88b1b2",
+      "originBytes": 1617036,
+      "scope": "All ten current IR checks PASS on this target, source/product/log drift 0; exact module origins retained in receipt."
+    },
+    {
+      "file": "embedded-runtime.log.gz",
+      "sha256": "701a04ebd4d04698e1ac8098fd79827fbca12e1973b77637e6c8fb7f921b89ca",
+      "bytes": 326,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/ir-prefix-clients-r2/embedded/runtime.log",
+      "originSHA256": "fbd6146b43a232ba6bc77d2af20eb6e111b54f611097a57241c9723f3ab3b75f",
+      "originBytes": 624,
+      "scope": "All ten current IR checks PASS on this target, source/product/log drift 0; exact module origins retained in receipt."
+    },
+    {
+      "file": "embedded-client-link.log.gz",
+      "sha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "bytes": 20,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/ir-prefix-clients-r2/embedded/client-link.log",
+      "originSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "originBytes": 0,
+      "scope": "All ten current IR checks PASS on this target, source/product/log drift 0; exact module origins retained in receipt."
+    },
+    {
+      "file": "embedded-CADIR.log.gz",
+      "sha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "bytes": 20,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/ir-prefix-clients-r2/embedded/CADIR.log",
+      "originSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "originBytes": 0,
+      "scope": "Actual target compiler log; ASAN module origins retained from r1, client-only classifier successor r2."
+    },
+    {
+      "file": "embedded-CADTopology.log.gz",
+      "sha256": "ea878b9170e8b73839a3cbefd7df51e78bf352bd93e11d0a6a15fa7aafb7864b",
+      "bytes": 1208,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/ir-prefix-clients-r2/embedded/CADTopology.log",
+      "originSHA256": "bc463231f610a21babb16982ceeb588d5df0366aa9bb70e71af1b1c96f7e2c26",
+      "originBytes": 5384,
+      "scope": "Actual target compiler log; ASAN module origins retained from r1, client-only classifier successor r2."
+    },
+    {
+      "file": "portable-products.json.gz",
+      "sha256": "f84ddf4702483ccee8568b52205af65414cbe6e4dc25408565444f209c16d4f2",
+      "bytes": 3088,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/ir-prefix-clients-r2/products.json",
+      "originSHA256": "4f9c08841532da5cfb48480dc602fefce9597f063f12b8a6191ebf23b38bf74d",
+      "originBytes": 24509,
+      "scope": "Final four-module portable origins/current source map, accepted independently for each target."
+    },
+    {
+      "file": "review-central-feature-a-r1.json.gz",
+      "sha256": "ab25e79ea7d58d20a904f0df88986268162ae0c63daa8f3825b8df4d56eb047f",
+      "bytes": 9373,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-ir-20261017/review-central-feature-a-r1.json",
+      "originSHA256": "18b58b7994816100e95d4399bcdd14be3ae06d42a30233822f746d0347b3c8eb",
+      "originBytes": 27036,
+      "scope": "Single comprehensive review and finding-limited confirmation; chronological pending statements are superseded only by linked final behavior."
+    },
+    {
+      "file": "review-feature-b-core-r1.json.gz",
+      "sha256": "6646eaeb6292ebacf0669b62ef1fab2c14791d74bea3a7f62cb72dc755fc736f",
+      "bytes": 3011,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-ir-20261017/review-feature-b-core-r1.json",
+      "originSHA256": "99cfef38c435501c59093986ee841f6a3d2aae1a784237600fe460a9111bcb4c",
+      "originBytes": 7422,
+      "scope": "Single comprehensive review and finding-limited confirmation; chronological pending statements are superseded only by linked final behavior."
+    },
+    {
+      "file": "initial-red-receipt.json.gz",
+      "sha256": "db4378f10a29a2e0089aa6478abe3831d2c43b6f1cf96b2358ed2dbe0acb6452",
+      "bytes": 196035,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-red-20261017/native-source-error-ir-r1/receipt.json",
+      "originSHA256": "0feb99152e490209aa4d66d5eb281d595b520a691727e7c21d582a9246df1a85",
+      "originBytes": 608540,
+      "scope": "Historical original IR validation: nonempty positive PASS; zero work, zero storage, interior cancellation expose ordinary child-root escape."
+    },
+    {
+      "file": "initial-red-test-runtime.log.gz",
+      "sha256": "bb4eae544dbd922dd5a09bfe83b13a8f008941a4b76d7312121d8749678a8d97",
+      "bytes": 1387,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-red-20261017/native-source-error-ir-r1/test-runtime.log",
+      "originSHA256": "cabc1a5ef818924bfd19d8f7c1378f188a498f4d7cd35438105d404b322cca62",
+      "originBytes": 7397,
+      "scope": "Historical original IR validation: nonempty positive PASS; zero work, zero storage, interior cancellation expose ordinary child-root escape."
+    },
+    {
+      "file": "asan-classifier-red-receipt.json.gz",
+      "sha256": "44646db7c95dd29dead5522626716d576335aebd1346a6b026b2671ca5a1112a",
+      "bytes": 327034,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/ir-prefix-clients-r1/asan/receipt.json",
+      "originSHA256": "c22282734c68f589f7ae5ae5ef2d916923fa6fcad2f5034d2ca108901ff9c583",
+      "originBytes": 1603669,
+      "scope": "Historical ASAN fixture .cancelled classification failure; production modules succeeded and are explicitly reused by accepted r2 client."
+    },
+    {
+      "file": "asan-classifier-red-runtime.log.gz",
+      "sha256": "3fedd5a950fcf523fdfb7932eefbeaa01996ea475503b8de39f2c7de69a1669d",
+      "bytes": 117,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/ir-prefix-clients-r1/asan/runtime.log",
+      "originSHA256": "1adedc07d43e1c189b8d3dbcfb9375e040edb4b221d7143043752959d75cd28b",
+      "originBytes": 108,
+      "scope": "Historical ASAN fixture .cancelled classification failure; production modules succeeded and are explicitly reused by accepted r2 client."
+    }
+  ],
+  "excludedArtifacts": [
+    "No input snapshots, modules, objects, executables or resource bundles copied.",
+    "No build, test or new review executed during packaging."
+  ]
+}

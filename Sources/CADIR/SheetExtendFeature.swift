@@ -1,4 +1,6 @@
 import CADCore
+import CADTopology
+import CADGeometry
 
 /// Extend Sheet: open edges of a sheet carried on by `distance` in the chosen shape. Modifying,
 /// the extensions join the sheet; otherwise they form a sheet of their own beside it, the sheet
@@ -25,21 +27,30 @@ public struct SheetExtendFeature: Hashable, Sendable {
     }
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try target.validate()
         guard edges.isEmpty == false else {
             throw FeatureEvaluationError.invalidGraph("Extend Sheet requires at least one edge.")
         }
         var seen = Set<StableSubshapeReference>()
         for edge in edges {
-            try edge.validate()
-            guard seen.insert(edge).inserted else {
+            try execution.consumeWork(1)
+            try edge.validate(using: &execution)
+            try edge.chargeStructuralComparison(using: &execution)
+            guard try OriginalParameterQueryStorage.insert(edge, in: &seen, using: &execution) else {
                 throw FeatureEvaluationError.invalidGraph("Extend Sheet edges must be unique.")
             }
         }
-        try distance.validateLiteralQuantities()
+        try distance.validateDocumentLiteralQuantities(using: &execution)
         if let limit, limit.body == target.featureID {
             throw FeatureEvaluationError.invalidGraph("Extend Sheet runs to another body than its own sheet.")
         }
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)
@@ -79,6 +90,16 @@ public struct SheetExtendFeature: Hashable, Sendable {
     public var inputs: [FeatureInput] {
         [FeatureInput(featureID: target.featureID, role: modifies ? .target : .body)]
             + (limit.map { [FeatureInput(featureID: $0.body, role: .body)] } ?? [])
+    }
+
+    func validationInputs(using execution: inout OriginalQueryExecution) throws -> [FeatureInput] {
+        try execution.consumeWork(1)
+        var result: [FeatureInput] = []
+        try OriginalParameterQueryStorage.append(FeatureInput(featureID: target.featureID, role: modifies ? .target : .body), to: &result, using: &execution)
+        if let limit { try OriginalParameterQueryStorage.append(FeatureInput(featureID: limit.body, role: .body), to: &result, using: &execution) }
+
+        try execution.checkpoint()
+        return result
     }
 }
 

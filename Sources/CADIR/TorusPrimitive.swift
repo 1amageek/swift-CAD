@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 public struct TorusPrimitive: Hashable, Sendable {
     public let placement: PrimitivePlacement
@@ -16,9 +17,15 @@ public struct TorusPrimitive: Hashable, Sendable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
-        try placement.validate(tolerance: tolerance)
-        try majorRadius.validateLiteralQuantities()
-        try minorRadius.validateLiteralQuantities()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try placement.validate(tolerance: tolerance, using: &execution)
+        try majorRadius.validateDocumentLiteralQuantities(using: &execution)
+        try minorRadius.validateDocumentLiteralQuantities(using: &execution)
     }
 
 #if !hasFeature(Embedded)

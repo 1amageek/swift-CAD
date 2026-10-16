@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 import CADTopology
 
 /// Copies part of a body as a body of its own, leaving the source as it is: one component of a
@@ -14,8 +15,16 @@ public struct ExtractFeature: Hashable, Sendable {
     }
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try target.validate()
-        try selection.validate()
+        try selection.validate(using: &execution)
+
+        try execution.checkpoint()
     }
 
     /// The output the extraction publishes from its source's: a component keeps the source's
@@ -74,6 +83,12 @@ public enum ExtractSelection: Hashable, Sendable {
     case solidFaces([StableSubshapeReference])
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         switch self {
         case let .component(index, count):
             guard count >= 1, (0..<count).contains(index) else {
@@ -85,12 +100,16 @@ public enum ExtractSelection: Hashable, Sendable {
             }
             var seen = Set<StableSubshapeReference>()
             for face in faces {
-                try face.validate()
-                guard seen.insert(face).inserted else {
+                try execution.consumeWork(1)
+                try face.validate(using: &execution)
+                try face.chargeStructuralComparison(using: &execution)
+                guard (try OriginalParameterQueryStorage.insert(face, in: &seen, using: &execution)) else {
                     throw FeatureEvaluationError.invalidGraph("Extract faces must be unique.")
                 }
             }
         }
+
+        try execution.checkpoint()
     }
 }
 

@@ -1,4 +1,6 @@
 import CADCore
+import CADGeometry
+import CADTopology
 
 public struct ExtrudeFeature: Sendable, Hashable {
     public var section: SectionReference
@@ -120,31 +122,41 @@ public struct ExtrudeFeature: Sendable, Hashable {
 #endif
 
     public func validate() throws {
-        try section.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try section.validate(using: &execution)
         if operation == .newBody {
             guard targets.isEmpty, !keepTools else {
                 throw FeatureEvaluationError.invalidGraph("New-body extrusion cannot declare Boolean targets or Keep Tools.")
             }
         } else {
             guard resultKind == .solid, !targets.isEmpty,
-                  Set(targets.map { $0.featureID }).count == targets.count,
-                  section.isFace || !targets.contains(where: { $0.featureID == section.featureID }) else {
+                  (try OriginalParameterQueryStorage.set(try OriginalParameterQueryStorage.map(targets, using: &execution) { value, _ in value.featureID }, using: &execution)).count == targets.count,
+                  try section.isFace || !(try OriginalParameterQueryStorage.contains(targets, using: &execution,
+                    predicate: { value, _ in value.featureID == section.featureID })) else {
                 // A face section may combine with the body it lies on; a profile or a curve's source
                 // is no body to combine with.
                 throw FeatureEvaluationError.invalidGraph("Boolean extrusion requires solid output and unique targets distinct from its section.")
             }
-            try targets.forEach { try $0.validate() }
+            for value in targets {
+                try execution.consumeWork(1)
+                try value.validate(using: &execution)
+            }
         }
-        try distance.validateLiteralQuantities()
-        try startDistance?.validateLiteralQuantities()
-        try draftAngle?.validateLiteralQuantities()
+        try distance.validateDocumentLiteralQuantities(using: &execution)
+        try startDistance?.validateDocumentLiteralQuantities(using: &execution)
+        try draftAngle?.validateDocumentLiteralQuantities(using: &execution)
         if let draftDirection {
-            try draftDirection.validate()
+            try execution.consumeWork(1); try draftDirection.validate()
             guard draftDirection.length.isFinite, draftDirection.length > 0 else {
                 throw FeatureEvaluationError.invalidGraph("Extrusion draft pull direction must be finite and nonzero.")
             }
         }
-        try thickness?.validateLiteralQuantities()
+        try thickness?.validateDocumentLiteralQuantities(using: &execution)
         guard thickness == nil || resultKind == .solid else {
             throw FeatureEvaluationError.invalidGraph("A thin extrusion makes a solid wall.")
         }
@@ -154,7 +166,12 @@ public struct ExtrudeFeature: Sendable, Hashable {
         guard resultKind == .sheet || section.isClosedRegion || thickness != nil else {
             throw FeatureEvaluationError.invalidGraph("A curve extrusion requires sheet output, or a thickness to make a solid wall.")
         }
-        if case .vector(let vector) = direction { try vector.validate() }
+        if case .vector(let vector) = direction {
+            try execution.consumeWork(1)
+            try vector.validate()
+        }
+
+        try execution.checkpoint()
     }
 
     /// Resolves signed axial endpoints once for geometry, measurement and editing.
@@ -162,10 +179,22 @@ public struct ExtrudeFeature: Sendable, Hashable {
         tolerance: ModelingTolerance,
         resolve: (CADExpression) throws -> Quantity
     ) throws -> ClosedRange<Double> {
-        try validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try resolvedAxialRange(tolerance: tolerance, using: &execution,
+            resolve: { expression, _ in try resolve(expression) })
+    }
+
+    public func resolvedAxialRange(
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution,
+        resolve: (CADExpression, inout OriginalQueryExecution) throws -> Quantity
+    ) throws -> ClosedRange<Double> {
+        try execution.consumeWork(1)
+        try validate(using: &execution)
         try tolerance.validate()
         func length(_ expression: CADExpression) throws -> Double {
-            let quantity = try resolve(expression)
+            try execution.consumeWork(1)
+            let quantity = try resolve(expression, &execution)
             guard quantity.kind == .length else {
                 throw UnitError.expectedQuantity(operation: "extrude.extent", expected: .length, actual: quantity.kind)
             }
@@ -177,6 +206,7 @@ public struct ExtrudeFeature: Sendable, Hashable {
         let end = try length(distance)
         if direction == .symmetric {
             guard end > tolerance.distance else { throw FeatureEvaluationError.invalidDistance(end) }
+            try execution.checkpoint()
             return (-end / 2)...(end / 2)
         }
         let start = try startDistance.map(length) ?? 0
@@ -184,6 +214,7 @@ public struct ExtrudeFeature: Sendable, Hashable {
         guard span.isFinite, span > tolerance.distance else {
             throw FeatureEvaluationError.invalidDistance(span)
         }
+        try execution.checkpoint()
         return min(start, end)...max(start, end)
     }
 }

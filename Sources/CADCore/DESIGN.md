@@ -112,6 +112,19 @@ RupaCore regression checks exercise both CADIR validation and CADModeling
 resolution, references, units, zero/nonfinite cases and serialization. Expression
 text readers/formatters and all visitors must handle the new binary case.
 
+### Literal expression validation admission
+
+`CADExpression.validateLiteralQuantities(using:)` visits the existing authored
+expression tree in operand order through `NumericWorkAdmission`. The ordinary
+entry selects `UnboundedAuthoringAdmission` once, then uses that same recursive
+body. Every actual expression node consumes work and checks cancellation before
+its guard or children, with a final checkpoint before return. This does not
+resolve references or variables and does not add numeric evaluation. The thirteen
+existing cases, quantity checks and Natural/Shaped coordinate-form refusals are
+unchanged. There is no new stored field, protocol requirement, enum case or ABI
+layout change. Numeric admission has no source-depth axis: CADIR owns source
+ancestry when composing this operation into complete document validation.
+
 ## Natural Bezier expression contract
 
 Natural, Shaped and CurvatureProfile producers use the

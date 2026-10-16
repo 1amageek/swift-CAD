@@ -17,7 +17,13 @@ public struct SurfaceExtendFeature: Hashable, Sendable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
-        try target.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try target.validate(using: &execution)
         try uDomain.validate(tolerance: tolerance)
         try vDomain.validate(tolerance: tolerance)
         guard case .closed = uDomain, case .closed = vDomain else {
@@ -28,6 +34,7 @@ public struct SurfaceExtendFeature: Hashable, Sendable {
                 message: "Surface extend requires finite target U and V domains."
             )
         }
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)

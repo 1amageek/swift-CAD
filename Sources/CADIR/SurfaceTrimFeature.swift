@@ -1,4 +1,6 @@
 import CADCore
+import CADTopology
+import CADGeometry
 
 public struct SurfaceTrimFeature: Hashable, Sendable {
     public let target: SurfaceOperationTargetReference
@@ -13,10 +15,16 @@ public struct SurfaceTrimFeature: Hashable, Sendable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
-        try target.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try target.validate(using: &execution)
         try tolerance.validate()
         guard loops.isEmpty == false,
-              loops.filter({ $0.role == .outer }).count == 1 else {
+              (try OriginalParameterQueryStorage.filter(loops, using: &execution) { value, execution in value.role == .outer }).count == 1 else {
             throw KernelError(
                 phase: .validation,
                 code: .invalidInput,
@@ -34,10 +42,15 @@ public struct SurfaceTrimFeature: Hashable, Sendable {
             )
         }
         for loop in loops {
-            try loop.validate(tolerance: tolerance)
+            try execution.consumeWork(1)
+            try loop.validate(tolerance: tolerance, using: &execution)
         }
-        let spanCount = loops.reduce(into: 0) { count, loop in
-            count += loop.parameterCurves.count
+        var spanCount = 0
+        for loop in loops {
+            try execution.consumeWork(1)
+            let total = spanCount.addingReportingOverflow(loop.parameterCurves.count)
+            guard !total.overflow else { throw ExactScalarFailure.countOverflow }
+            spanCount = total.partialValue
         }
         guard spanCount <= 16_384 else {
             throw KernelError(
@@ -48,6 +61,7 @@ public struct SurfaceTrimFeature: Hashable, Sendable {
                 message: "Surface trim exceeded the total exact pcurve span budget."
             )
         }
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)

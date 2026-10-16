@@ -1,4 +1,6 @@
 import CADCore
+import CADGeometry
+import CADTopology
 
 public enum FeaturePort: String, Sendable, Hashable {
     case profile
@@ -135,6 +137,22 @@ public struct FeatureOutput: Sendable, Hashable {
 }
 
 extension FeatureNode {
+    func validationInputsEqual(_ expected: [FeatureInput], using execution: inout OriginalQueryExecution) throws -> Bool {
+        guard inputs.count == expected.count else { return false }
+        return try OriginalParameterQueryStorage.allSatisfy(zip(inputs, expected), using: &execution) { pair, execution in
+            pair.0 == pair.1
+        }
+    }
+
+    func validationBodyOrSheetOutput(using execution: inout OriginalQueryExecution) throws -> FeaturePort? {
+        let roles = try OriginalParameterQueryStorage.map(outputs, using: &execution) { output, execution in output.role }
+        let allPorts = try OriginalParameterQueryStorage.set(roles, using: &execution)
+        let ports = try OriginalParameterQueryStorage.filter(allPorts, using: &execution) { port, execution in
+            port == .body || port == .sheet
+        }
+        return ports.count == 1 ? ports.first : nil
+    }
+
     /// The solid (`body`) or sheet output this feature declares, if it declares exactly one.
     public var bodyOrSheetOutput: FeaturePort? {
         let ports = Set(outputs.map { $0.role }).intersection([.body, .sheet])

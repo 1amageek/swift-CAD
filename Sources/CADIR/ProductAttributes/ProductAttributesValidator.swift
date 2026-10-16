@@ -1,6 +1,7 @@
 import HashTreeCollections
 import CADCore
 import CADGeometry
+import CADTopology
 
 public struct ProductAttributesValidator: ProductAttributesValidating {
     private struct CharacterizationKey: Hashable {
@@ -37,6 +38,7 @@ public struct ProductAttributesValidator: ProductAttributesValidating {
             var materials: [PhysicalMaterialID: PhysicalMaterialDescriptor] = [:]
             materials.reserveCapacity(attributes.materials.count)
             for material in attributes.materials {
+                try execution.consumeWork(1)
                 try budget.charge(textBytes: material.name.utf8.count, using: &execution)
                 try budget.charge(textBytes: material.description.utf8.count, using: &execution)
                 try material.density?.validate()
@@ -48,6 +50,7 @@ public struct ProductAttributesValidator: ProductAttributesValidating {
             var assignments: [ProductAttributeID: ProductAttributeAssignment] = [:]
             assignments.reserveCapacity(attributes.assignments.count)
             for assignment in attributes.assignments {
+                try execution.consumeWork(1)
                 try validateTarget(assignment.target, in: document, budget: &budget, using: &execution)
                 try assignment.value.validate()
                 switch assignment.value {
@@ -67,12 +70,14 @@ public struct ProductAttributesValidator: ProductAttributesValidating {
                 }
             }
             for assignment in attributes.assignments {
+                try execution.consumeWork(1)
                 var cursor: ProductAttributeAssignment? = assignment
                 var depth = 0
                 var visited = Set<ProductAttributeID>()
                 while let current = cursor {
                     guard depth < budget.limits.maximumDepth else { throw ProductAttributeError.resourceLimitExceeded("Property override depth.") }
                     try budget.charge(work: 1, using: &execution)
+                    try execution.admitSourceDepth(depth + 1)
                     try execution.retainStorage(count: 1, stride: MemoryLayout<ProductAttributeID>.stride)
                     guard visited.insert(current.id).inserted else { throw ProductAttributeError.invalidSource("Property override cycle.") }
                     depth += 1
@@ -89,6 +94,7 @@ public struct ProductAttributesValidator: ProductAttributesValidating {
             var characterized = Set<CharacterizationKey>()
             characterized.reserveCapacity(attributes.itemCharacterizations.count)
             for record in attributes.itemCharacterizations {
+                try execution.consumeWork(1)
                 guard (record.target.kind == .body || record.target.kind == .face), record.target.definitionID == nil,
                       record.target.path == nil, record.target.usageID == nil, let geometry = record.target.geometry else {
                     throw ProductAttributeError.invalidSource("Physical characterization requires a global geometry target.")
@@ -109,6 +115,7 @@ public struct ProductAttributesValidator: ProductAttributesValidating {
             var described = Set<ShapeElementKey>()
             described.reserveCapacity(attributes.shapeElementDescriptions.count)
             for record in attributes.shapeElementDescriptions {
+                try execution.consumeWork(1)
                 guard (record.target.kind == .body || record.target.kind == .face), let definition = record.target.definitionID,
                       record.target.path == nil, record.target.usageID == nil, let geometry = record.target.geometry else {
                     throw ProductAttributeError.invalidSource("Shape element description requires a definition-qualified geometry target.")
@@ -122,16 +129,26 @@ public struct ProductAttributesValidator: ProductAttributesValidating {
             }
             // Exact same-target conflicts are structural and do not require evaluated topology.
             for assignment in attributes.assignments {
+                try execution.consumeWork(1)
                 var winnerCount = 0
                 for candidate in attributes.assignments {
+                try execution.consumeWork(1)
                     try budget.charge(work: 1, using: &execution)
+                    try candidate.target.chargeStructuralComparison(using: &execution)
+                    try assignment.target.chargeStructuralComparison(using: &execution)
                     guard candidate.target == assignment.target, candidate.value.property == assignment.value.property else { continue }
                     var overridden = false
                     for other in attributes.assignments {
+                try execution.consumeWork(1)
                         try budget.charge(work: 1, using: &execution)
+                        try other.target.chargeStructuralComparison(using: &execution)
+                        try assignment.target.chargeStructuralComparison(using: &execution)
                         guard other.target == assignment.target, other.value.property == assignment.value.property else { continue }
                         var cursor = other.overrides
+                        var ancestry = 0
                         while let id = cursor {
+                            ancestry += 1
+                            try execution.admitSourceDepth(ancestry)
                             try budget.charge(work: 1, using: &execution)
                             if id == candidate.id { overridden = true; break }
                             cursor = assignments[id]?.overrides
@@ -147,6 +164,7 @@ public struct ProductAttributesValidator: ProductAttributesValidating {
             var layerIDs = Set<ProductLayerID>(), layerNames = Set<String>()
             layerIDs.reserveCapacity(attributes.layers.count); layerNames.reserveCapacity(attributes.layers.count)
             for layer in attributes.layers {
+                try execution.consumeWork(1)
                 try budget.charge(textBytes: layer.name.utf8.count, using: &execution)
                 try budget.charge(textBytes: layer.description.utf8.count, using: &execution)
                 guard !layer.name.isEmpty, layerIDs.insert(layer.id).inserted, layerNames.insert(layer.name).inserted else {
@@ -159,7 +177,9 @@ public struct ProductAttributesValidator: ProductAttributesValidating {
                 var members = Set<ProductAttributeTarget>()
                 members.reserveCapacity(layer.members.count)
                 for member in layer.members {
+                try execution.consumeWork(1)
                     try validateTarget(member, in: document, budget: &budget, using: &execution)
+                    try member.chargeStructuralComparison(using: &execution)
                     guard members.insert(member).inserted else { throw ProductAttributeError.invalidSource("Duplicate layer membership.") }
                 }
             }
@@ -175,6 +195,7 @@ public struct ProductAttributesValidator: ProductAttributesValidating {
         var records = attributes.materials.count + attributes.assignments.count + attributes.layers.count
             + attributes.itemCharacterizations.count + attributes.shapeElementDescriptions.count
         for count in counts {
+                try execution.consumeWork(1)
             guard count <= budget.limits.maximumRecords - records else {
                 throw ProductAttributeError.resourceLimitExceeded("Product metadata records.")
             }
@@ -202,33 +223,40 @@ public struct ProductAttributesValidator: ProductAttributesValidating {
         for tolerance in pmi.tolerances { try execution.consumeWork(1); tolerances.insert(tolerance.id) }
         for annotation in pmi.annotations { try execution.consumeWork(1); annotations.insert(annotation.id) }
         for datum in pmi.datums {
+                try execution.consumeWork(1)
             try identity(datum.id, using: &execution); try validateTarget(datum.target, in: document, budget: &budget, using: &execution)
             try text(datum.name, &budget, using: &execution); try text(datum.description, &budget, using: &execution); try text(datum.identification, &budget, using: &execution)
             guard !datum.identification.isEmpty else { throw ProductAttributeError.invalidSource("Empty datum identification.") }
         }
         for dimension in pmi.dimensions {
+                try execution.consumeWork(1)
             try identity(dimension.id, using: &execution); try dimension.validate(using: &execution)
             try text(dimension.name, &budget, using: &execution); try text(dimension.description, &budget, using: &execution)
             try validateTarget(dimension.target, in: document, budget: &budget, using: &execution)
             if let reference = dimension.referenceTarget { try validateTarget(reference, in: document, budget: &budget, using: &execution) }
         }
         for tolerance in pmi.tolerances {
+                try execution.consumeWork(1)
             try identity(tolerance.id, using: &execution); try tolerance.validate(using: &execution)
             try text(tolerance.name, &budget, using: &execution); try text(tolerance.description, &budget, using: &execution)
             try validateTarget(tolerance.target, in: document, budget: &budget, using: &execution)
             try budget.charge(work: tolerance.datumIDs.count + tolerance.modifiers.count, using: &execution)
-            guard tolerance.datumIDs.allSatisfy({ datums.contains($0) }) else {
+            guard try tolerance.datumIDs.allSatisfy({ id in try execution.checkpoint(); return datums.contains(id) }) else {
                 throw ProductAttributeError.missingTarget("Geometric tolerance datum.")
             }
         }
         for annotation in pmi.annotations {
+                try execution.consumeWork(1)
             try identity(annotation.id, using: &execution); try text(annotation.name, &budget, using: &execution); try text(annotation.text, &budget, using: &execution)
             guard annotation.textLiterals.count <= budget.limits.maximumRecords - records else { throw ProductAttributeError.resourceLimitExceeded("Annotation literal records.") }
             records += annotation.textLiterals.count
             var combined = ""
             for literal in annotation.textLiterals {
+                try execution.consumeWork(1)
                 try identity(literal.id, using: &execution)
-                for value in [literal.literalName,literal.occurrenceName,literal.text,literal.alignment,literal.fontName] { try text(value,&budget, using: &execution) }
+                for value in [literal.literalName,literal.occurrenceName,literal.text,literal.alignment,literal.fontName] {
+                try execution.consumeWork(1)
+                try text(value,&budget, using: &execution) }
                 try budget.charge(work:32,targets:1, using: &execution)
                 guard literal.origin.isFinite, literal.direction.isFinite, literal.up.isFinite,
                     abs(literal.direction.length-1) <= 1e-12, abs(literal.up.length-1) <= 1e-12,
@@ -251,10 +279,13 @@ public struct ProductAttributesValidator: ProductAttributesValidating {
             case .datum:
                 guard let id = annotation.semanticID, datums.contains(id) else { throw ProductAttributeError.missingTarget("Annotation datum.") }
             }
-            for target in annotation.targets { try validateTarget(target, in: document, budget: &budget, using: &execution) }
+            for target in annotation.targets {
+                try execution.consumeWork(1)
+                try validateTarget(target, in: document, budget: &budget, using: &execution) }
             for line in annotation.polylines {
+                try execution.consumeWork(1)
                 try budget.charge(work: line.count, targets: line.count, using: &execution)
-                guard line.count >= 2, line.allSatisfy({ $0.isFinite }) else { throw ProductAttributeError.invalidSource("Invalid annotation polyline.") }
+                guard line.count >= 2, try line.allSatisfy({ point in try execution.checkpoint(); return point.isFinite }) else { throw ProductAttributeError.invalidSource("Invalid annotation polyline.") }
             }
         }
         func frame(_ origin: Point3D, _ direction: Vector3D, _ up: Vector3D) throws {
@@ -264,6 +295,7 @@ public struct ProductAttributesValidator: ProductAttributesValidating {
         }
         func clipping(_ expression: ProductClippingExpression, depth: Int, budget: inout ProductAttributeBudget, using execution: inout OriginalQueryExecution) throws {
             guard depth < budget.limits.maximumDepth else { throw ProductAttributeError.resourceLimitExceeded("Saved-view clipping depth.") }
+            try execution.admitSourceDepth(depth + 1)
             try budget.charge(work: 1, targets: 1, using: &execution)
             switch expression {
             case .plane(let plane):
@@ -271,6 +303,7 @@ public struct ProductAttributesValidator: ProductAttributesValidating {
             case .union(let operands), .intersection(let operands):
                 guard operands.count >= 2 else { throw ProductAttributeError.invalidSource("A clipping Boolean operation requires two operands.") }
                 for operand in operands {
+                try execution.consumeWork(1)
                     if case .union = expression, case .union = operand { throw ProductAttributeError.invalidSource("Clipping unions alternate with intersections.") }
                     if case .intersection = expression, case .intersection = operand { throw ProductAttributeError.invalidSource("Clipping intersections alternate with unions.") }
                     try clipping(operand, depth: depth + 1, budget: &budget, using: &execution)
@@ -278,6 +311,7 @@ public struct ProductAttributesValidator: ProductAttributesValidating {
             }
         }
         for view in metadata.views {
+                try execution.consumeWork(1)
             try identity(view.id, using: &execution); try text(view.name, &budget, using: &execution); try frame(view.origin, view.direction, view.up)
             guard view.horizontalSize.isFinite, view.verticalSize.isFinite, view.focalDistance.isFinite,
                   view.nearDistance.isFinite, view.farDistance.isFinite,
@@ -288,12 +322,14 @@ public struct ProductAttributesValidator: ProductAttributesValidating {
             guard view.projectionPoint.isFinite, view.windowPlacement != .twoDimensional || (view.windowOrigin.z == 0 && view.windowDirection == .unitZ) else { throw ProductAttributeError.invalidSource("Saved-view window and projection point conflict with the view plane.") }
             if let expression = view.clippingExpression { try clipping(expression, depth: 0, budget: &budget, using: &execution) }
             for plane in view.clippingPlanes {
+                try execution.consumeWork(1)
                 try budget.charge(work: 1, targets: 1, using: &execution)
                 guard plane.origin.isFinite, plane.normal.isFinite, abs(plane.normal.length - 1) <= 1e-12 else {
                     throw ProductAttributeError.invalidSource("Invalid saved-view clipping plane.")
                 }
             }
             for placement in view.annotationPlacements {
+                try execution.consumeWork(1)
                 try budget.charge(work: 1, targets: 1, using: &execution); try frame(placement.origin, placement.direction, placement.up)
                 try frame(placement.mappingOrigin, placement.mappingDirection, placement.mappingUp)
                 guard placement.basisX.isFinite, abs(placement.basisX.length - 1) <= 1e-12,
@@ -306,6 +342,7 @@ public struct ProductAttributesValidator: ProductAttributesValidating {
             }
         }
         for property in metadata.validationProperties {
+                try execution.consumeWork(1)
             try identity(property.id, using: &execution); try text(property.name, &budget, using: &execution); try text(property.description, &budget, using: &execution)
             try validateTarget(property.target, in: document, budget: &budget, using: &execution)
             switch property.value {
@@ -323,17 +360,17 @@ public struct ProductAttributesValidator: ProductAttributesValidating {
         try target.validate(using: &execution)
         if let geometry = target.geometry {
             guard let feature = document.designGraph.nodes[geometry.subshapeID.featureID], !feature.isSuppressed,
-                  feature.bodyOrSheetOutput != nil else { throw ProductAttributeError.missingTarget("Active geometry source feature.") }
+                  (try feature.validationBodyOrSheetOutput(using: &execution)) != nil else { throw ProductAttributeError.missingTarget("Active geometry source feature.") }
         }
         if let id = target.definitionID {
             guard let assembly = document.assembly else { throw ProductAttributeError.missingTarget("Part definition source.") }
             try budget.charge(work: assembly.definitions.count, using: &execution)
-            guard let definition = assembly.definitions.first(where: { $0.id == id }) else {
+            guard let definition = try assembly.definitions.first(where: { definition in try execution.checkpoint(); return definition.id == id }) else {
                 throw ProductAttributeError.missingTarget("Part definition.")
             }
             if let geometry = target.geometry {
                 try budget.charge(work: definition.features.count, using: &execution)
-                guard definition.features.contains(geometry.subshapeID.featureID) else {
+                guard try definition.features.contains(where: { id in try execution.checkpoint(); return id == geometry.subshapeID.featureID }) else {
                     throw ProductAttributeError.missingTarget("Geometry is not owned by the selected definition.")
                 }
             }
@@ -341,10 +378,11 @@ public struct ProductAttributesValidator: ProductAttributesValidating {
         if let usage = target.usageID {
             guard let assembly = document.assembly else { throw ProductAttributeError.missingTarget("Direct usage source.") }
             try budget.charge(work: assembly.roots.count, using: &execution)
-            var found = assembly.roots.contains(where: { $0.id == usage })
+            var found = try assembly.roots.contains(where: { occurrence in try execution.checkpoint(); return occurrence.id == usage })
             for definition in assembly.definitions {
+                try execution.consumeWork(1)
                 try budget.charge(work: definition.children.count + 1, using: &execution)
-                if definition.children.contains(where: { $0.id == usage }) { found = true }
+                if try definition.children.contains(where: { occurrence in try execution.checkpoint(); return occurrence.id == usage }) { found = true }
             }
             guard found else { throw ProductAttributeError.missingTarget("Direct usage.") }
         }
@@ -357,10 +395,14 @@ public struct ProductAttributesValidator: ProductAttributesValidating {
             }
             var children = assembly.roots
             var selected: AssemblyDefinition?
+            var ancestry = 0
             for component in path.components {
+                try execution.consumeWork(1)
+                ancestry += 1
+                try execution.admitSourceDepth(ancestry)
                 try budget.charge(work: children.count + assembly.definitions.count + 1, using: &execution)
-                guard let occurrence = children.first(where: { $0.id == component }),
-                      let definition = assembly.definitions.first(where: { $0.id == occurrence.definitionID }) else {
+                guard let occurrence = try children.first(where: { occurrence in try execution.checkpoint(); return occurrence.id == component }),
+                      let definition = try assembly.definitions.first(where: { definition in try execution.checkpoint(); return definition.id == occurrence.definitionID }) else {
                     throw ProductAttributeError.missingTarget("Occurrence path component.")
                 }
                 selected = definition; children = definition.children
@@ -368,7 +410,7 @@ public struct ProductAttributesValidator: ProductAttributesValidating {
             if let geometry = target.geometry {
                 guard let selected else { throw ProductAttributeError.missingTarget("Geometry occurrence definition.") }
                 try budget.charge(work: selected.features.count, using: &execution)
-                guard selected.features.contains(geometry.subshapeID.featureID) else {
+                guard try selected.features.contains(where: { id in try execution.checkpoint(); return id == geometry.subshapeID.featureID }) else {
                     throw ProductAttributeError.missingTarget("Geometry is not owned by the selected occurrence definition.")
                 }
             }

@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 /// How a Square's sheet is fitted to its frame: the least Degree and Spans of its control net in
 /// each direction, the Flatness blending its thin plate (1) with membrane tautness, the Weight of
@@ -38,6 +39,12 @@ public struct SquareFitOptions: Hashable, Sendable {
     }
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         guard (1...Self.maximumDegree).contains(uDegree), (1...Self.maximumDegree).contains(vDegree) else {
             throw FeatureEvaluationError.invalidGraph("A Square's degree lies between 1 and \(Self.maximumDegree).")
         }

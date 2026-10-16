@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 /// Remove Fillets From Shell: every fillet of a solid no wider than `maximumRadius` (any, when
 /// nil) and of the chosen convexity is taken out, and the faces it joined grow to meet where it
@@ -15,8 +16,15 @@ public struct RemoveFilletsFeature: Hashable, Sendable {
     }
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try target.validate()
-        try maximumRadius?.validateLiteralQuantities()
+        try maximumRadius?.validateDocumentLiteralQuantities(using: &execution)
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)

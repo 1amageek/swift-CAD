@@ -1,0 +1,540 @@
+{
+  "scope": "Exact IR/Core complete-document validation change-set; excludes other agents and Root parameter terminal probe fixtures.",
+  "base": "242ea7bf94e0c908acf02190bdb26c25914da319",
+  "productionAndDesign": [
+    {
+      "path": "Sources/CADCore/DESIGN.md",
+      "sha256": "d4ae48fcd41115dc156baa67f83a64ecd4b1d14dc334f89c8e18e566debe8b29"
+    },
+    {
+      "path": "Sources/CADCore/Expression.swift",
+      "sha256": "4ebb3b95140ee4d89e4a19ed03234b030500c444e21cd32ddd41533fa88bad08"
+    },
+    {
+      "path": "Sources/CADIR/BSplineSurfaceFeature.swift",
+      "sha256": "19b3aad1c49577ec413e37574206704fe0f26f95436d389a115f0bd62ab027ce"
+    },
+    {
+      "path": "Sources/CADIR/BodyGeometrySignature.swift",
+      "sha256": "a0e02463e0e073f8e6c43fe2173fcf2890132b3cedc3e29ac91cb6a7135fcfca"
+    },
+    {
+      "path": "Sources/CADIR/BooleanFeature.swift",
+      "sha256": "051e8eb5b262735859a050a29950d30af5324848fb0fee7da68f6a54740ccbe4"
+    },
+    {
+      "path": "Sources/CADIR/BoxPrimitive.swift",
+      "sha256": "9f953bccfec1f48fb08d9e839830dccef56d9a68557f3eeef6caa04d95905467"
+    },
+    {
+      "path": "Sources/CADIR/BridgeCurveEndpointReference.swift",
+      "sha256": "8a40b1df2639c02feb000b296a45cc21da3204b22f378e940e0b44c8512c81ef"
+    },
+    {
+      "path": "Sources/CADIR/BridgeCurveFeature.swift",
+      "sha256": "54097e0a41a5b8c0e3dde966922f98f2784c744e7a2f6a66b3c06dabd909bbec"
+    },
+    {
+      "path": "Sources/CADIR/BridgeSurfaceFeature.swift",
+      "sha256": "9fa85d29f41b963503c4a26a5135e85af8d13d7b35b9dad8f9c4191af9180e6f"
+    },
+    {
+      "path": "Sources/CADIR/CADDocument.swift",
+      "sha256": "2fe692d857007ec83c5c1a18ed2f3b0d44cc6bd4708a87d8a3951479f5618af0"
+    },
+    {
+      "path": "Sources/CADIR/ChamferFeature.swift",
+      "sha256": "cc89f6aae21351dd607821a6185125f775df85aa505851e785520ef142ec4add"
+    },
+    {
+      "path": "Sources/CADIR/CoedgeGeometrySignature.swift",
+      "sha256": "724df01bf92a194c7847b4abb01906691bda7994ba2523a17b10c7127abca502"
+    },
+    {
+      "path": "Sources/CADIR/ConePrimitive.swift",
+      "sha256": "7c4949ef7a3a479811b9f9a53a4940d6dd9cdf9d443920b28c5c0257e60f0cf1"
+    },
+    {
+      "path": "Sources/CADIR/ConstrainedSurfaceFeature.swift",
+      "sha256": "990811c71c127824802f8584418583c0802d40a258f8499254e15eb8c2402525"
+    },
+    {
+      "path": "Sources/CADIR/CurveDrivenPatternFeature.swift",
+      "sha256": "a471735e6c6b1a5304d04d02ca14596ae974aefb1b161d6077707ed3c4dbe438"
+    },
+    {
+      "path": "Sources/CADIR/CurveEditFeature.swift",
+      "sha256": "c317b96a6856c37a75f1751cd7c7637551a8fa5f839070196dd2a1051b1c6d5c"
+    },
+    {
+      "path": "Sources/CADIR/CurveExtendFeature.swift",
+      "sha256": "207f6c5859a03e1cff1279a5a33b7237feff905b1597a80f754716385563b26e"
+    },
+    {
+      "path": "Sources/CADIR/CurveMatchFeature.swift",
+      "sha256": "9beebccaaeb63b183533b489adb1e411e29557c226e472acfb6b0018b1f5bd69"
+    },
+    {
+      "path": "Sources/CADIR/CurveOffsetFeature.swift",
+      "sha256": "8dd22590d21cc62a0b7d78b2eab620fae6cb330546a3ba0c6c123df5a501aa15"
+    },
+    {
+      "path": "Sources/CADIR/CurvePatchFeature.swift",
+      "sha256": "d26f1aeff9069cf71a8131dde61f760cad1ff43f88d516d43aeab4a524f10e47"
+    },
+    {
+      "path": "Sources/CADIR/CurveSpanGeometrySignature.swift",
+      "sha256": "770da61543fb99425ca25c5c886fdca0b264c886a336a10736aee949fb9f567b"
+    },
+    {
+      "path": "Sources/CADIR/CurveTrimFeature.swift",
+      "sha256": "8532700f055bb466d76f9c25d790d1dacf4b08d74bea58a7d785a6e0ce07d749"
+    },
+    {
+      "path": "Sources/CADIR/CylinderPrimitive.swift",
+      "sha256": "cc032840839b1e0dc74d0354e19f1bf3aa8b0103505db06b8703c74fda76a964"
+    },
+    {
+      "path": "Sources/CADIR/DESIGN.md",
+      "sha256": "e8857fa9cce92e11d400b3b3f5aa7fb4c12a2ec444422fa3211672b633f3b6cc"
+    },
+    {
+      "path": "Sources/CADIR/DesignGraph.swift",
+      "sha256": "cd00d9cbe620312240691b9f075d6c91fefbea449ff3fc6019c6985d6c6bc75f"
+    },
+    {
+      "path": "Sources/CADIR/DirectMoveVector.swift",
+      "sha256": "c9411f648e8d95f1149c6ebb73c327f591561af586f949810311205fed3b158e"
+    },
+    {
+      "path": "Sources/CADIR/DirectRotation.swift",
+      "sha256": "db755524ce09a8292dd99e2aa81105b6e5ca721b72df87f3196d1db007dbe008"
+    },
+    {
+      "path": "Sources/CADIR/DirectScale.swift",
+      "sha256": "7bcae230e0d7a014bb786e569594ac3294a435d7fb15e3f48103c0c7577d346c"
+    },
+    {
+      "path": "Sources/CADIR/DocumentAssembly/AssemblyPlacementWord.swift",
+      "sha256": "e4e892c792d754158e3516983de09700e4912dc89e918c7afc2d6a12512ec87d"
+    },
+    {
+      "path": "Sources/CADIR/DocumentAssembly/DESIGN.md",
+      "sha256": "74f894bd6a06b6bb7edbd68fa77d6e0a018737757a262a67717af0c47c6d80e2"
+    },
+    {
+      "path": "Sources/CADIR/DocumentAssembly/DocumentAssemblyValidator.swift",
+      "sha256": "39373fbecf495472ca700a9a323b0d3bd700e4bb1c46fbede80f1d71bc218e30"
+    },
+    {
+      "path": "Sources/CADIR/DocumentFoundation/DESIGN.md",
+      "sha256": "cca0504903f0f7ab7755a8c4b9d76eeeb299a6fff7ed89ed51a442ad290e4b90"
+    },
+    {
+      "path": "Sources/CADIR/DocumentFoundation/DocumentAttribute.swift",
+      "sha256": "1f297788ebfdab59af27fc1291c402e76bdcc0048a30496cfb24a99d6681b455"
+    },
+    {
+      "path": "Sources/CADIR/DocumentFoundation/DocumentAttributeValue.swift",
+      "sha256": "a33155d9674544c8979d22e4ff7bd885cf9355350ceb1c7c1fd0a972021574c5"
+    },
+    {
+      "path": "Sources/CADIR/DocumentFoundation/DocumentFoundation.swift",
+      "sha256": "e9952f786c8326305d3d2ef78d97ecc225a447299f8d5137951c3c86e9813764"
+    },
+    {
+      "path": "Sources/CADIR/EdgeCurveFeature.swift",
+      "sha256": "ed66eca92b37e709387272a66221a0247e5604ac91124b4beb9150d91a1db650"
+    },
+    {
+      "path": "Sources/CADIR/EdgeMoveFeature.swift",
+      "sha256": "69e78cf9894331a0c785e5e2d97ba15dc505987d032729b97b58fd103ad2e6d7"
+    },
+    {
+      "path": "Sources/CADIR/EdgeOffsetFeature.swift",
+      "sha256": "b2d165803d5cdd244c2e3806f49a02b8c07431b784e9f5bda3fa89696e98c77d"
+    },
+    {
+      "path": "Sources/CADIR/ExtractFeature.swift",
+      "sha256": "c2b805da971a7a59b88cce01849c2b27d935af83798f68ccb6971ae80891d956"
+    },
+    {
+      "path": "Sources/CADIR/ExtrudeFeature.swift",
+      "sha256": "8cd442e9c7e1247e6a28a705262db39946fabdce82eaf6a984e219fc91be7e3f"
+    },
+    {
+      "path": "Sources/CADIR/FaceDeleteFeature.swift",
+      "sha256": "321c0d1e203b08f0b3b4cb080bb490357963ce5280daa2dffbb5ae530791e095"
+    },
+    {
+      "path": "Sources/CADIR/FaceDraftFeature.swift",
+      "sha256": "852e105d9e1d4a34fe3f9be8d88feb8b6b7580dec5d6ca1919b257ae43186804"
+    },
+    {
+      "path": "Sources/CADIR/FaceGeometrySignature.swift",
+      "sha256": "2e4f8c2bd54176e10cc1ec45efb3f89f74b821c8ba376c988c01cfb8670bfa19"
+    },
+    {
+      "path": "Sources/CADIR/FaceKnifeFeature.swift",
+      "sha256": "577348db1a2720ebe66d89e1b064d562d8139342ab4bcdfb72779f3cdca3871b"
+    },
+    {
+      "path": "Sources/CADIR/FaceLoopOffsetFeature.swift",
+      "sha256": "d86379b3db02ca4eea6a44e99f49b46625b931c14961894c39e199f769456a91"
+    },
+    {
+      "path": "Sources/CADIR/FaceMatchFeature.swift",
+      "sha256": "eee75945af64f91402330d5e71ff808a16749c60af8f4b1c223d9d7a6d67256f"
+    },
+    {
+      "path": "Sources/CADIR/FaceMoveFeature.swift",
+      "sha256": "5078c6a1ae337051aacb8f7ab87cacbdedfa78d0636d22fe9f9ef4608e27f905"
+    },
+    {
+      "path": "Sources/CADIR/FaceOffsetFeature.swift",
+      "sha256": "eae4c591ce936461f9dc7d6c60ec416e32f23eeb23ca22a98e4ef17e6a9ebf49"
+    },
+    {
+      "path": "Sources/CADIR/FaceRebuildFeature.swift",
+      "sha256": "a210f6eceb7f9c7da08204c1973bd2cefbb84dcfd4c1793472ac2bb1301ef3c9"
+    },
+    {
+      "path": "Sources/CADIR/FaceUnwrapFeature.swift",
+      "sha256": "4981cc757e2035bdeaada08dc89daef0934aa918299c1b5cf49aa56fdb24df95"
+    },
+    {
+      "path": "Sources/CADIR/FeatureNode.swift",
+      "sha256": "7ddf7fd8e0c253179459d4c4e5a8980f214acaf48b82142b63410ca3061b725f"
+    },
+    {
+      "path": "Sources/CADIR/FilletFeature.swift",
+      "sha256": "67a03171feabe5a3b16551d1cc30f4e0a202eadbd2c978a3bd99bbfd1f246b8b"
+    },
+    {
+      "path": "Sources/CADIR/G2BlendFeature.swift",
+      "sha256": "d0c7dd7c01eacbd125a7a2adcd29ffe9f30e2730aac078bfb319661cfb439bb2"
+    },
+    {
+      "path": "Sources/CADIR/GridPatternFeature.swift",
+      "sha256": "99b5edd65ba825bf9ae26d58f743e870fee11a0269f29d2320d99d00c70cb3c5"
+    },
+    {
+      "path": "Sources/CADIR/ImprintBodyFeature.swift",
+      "sha256": "ac5a47c21263cba40ac5d7052b653574307a440a3bbd44270d852d0b3c7a958b"
+    },
+    {
+      "path": "Sources/CADIR/ImprintCurvesFeature.swift",
+      "sha256": "1281e9d430490d97a639be0a162a03c5fda9fca2c2b4e6ff7816f8460dc8b174"
+    },
+    {
+      "path": "Sources/CADIR/InvoluteGear/InvoluteGearFeature.swift",
+      "sha256": "4d95a83241e43fc3d403cd80942ec5287d6cf323c4fa81768e1a66c1febec6e6"
+    },
+    {
+      "path": "Sources/CADIR/IsoparamFeature.swift",
+      "sha256": "740df908aa51a52f3cedf5335ca297c2296bc44f4a6ceaa9bebe251c6f41048d"
+    },
+    {
+      "path": "Sources/CADIR/JoinBodiesFeature.swift",
+      "sha256": "db514b8e7eb32a0c16ac08d6fde68ca93359310be199a914418611b6515c50fc"
+    },
+    {
+      "path": "Sources/CADIR/LinearPatternFeature.swift",
+      "sha256": "658dbfa37447e6f060a7437b9d02d332195d41acd1729e12e4b069b97973fc7e"
+    },
+    {
+      "path": "Sources/CADIR/LoftFaceContinuity.swift",
+      "sha256": "6171129996fc815905da7fb1260c7ccd546f5cb970b0aba215145f36ce54102e"
+    },
+    {
+      "path": "Sources/CADIR/LoftFeature.swift",
+      "sha256": "f657d1ecb25364fadf7b07fc5e40fd9f144673f3db76ad339bf35cefe8f0f783"
+    },
+    {
+      "path": "Sources/CADIR/LoopGeometrySignature.swift",
+      "sha256": "e8201f1bdedbe831d51f408b2ea6276ee5a1a5cff9da7247d1cbbe364a756e6e"
+    },
+    {
+      "path": "Sources/CADIR/Mesh.swift",
+      "sha256": "187bcb2a1db0635bee27162b93412c23c5905176ed63d4fc6a7bf27ce228ad88"
+    },
+    {
+      "path": "Sources/CADIR/MirrorFeature.swift",
+      "sha256": "59d443a9a6ac12f18f7c00173e13fc497c2b6a39a8271bc3829663ef78b8650b"
+    },
+    {
+      "path": "Sources/CADIR/Parameter.swift",
+      "sha256": "745c17186f34a58c4ca3fa16d252e4c9e6a947be24072e52f8af6b6910171f45"
+    },
+    {
+      "path": "Sources/CADIR/PatchSurfaceFeature.swift",
+      "sha256": "13a00bde18d1be3d06e554f6cf4130cf64082d808a602c84c5c363944c9cc9af"
+    },
+    {
+      "path": "Sources/CADIR/PipeFeature.swift",
+      "sha256": "0181d901257ec42c5e4bdb11a019ba130906bc2b2542872892718ccaeda729ad"
+    },
+    {
+      "path": "Sources/CADIR/PolySplineFeature.swift",
+      "sha256": "8b95b7754d8c6b4d16fd6932f486fabb27cbef87ec131b3580ebce97dd90292b"
+    },
+    {
+      "path": "Sources/CADIR/PolySplineSurfaceControlPointOverride.swift",
+      "sha256": "ef68f7e42bf86870409c33e9aecf23da60fa990ffe5d6aa485e4652ef8fb9c97"
+    },
+    {
+      "path": "Sources/CADIR/PrimitiveDefinition.swift",
+      "sha256": "480f8392c0c8b1a775a55a6cc404ef237d09ab38ee2c0d7f276fdb0f49ed37fb"
+    },
+    {
+      "path": "Sources/CADIR/PrimitiveFeature.swift",
+      "sha256": "fffb9ffff946549b760d8b26f629d9193d15692424f9d70acc566b9e8e266e98"
+    },
+    {
+      "path": "Sources/CADIR/PrimitivePlacement.swift",
+      "sha256": "17f662e32eb2cd80563ad0ae6e21eeedc379a2637eb16e7abd5532cdd7785182"
+    },
+    {
+      "path": "Sources/CADIR/ProductAttributes/DESIGN.md",
+      "sha256": "2ceaf0c90a594566c5339a39bde4683538f67ad5aa7a88e498de28a4a01bbb39"
+    },
+    {
+      "path": "Sources/CADIR/ProductAttributes/ProductAttributeTarget.swift",
+      "sha256": "30c88d819e2a6022178b689e84336cd604caea81d88b8e5e615c095f6c0e4dcf"
+    },
+    {
+      "path": "Sources/CADIR/ProductAttributes/ProductAttributesValidator.swift",
+      "sha256": "e2895f15d75599b164da12a2b82829059131ced3df4048ebaed6c9d5ea4dd20e"
+    },
+    {
+      "path": "Sources/CADIR/Profile.swift",
+      "sha256": "77ec54b7e854bf740799dd827391c9a3ef1b8e879ae81480ce2c5f7f4274f2b4"
+    },
+    {
+      "path": "Sources/CADIR/ProjectCurveFeature.swift",
+      "sha256": "43ffceb001e502e7fc6548df0d45ba4057054d9b8a95af378b2b7424e0cace53"
+    },
+    {
+      "path": "Sources/CADIR/RadialPatternFeature.swift",
+      "sha256": "2c7828ae3bbdd6c004ff9c23807454d23e829d4bce4b528e57edebd4f1905dc9"
+    },
+    {
+      "path": "Sources/CADIR/RemoveFilletsFeature.swift",
+      "sha256": "8574539b11182ec3d00ffdb89a5650bf2fbed768d3ff6c12330a77c7114e9e72"
+    },
+    {
+      "path": "Sources/CADIR/RemoveRedundantTopologyFeature.swift",
+      "sha256": "5c17d7677c3173ec70794ebb5683818d166040b97c80f8fe04ef927effd46b3b"
+    },
+    {
+      "path": "Sources/CADIR/ReverseSheetFeature.swift",
+      "sha256": "1b6689a31ae46594ba9f10d802e4da582e02645f93bf497819e050579a96422b"
+    },
+    {
+      "path": "Sources/CADIR/RevolveFeature.swift",
+      "sha256": "40f91934ba3159ef1248ec4229ff14d11eeb88bc67fb963f5eb86e5b5b971a31"
+    },
+    {
+      "path": "Sources/CADIR/SectionReference/CurveSectionReference.swift",
+      "sha256": "0d90b0ef4a01dd9fca5ed0ec242ee77b566dd2c059fb7f9261740825fb756326"
+    },
+    {
+      "path": "Sources/CADIR/SectionReference/FaceSectionReference.swift",
+      "sha256": "ee06d251f64b57f88bd019c8026dab9214dbbfe9231e017e513678756d2c7078"
+    },
+    {
+      "path": "Sources/CADIR/SectionReference/SectionReference.swift",
+      "sha256": "9c9d53d5638e155cd3cd06fd0169e0fb909f5b446051661b392f691ce5fe5df8"
+    },
+    {
+      "path": "Sources/CADIR/SelectionDimension.swift",
+      "sha256": "1452fe62f0c7225cfa0efdf6527fe60c11af12e10814a544d0dcb2cb2547042f"
+    },
+    {
+      "path": "Sources/CADIR/SelectionReference.swift",
+      "sha256": "5fd0acb0c7b739ea63edc14529b7138cf711df6862de010eb065f0af7b16cf09"
+    },
+    {
+      "path": "Sources/CADIR/SetbackCornerFeature.swift",
+      "sha256": "0110a5dcbade79640d4610b2b8f8fdb5a187a2b7e6a8fa628f0e33c9992b9eaf"
+    },
+    {
+      "path": "Sources/CADIR/SheetBridgeFeature.swift",
+      "sha256": "27edc0aa7245ac11728ffadf8b1fca45a47e340590faa4e319add543f2aebca8"
+    },
+    {
+      "path": "Sources/CADIR/SheetExtendFeature.swift",
+      "sha256": "f4a70888480431326ea532930c498c3d16c849362f3b5ccb91a18b1fb38f87f2"
+    },
+    {
+      "path": "Sources/CADIR/ShellFeature.swift",
+      "sha256": "89a90be26abd37ad631f80c4b1062398ba0746d31158dd38f9f845c4894102c8"
+    },
+    {
+      "path": "Sources/CADIR/ShellGeometrySignature.swift",
+      "sha256": "6f79c121bc2986889df0500c06d1ef8f6fe4d36b2ec1a827c5453efa503c8d1a"
+    },
+    {
+      "path": "Sources/CADIR/Sketch.swift",
+      "sha256": "493d5c6e72b96fd4716eca8fa04f8be2ae8b71310f132b369bc507a85ba19a0e"
+    },
+    {
+      "path": "Sources/CADIR/SketchSpline.swift",
+      "sha256": "e40c01b71abf53e62c055b8a18ae6f2d15b7cdabe60fe69e94486c70ae939030"
+    },
+    {
+      "path": "Sources/CADIR/SpatialPath/SpatialPathFeature.swift",
+      "sha256": "ab51aeb1522d302a6f8219f7c2580f7685bb2705ff865a0dd0677972f8b821a7"
+    },
+    {
+      "path": "Sources/CADIR/SpatialPath/SpatialPathKnot.swift",
+      "sha256": "9648c61f23113b785ca20555b93342d1238dbdf0df74e7febb1da1cc6a61bf17"
+    },
+    {
+      "path": "Sources/CADIR/SpherePrimitive.swift",
+      "sha256": "0afb2dde7f3d092cf97dd43585bc61fd2fcc09927e1e76fd4fb62ffbb0255b61"
+    },
+    {
+      "path": "Sources/CADIR/SquareFitOptions.swift",
+      "sha256": "640e900048ad65f0d00ec2bed5b6fb5153b6630773de5b54914470cd0f94f166"
+    },
+    {
+      "path": "Sources/CADIR/SquareRefit.swift",
+      "sha256": "4b36b6b49a685e024660e483ec015696e7f6516640c4f33208311c09cd0ecd9b"
+    },
+    {
+      "path": "Sources/CADIR/SquareSurfaceFeature.swift",
+      "sha256": "e9ec4d00ff55cfaec62b9551fd8c8569950afa850e445adcce558fc44c7c8f74"
+    },
+    {
+      "path": "Sources/CADIR/StableSubshapeReference.swift",
+      "sha256": "b14963c9a5425437ba0988d9a0fed462f3a3b1f76a69022cf42d73886a69d46a"
+    },
+    {
+      "path": "Sources/CADIR/SubshapeGeometrySignature.swift",
+      "sha256": "a606e725a4ae8e4337092930512240dd5f6cc0bbaaf225469fabb05ecca0a922"
+    },
+    {
+      "path": "Sources/CADIR/SurfaceAlignFeature.swift",
+      "sha256": "a247bc295fb00bf0f7fa0084a776628e05c2c45e16e5ffda97d465003d8b9ae8"
+    },
+    {
+      "path": "Sources/CADIR/SurfaceControlLayout.swift",
+      "sha256": "9e902fd1974dea431104a2e4580261c0444a8da0524398a15e432fe3ba6eb4d6"
+    },
+    {
+      "path": "Sources/CADIR/SurfaceEdgeContinuity.swift",
+      "sha256": "8026868bed64bbfdd235efb0c37b2ced2a93528e7e7f4d264b03209b2c6b2c60"
+    },
+    {
+      "path": "Sources/CADIR/SurfaceExtendFeature.swift",
+      "sha256": "4836e19e3b53e2afb937189de44cf6b92f5653934c6e554d4a68885433d14126"
+    },
+    {
+      "path": "Sources/CADIR/SurfaceFillFeature.swift",
+      "sha256": "e1aad56d13c302fc586fedb1c6e293a3d50699642ac1ae99710e854e1d3adaab"
+    },
+    {
+      "path": "Sources/CADIR/SurfaceMatchFeature.swift",
+      "sha256": "49b1cf16ff71ec5cf04dc4063664ef4475a36418612c226bd6be7efc4803f175"
+    },
+    {
+      "path": "Sources/CADIR/SurfaceOffsetFeature.swift",
+      "sha256": "8e290118c754aba257dbda54d72473b1ba65f1039e63f707ba5d439b8bd570e0"
+    },
+    {
+      "path": "Sources/CADIR/SurfaceOperationTargetReference.swift",
+      "sha256": "dff6379b3b1f4728fe99f93c02e7f371cf82481ee7c578659639f1bfcb147fb3"
+    },
+    {
+      "path": "Sources/CADIR/SurfaceParameterDomain2D.swift",
+      "sha256": "653c491efa4b9a8f6a59711e806ada0e800ae93cfe71578380b4da574a44d44e"
+    },
+    {
+      "path": "Sources/CADIR/SurfaceTrimFeature.swift",
+      "sha256": "5742ce6ad470c2219333b77fffa07e1f0d4d312265c016be5a9def48f984761a"
+    },
+    {
+      "path": "Sources/CADIR/SurfaceTrimLoop.swift",
+      "sha256": "231077173436e8451c8396dccc680a9251ece07ad9420382f90c3380c7f0b7f6"
+    },
+    {
+      "path": "Sources/CADIR/SweepFeature.swift",
+      "sha256": "03db9da79bbe2ee8864ab86f32d8e0d6d2d12fc7abfd4195fb452f4c1f30b0ee"
+    },
+    {
+      "path": "Sources/CADIR/ThickenFeature.swift",
+      "sha256": "4ff74ef9de22b73ade9c8d17f9f6b0cb9ce8fdcafbc24957410ee351829b96ea"
+    },
+    {
+      "path": "Sources/CADIR/TopologyMotion.swift",
+      "sha256": "c2c4eb6bf0eb4e6074c67f4941e5425278674de2b4943f5daa4622f982f82575"
+    },
+    {
+      "path": "Sources/CADIR/TopologyTransformFeature.swift",
+      "sha256": "90b08c0add70cc49c4fe511134add16c903e22e299bc720105afd33ee3861686"
+    },
+    {
+      "path": "Sources/CADIR/TorusPrimitive.swift",
+      "sha256": "c90a58d043e0acbccfd9e38e7ae2791d8b6fb6b3674da75a39d3aa903c79b9c2"
+    },
+    {
+      "path": "Sources/CADIR/UnjoinBodyFeature.swift",
+      "sha256": "3fc051cfa1daa9ee2dd8748f8a7ae9da384773c151681111e38f637c9646b67f"
+    },
+    {
+      "path": "Sources/CADIR/UnjoinFacesFeature.swift",
+      "sha256": "64c347313affde9f1ba0c9ac715858b051d4439322e2284b66fbf39118449de0"
+    },
+    {
+      "path": "Sources/CADIR/UntrimFaceFeature.swift",
+      "sha256": "51e1d6f4863a94a315069aa98bb01f8843873f0ff0898f3fcad37ec22fc2eb1f"
+    },
+    {
+      "path": "Sources/CADIR/VertexMoveFeature.swift",
+      "sha256": "7c7476181546f832a9a7f3966c0c809fb2dd5afc77cfd80b94974c8793c1972c"
+    },
+    {
+      "path": "Sources/CADIR/WrapFeature.swift",
+      "sha256": "0955b2c427c0aa2a3de78b2ec79ec21f46ba1f09055ff3a5830350d76cf8288c"
+    },
+    {
+      "path": "Sources/CADIR/XNurbsFeature.swift",
+      "sha256": "50e032425586245ac847e6ceb92de889834204a8c8b71865cd5763318d23a251"
+    }
+  ],
+  "fixtures": [
+    {
+      "path": "Tests/CADIRTests/CADDocumentDirectExecutionChecks.swift",
+      "sha256": "dafd499124f8327aaa4cb0f39e7dd83868a97b2f1f798926938598dba959faac"
+    },
+    {
+      "path": "Tests/CADIRTests/CADDocumentDirectExecutionTests.swift",
+      "sha256": "ae3ec71e7f7d69a78fad132ec42f0dc7d3a6bbeb7a7b7948ae8b4f198534ae5a"
+    },
+    {
+      "path": "Tests/OriginalQueryExecutionVerification/CADDocumentDirectExecutionPortable.swift",
+      "sha256": "70c8cbdc068c35e2a803fd78ce6db4d3eda1c5d8b600ed73e12267eaefe659fe"
+    }
+  ],
+  "findingFourFileDelta": [
+    {
+      "path": "Sources/CADIR/DocumentAssembly/DocumentAssemblyValidator.swift",
+      "sha256": "39373fbecf495472ca700a9a323b0d3bd700e4bb1c46fbede80f1d71bc218e30"
+    },
+    {
+      "path": "Sources/CADIR/FaceRebuildFeature.swift",
+      "sha256": "a210f6eceb7f9c7da08204c1973bd2cefbb84dcfd4c1793472ac2bb1301ef3c9"
+    },
+    {
+      "path": "Sources/CADIR/Mesh.swift",
+      "sha256": "187bcb2a1db0635bee27162b93412c23c5905176ed63d4fc6a7bf27ce228ad88"
+    },
+    {
+      "path": "Sources/CADIR/SurfaceParameterDomain2D.swift",
+      "sha256": "653c491efa4b9a8f6a59711e806ada0e800ae93cfe71578380b4da574a44d44e"
+    }
+  ],
+  "productionAndDesignCount": 125,
+  "fixtureCount": 3
+}

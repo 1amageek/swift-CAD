@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 import CADTopology
 
 /// Separates a body into sheets in its place: each chosen face (every face, when every face is
@@ -15,8 +16,15 @@ public struct UnjoinFacesFeature: Hashable, Sendable {
     }
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try target.validate()
-        try selection.validate()
+        try selection.validate(using: &execution)
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)
@@ -53,17 +61,26 @@ public enum UnjoinFacesSelection: Hashable, Sendable {
     case faces([StableSubshapeReference])
 
     public func validate() throws {
-        guard case let .faces(faces) = self else { return }
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        guard case let .faces(faces) = self else { try execution.checkpoint(); return }
         guard faces.isEmpty == false else {
             throw FeatureEvaluationError.invalidGraph("Unjoin faces requires at least one face.")
         }
         var seen = Set<StableSubshapeReference>()
         for face in faces {
-            try face.validate()
-            guard seen.insert(face).inserted else {
+            try execution.consumeWork(1)
+            try face.validate(using: &execution)
+            try face.chargeStructuralComparison(using: &execution)
+            guard try OriginalParameterQueryStorage.insert(face, in: &seen, using: &execution) else {
                 throw FeatureEvaluationError.invalidGraph("Unjoin faces must be unique.")
             }
         }
+        try execution.checkpoint()
     }
 }
 

@@ -39,6 +39,14 @@ public struct ProductAttributeTarget: Hashable, Sendable {
         if let path, path.components.isEmpty { throw ProductAttributeError.invalidSource("Occurrence scope cannot be empty.") }
     }
 
+    func chargeStructuralComparison(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        if let geometry { try geometry.chargeStructuralComparison(using: &execution) }
+        if let path {
+            for _ in path.components { try execution.consumeWork(1) }
+        }
+    }
+
     #if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey { case kind, geometry, definitionID, path, usageID }
     #endif

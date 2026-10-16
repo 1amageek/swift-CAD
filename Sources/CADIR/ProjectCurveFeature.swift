@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 public struct ProjectCurveFeature: Hashable, Sendable {
     public let source: CurveOutputReference
@@ -20,8 +21,14 @@ public struct ProjectCurveFeature: Hashable, Sendable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try tolerance.validate()
-        try source.validate()
+        try source.validate(using: &execution)
         try planeOrigin.validate()
         try planeNormal.validate()
         guard planeNormal.length > tolerance.distance else {
@@ -42,6 +49,7 @@ public struct ProjectCurveFeature: Hashable, Sendable {
                 )
             }
         }
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)

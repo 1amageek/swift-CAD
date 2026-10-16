@@ -31,6 +31,12 @@ public struct CoedgeGeometrySignature: Hashable, Sendable {
         )
     }
 
+    func chargeStructuralComparison(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try edge.chargeStructuralComparison(using: &execution)
+        try GeometryStructuralComparisonWork.charge(parameterCurve: surfaceParameterCurve, using: &execution)
+    }
+
 #if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey, CaseIterable {
         case edge

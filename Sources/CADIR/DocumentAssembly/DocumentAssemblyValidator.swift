@@ -1,6 +1,7 @@
 import HashTreeCollections
 import CADCore
 import CADGeometry
+import CADTopology
 
 public struct DocumentAssemblyValidator: DocumentAssemblyValidating {
     public init() {}
@@ -43,7 +44,9 @@ public struct DocumentAssemblyValidator: DocumentAssemblyValidating {
         let startingRecords = execution.localRecords
         guard !assembly.roots.isEmpty else { throw AssemblyError.invalidSource("Assembly requires at least one root occurrence.") }
         var records: Int { execution.localRecords - startingRecords }
+        try execution.retainStorage(count: 4, stride: MemoryLayout<Int>.stride)
         for count in [assembly.roots.count, assembly.products.count, assembly.formations.count, assembly.definitions.count] {
+            try execution.checkpoint()
             guard count <= limits.maximumRecords - records else { throw AssemblyError.resourceLimitExceeded("source records") }
             try execution.consumeRecords(count)
         }
@@ -57,31 +60,39 @@ public struct DocumentAssemblyValidator: DocumentAssemblyValidating {
             guard let value else { return }
             var count = 0
             let workRemaining = limits.maximumWork - sourceWork
+            let textRemaining = limits.maximumTextBytes - textBytes
             for _ in value.utf8 {
-                guard count < limits.maximumTextBytes - textBytes, count < workRemaining else {
+                guard count < textRemaining, count < workRemaining else {
                     throw AssemblyError.resourceLimitExceeded("source text/work")
                 }
+                try execution.chargeSourceText(work: 1, storageBytes: 1)
                 count += 1
-                if count.isMultiple(of: 1024) { try execution.checkpoint() }
             }
-            try execution.chargeSourceText(work: count, storageBytes: count)
         }
         var products = Set<AssemblyProductID>()
         for product in assembly.products {
-            try CurrentTaskCancellationChecker().checkCancellation()
+            try execution.checkpoint()
             try text(product.identifier); try text(product.name); try text(product.description)
-            guard products.insert(product.id).inserted else { throw AssemblyError.invalidSource("Duplicate product identity.") }
+            guard try OriginalParameterQueryStorage.insert(product.id, in: &products, using: &execution) else { throw AssemblyError.invalidSource("Duplicate product identity.") }
         }
         var formations: [AssemblyProductFormationID: AssemblyProductFormation] = [:]
         var versions: [AssemblyProductID: Set<AssemblySourceText>] = [:]
         for formation in assembly.formations {
-            try CurrentTaskCancellationChecker().checkCancellation()
+            try execution.checkpoint()
             try text(formation.versionIdentifier); try text(formation.description)
             guard products.contains(formation.productID) else { throw AssemblyError.invalidSource("Missing product.") }
-            guard formations.updateValue(formation, forKey: formation.id) == nil else {
+            let previousFormation = formations[formation.id]
+            try OriginalParameterQueryStorage.set(formation, for: formation.id, in: &formations, using: &execution)
+            guard previousFormation == nil else {
                 throw AssemblyError.invalidSource("Duplicate formation identity.")
             }
-            guard versions[formation.productID, default: []].insert(AssemblySourceText(formation.versionIdentifier)).inserted else {
+            var productVersions = versions[formation.productID, default: []]
+            if !productVersions.isEmpty {
+                try execution.retainStorage(count: productVersions.count, stride: MemoryLayout<AssemblySourceText>.stride)
+            }
+            let insertedVersion = try OriginalParameterQueryStorage.insert(AssemblySourceText(formation.versionIdentifier), in: &productVersions, using: &execution)
+            try OriginalParameterQueryStorage.set(productVersions, for: formation.productID, in: &versions, using: &execution)
+            guard insertedVersion else {
                 throw AssemblyError.invalidSource("Formation version is not unique within its product.")
             }
         }
@@ -89,7 +100,7 @@ public struct DocumentAssemblyValidator: DocumentAssemblyValidating {
         var definitions: [AssemblyDefinitionID: AssemblyDefinition] = [:]
         var edgeIDs = Set<AssemblyOccurrenceID>()
         for definition in assembly.definitions {
-            try CurrentTaskCancellationChecker().checkCancellation()
+            try execution.checkpoint()
             guard definition.children.count <= limits.maximumRecords - records,
                   definition.features.count <= limits.maximumRecords - records - definition.children.count else {
                 throw AssemblyError.resourceLimitExceeded("source records")
@@ -100,24 +111,32 @@ public struct DocumentAssemblyValidator: DocumentAssemblyValidating {
             try execution.consumeWork(additional)
             try text(definition.identifier); try text(definition.definitionDescription)
             guard formations[definition.formationID] != nil else { throw AssemblyError.invalidSource("Missing product formation.") }
-            usedFormations.insert(definition.formationID)
-            guard definitions.updateValue(definition, forKey: definition.id) == nil,
-                  Set(definition.features).count == definition.features.count else {
+            try OriginalParameterQueryStorage.insert(definition.formationID, in: &usedFormations, using: &execution)
+            let previousDefinition = definitions[definition.id]
+            try OriginalParameterQueryStorage.set(definition, for: definition.id, in: &definitions, using: &execution)
+            guard previousDefinition == nil,
+                  (try OriginalParameterQueryStorage.set(definition.features, using: &execution)).count == definition.features.count else {
                 throw AssemblyError.invalidSource("Duplicate definition or local feature reference.")
             }
             for id in definition.features {
+            try execution.checkpoint()
                 guard let feature = graph.nodes[id], !feature.isSuppressed,
-                      feature.bodyOrSheetOutput != nil else { throw AssemblyError.missingFeature(id) }
+                      (try feature.validationBodyOrSheetOutput(using: &execution)) != nil else { throw AssemblyError.missingFeature(id) }
             }
         }
-        guard usedFormations.count == formations.count,
-              Set(formations.values.map { $0.productID }).count == products.count else {
+        guard usedFormations.count == formations.count else {
             throw AssemblyError.invalidSource("Unreferenced product or formation.")
         }
-        for occurrence in assembly.roots + assembly.definitions.flatMap({ $0.children }) {
-            try CurrentTaskCancellationChecker().checkCancellation()
+        let formationProductIDs = try OriginalParameterQueryStorage.map(formations.values, using: &execution) { formation, execution in formation.productID }
+        guard (try OriginalParameterQueryStorage.set(formationProductIDs, using: &execution)).count == products.count else {
+            throw AssemblyError.invalidSource("Unreferenced product or formation.")
+        }
+        let definitionOccurrences = try OriginalParameterQueryStorage.flatMap(assembly.definitions, using: &execution) { definition, execution in definition.children }
+        let directOccurrences = try OriginalParameterQueryStorage.concatenated(assembly.roots, definitionOccurrences, using: &execution)
+        for occurrence in directOccurrences {
+            try execution.checkpoint()
             try text(occurrence.name)
-            guard edgeIDs.insert(occurrence.id).inserted else {
+            guard try OriginalParameterQueryStorage.insert(occurrence.id, in: &edgeIDs, using: &execution) else {
                 throw AssemblyError.invalidSource("Duplicate direct occurrence identity.")
             }
             guard definitions[occurrence.definitionID] != nil else {
@@ -155,6 +174,7 @@ public struct DocumentAssemblyValidator: DocumentAssemblyValidating {
             if case .step(let source) = occurrence.placement { try stepSource(source) }
             else if case .word(let word) = occurrence.placement {
                 for factor in word.factors {
+            try execution.checkpoint()
                     if case .step(let source) = factor.originalPlacement { try stepSource(source) }
                 }
             }
@@ -165,12 +185,13 @@ public struct DocumentAssemblyValidator: DocumentAssemblyValidating {
         var result: [ExpandedAssemblyOccurrence] = []
         var reached = Set<AssemblyDefinitionID>()
         var work: Int { execution.localWork - startingWork }
-        var stack = assembly.roots.sorted { $1.id < $0.id }.map {
-            (occurrence: $0, path: [AssemblyOccurrenceID](), ancestors: Set<AssemblyDefinitionID>(),
+        let roots = try OriginalParameterQueryStorage.ordered(assembly.roots, using: &execution, less: { $1.id < $0.id })
+        var stack = try OriginalParameterQueryStorage.map(roots, using: &execution) { occurrence, execution in
+            (occurrence: occurrence, path: [AssemblyOccurrenceID](), ancestors: Set<AssemblyDefinitionID>(),
              parent: [AssemblyPlacementFactor]())
         }
         while let item = stack.popLast() {
-            try CurrentTaskCancellationChecker().checkCancellation()
+            try execution.checkpoint()
             guard !item.ancestors.contains(item.occurrence.definitionID) else {
                 throw AssemblyError.cycle(item.occurrence.definitionID)
             }
@@ -179,7 +200,9 @@ public struct DocumentAssemblyValidator: DocumentAssemblyValidating {
                 throw AssemblyError.resourceLimitExceeded("occurrence expansion")
             }
             try execution.consumeWork(item.path.count + 1)
-            let path = item.path + [item.occurrence.id]
+            try execution.admitSourceDepth(item.path.count + 1)
+            var path = try OriginalParameterQueryStorage.materialize(item.path, using: &execution)
+            try OriginalParameterQueryStorage.append(item.occurrence.id, to: &path, using: &execution)
             // Retain the original source word instead of rounded composed columns.
             // Fourteen scalar/operation records per factor are admitted before its array copy.
             let directFactorCount: Int
@@ -191,23 +214,30 @@ public struct DocumentAssemblyValidator: DocumentAssemblyValidating {
                 throw AssemblyError.resourceLimitExceeded("original placement word storage")
             }
             try execution.consumeWork(retention.partialValue)
-            var factors = item.parent
-            factors.reserveCapacity(factorCount.partialValue)
+            var factors: [AssemblyPlacementFactor] = []
+            try OriginalParameterQueryStorage.reserve(factorCount.partialValue, in: &factors, using: &execution)
+            for factor in item.parent {
+                try execution.checkpoint()
+                factors.append(factor)
+            }
             if case .word(let word) = item.occurrence.placement { factors.append(contentsOf: word.factors) }
             else { factors.append(.forward(item.occurrence.placement)) }
-            let frame = try AssemblyPlacementWord(factors: factors)
-            result.append(ExpandedAssemblyOccurrence(path: AssemblyOccurrencePath(path),
-                definitionID: item.occurrence.definitionID, placement: frame))
-            reached.insert(item.occurrence.definitionID)
+            let frame = try AssemblyPlacementWord(factors: factors, using: &execution)
+            try OriginalParameterQueryStorage.append(ExpandedAssemblyOccurrence(path: AssemblyOccurrencePath(path),
+                definitionID: item.occurrence.definitionID, placement: frame), to: &result, using: &execution)
+            try OriginalParameterQueryStorage.insert(item.occurrence.definitionID, in: &reached, using: &execution)
             guard let definition = definitions[item.occurrence.definitionID] else {
                 throw AssemblyError.missingDefinition(item.occurrence.definitionID)
             }
             guard definition.children.count <= limits.maximumOccurrences - result.count - stack.count else {
                 throw AssemblyError.resourceLimitExceeded("pending occurrences")
             }
-            var ancestors = item.ancestors; ancestors.insert(definition.id)
-            for child in definition.children.sorted(by: { $1.id < $0.id }) {
-                stack.append((child, path, ancestors, factors))
+            var ancestors = try OriginalParameterQueryStorage.set(item.ancestors, using: &execution)
+            try OriginalParameterQueryStorage.insert(definition.id, in: &ancestors, using: &execution)
+            let children = try OriginalParameterQueryStorage.ordered(definition.children, using: &execution, less: { $1.id < $0.id })
+            for child in children {
+            try execution.checkpoint()
+                try OriginalParameterQueryStorage.append((child, path, ancestors, factors), to: &stack, using: &execution)
             }
         }
         guard reached.count == definitions.count else {

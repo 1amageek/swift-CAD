@@ -128,6 +128,88 @@ flowchart LR
 
 ## Contracts and Invariants
 
+### Complete Document Validation Execution
+
+The finite review controls also own four concrete allocation/hash boundaries:
+FaceRebuild charges the stored role and signature through
+`chargeStructuralComparison(using:)` immediately before Set insertion, after its
+original face validation. SurfaceParameterDomain2D admits its four-Double bounds
+array, mesh winding validation its three-Int normal-index array, and assembly
+source counting its four-Int count array before each is materialized. These
+requests use the caller's existing typed storage policy; empty/invalid guards
+that precede them remain first. No source fields, numeric guards or residual
+selection order change. The dedicated shared validation checks compare role
+length work and exact additional typed scratch against otherwise identical
+actual calls, so a missing debit cannot pass merely by measuring its own budget.
+
+Opaque feature-ID reference validators that genuinely have an empty constant body
+remain ordinary no-op guards inside an already-admitted feature visit. They do
+not receive a redundant admission overload. Source-bearing references (including
+`SurfaceOperationTargetReference`) forward their actual stable-signature
+validation through the incoming execution. Native Revolve section encoding and
+decoding choose an ordinary execution for their existing section-only guard;
+admitted document validation calls that same section body directly. Square refit
+validation composes the actual fit options guard with the same execution.
+
+The only shared mutable state added by its verification is the checkpoint probe;
+production scratch state remains owned by one synchronous validation invocation.
+
+| State | Native / WASM / Embedded storage | Isolation and access | Release |
+|---|---|---|---|
+| Authored document, feature, reference and source values | Same value/COW owners and Sendable conformances | Immutable reads during validation; no target-specific mutation | Caller/source value lifetime |
+| Parameter caches, graph stack/indexes, owner sets, assembly expansion, metadata scratch | Same local typed Array/Set/Dictionary values | Exclusive incoming execution and local variables | Normal return or throw unwinds the invocation |
+| Verification checkpoint count | Same `Mutex<Int>` in a Sendable probe | Increment/read inside `withLock`; cancellation throws after unlocking | Last probe reference |
+
+
+`CADDocument.validate(tolerance:independentShapeLimits:using:)` owns the complete
+source-validation traversal on the supplied `OriginalQueryExecution`. Its ordinary
+and explicit-check conveniences select one root execution before entering that
+same traversal. A child validator never selects another root, reconstructs a
+remaining-work budget, or replaces direct admission with a counting callback.
+The caller budget, effective independent capabilities, active contributions and
+typed resource/cancellation cause remain authoritative through publication.
+
+The existing validation order is preserved:
+
+```text
+schema -> units -> metadata -> parameter identities/kinds/values
+ -> graph structure -> graph expressions -> document foundation
+ -> assembly -> independent shapes/product associations -> product attributes
+ -> selection-dimension identities/values -> final checkpoint
+```
+
+| Actual owner | Preserved contract | Admission before the owned operation |
+|---|---|---|
+| ParameterTable and its kind/value states | Key/name identity, reference/cycle and quantity-kind rejection; all existing expression formulas and finite-value checks | Same-execution visits, actual recursive ancestry and typed cache/path storage |
+| DesignGraph | Existing order, dependency, suppression, operation-contract and expression checks, including their current first-invalid-input order | Source/node/edge/expression visits and actual typed scratch collections |
+| DocumentFoundation | Owner/local-reference existence, unique names, attribute values and ownership-cycle rejection | Attribute/value/reference visits and typed index/name/path storage |
+| DocumentAssembly | Existing record, text, occurrence, topology, work, source-depth and algebra ceilings | Existing direct assembly expansion with the caller execution and the unchanged local limits |
+| IndependentShapeSource and ProductAttributes | Existing original source/association rules and independent source, target, record, text, override-depth and work ceilings | Existing direct child bodies and their retained contribution scopes on the same execution |
+| SelectionDimension and its source references | Existing reference, expression quantity, nonnegative distance and angle-range checks | Same-execution reference/expression visits and typed duplicate-ID storage |
+
+Variable-sized processing admits its actual visits and typed storage before
+iteration, reserve, insertion or append. Recursive calls use the same execution;
+actual source ancestry is independent of numeric value/coefficient ancestry.
+Existing fixed scalar guards, formulas, field layout, JSON schema, error values
+and every local structural ceiling remain unchanged. Admission may reject before
+the next source operation, but does not replace an invalid-source rejection with
+success. Dynamic allocations and source traversal cannot be accounted merely by
+charging a summary and then invoking an ordinary recursive validator.
+
+The [Assembly](DocumentAssembly/DESIGN.md#contracts-and-invariants),
+[Product Attributes](ProductAttributes/DESIGN.md#contracts-and-invariants) and
+[Document Foundation](DocumentFoundation/DESIGN.md#contracts-and-invariants)
+contracts remain the authorities for their source semantics. This composition
+does not change fingerprint memoization or introduce paid drawing equality.
+
+Verification is owned by `CADDocumentDirectExecutionChecks` and its Native and
+portable entries. A nonempty valid parameter/feature/foundation/assembly/product/
+dimension document must validate normally. Zero caller work or typed storage,
+measured interior caller cancellation, and later exact N/N-1 controls must refuse
+without completed publication on that same owner; original structural rejection
+controls retain their exact causes. The initial RED uses only the already-public
+`CADDocument.validate(...using:)` entry against the previously accepted IR module.
+
 The [package deployment contract](../../DESIGN.md#supported-deployment-baseline)
 owns the current-OS-only baseline. Source codecs and the validated-document
 fingerprint memo use their current implementations directly, without earlier

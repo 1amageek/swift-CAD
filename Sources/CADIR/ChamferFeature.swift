@@ -1,4 +1,6 @@
 import CADCore
+import CADGeometry
+import CADTopology
 
 /// How a chamfer's distance sets where it meets its two faces: `offset` (Plasticity's default) cuts
 /// where each face offset inward by the distance meets the other, `distance / sin α` along each
@@ -58,9 +60,21 @@ public struct ChamferFeature: Hashable, Sendable {
     }
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        func uniqueEdgeCount() throws -> Int {
+            for reference in edges {
+                try reference.chargeStructuralComparison(using: &execution)
+            }
+            return try OriginalParameterQueryStorage.set(edges, using: &execution).count
+        }
         try target.validate()
         guard edges.isEmpty == false,
-              Set(edges).count == edges.count else {
+              (try uniqueEdgeCount()) == edges.count else {
             throw KernelError(
                 phase: .validation,
                 code: .invalidInput,
@@ -69,21 +83,24 @@ public struct ChamferFeature: Hashable, Sendable {
             )
         }
         for edge in edges {
-            try edge.validate()
+            try execution.consumeWork(1)
+            try edge.validate(using: &execution)
         }
-        try distance.validateLiteralQuantities()
-        try angle?.validateLiteralQuantities()
+        try distance.validateDocumentLiteralQuantities(using: &execution)
+        try angle?.validateDocumentLiteralQuantities(using: &execution)
         guard angle != nil || flipped == false else {
             throw KernelError(phase: .validation, code: .invalidInput, tolerance: nil,
                               message: "Only an angled chamfer has a reference face to flip.")
         }
         if let limits {
-            try limits.validate()
+            try execution.consumeWork(1); try limits.validate()
             guard edges.count == 1 else {
                 throw KernelError(phase: .validation, code: .invalidInput, tolerance: nil,
                                   message: "Limits bound one chamfer's edge.")
             }
         }
+
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)

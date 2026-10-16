@@ -23,7 +23,17 @@ public struct SurfaceParameterDomain2D: Sendable, Hashable {
         of surface: BSplineSurface3D,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterDomain2D {
-        try surface.validate(tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try fullDomain(of: surface, tolerance: tolerance, using: &execution)
+    }
+
+    public static func fullDomain(
+        of surface: BSplineSurface3D,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> SurfaceParameterDomain2D {
+        try execution.consumeWork(1)
+        try surface.validate(tolerance: tolerance, using: &execution)
         guard case let .closed(uLowerBound, uUpperBound) = surface.uDomain,
               case let .closed(vLowerBound, vUpperBound) = surface.vDomain else {
             throw KernelError(
@@ -45,8 +55,19 @@ public struct SurfaceParameterDomain2D: Sendable, Hashable {
         containedIn surface: BSplineSurface3D,
         tolerance: ModelingTolerance
     ) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(containedIn: surface, tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(
+        containedIn surface: BSplineSurface3D,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try tolerance.validate()
-        try surface.validate(tolerance: tolerance)
+        try surface.validate(tolerance: tolerance, using: &execution)
+        try execution.retainStorage(count: 4, stride: MemoryLayout<Double>.stride)
         let values = [uLowerBound, uUpperBound, vLowerBound, vUpperBound]
         guard values.allSatisfy({ $0.isFinite }) else {
             throw KernelError(

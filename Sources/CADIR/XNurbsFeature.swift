@@ -1,4 +1,6 @@
 import CADCore
+import CADTopology
+import CADGeometry
 
 /// XNURBS: a sheet over an opening framed by boundary curves (sketch curves or edges of bodies
 /// through their edge curves), each G0 or tangent or curvature continuous with the face beside its
@@ -59,22 +61,34 @@ public struct XNurbsFeature: Hashable, Sendable {
     }
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         // One closed curve frames a trimmed XNURBS on its own; a quad-sided one takes two to four.
         guard boundaries.isEmpty == false, quadSided == false || (2...4).contains(boundaries.count) else {
             throw FeatureEvaluationError.invalidGraph(quadSided ? "A quad-sided XNURBS is framed by two to four curves."
                                                                : "An XNURBS is framed by one closed curve or two or more boundary curves.")
         }
-        let curves = boundaries.map { $0.curve.featureID } + guides.map { $0.featureID }
-        guard Set(curves).count == curves.count else {
+        let boundaryIDs = try OriginalParameterQueryStorage.map(boundaries, using: &execution) { value, execution in value.curve.featureID }
+        let guideIDs = try OriginalParameterQueryStorage.map(guides, using: &execution) { value, execution in value.featureID }
+        let curves = try OriginalParameterQueryStorage.concatenated(boundaryIDs, guideIDs, using: &execution)
+        guard (try OriginalParameterQueryStorage.set(curves, using: &execution)).count == curves.count else {
             throw FeatureEvaluationError.invalidGraph("An XNURBS's boundaries and guides are distinct curves.")
         }
         for boundary in boundaries {
-            try boundary.validate()
+            try execution.consumeWork(1)
+            try boundary.validate(using: &execution)
             guard boundary.isFree == false else {
                 throw FeatureEvaluationError.invalidGraph("An XNURBS boundary is G0, G1 or G2.")
             }
         }
-        for guide in guides { try guide.validate() }
+        for guide in guides {
+            try execution.consumeWork(1)
+            try guide.validate(using: &execution)
+        }
         guard dividesAlongGuides == false || (guides.isEmpty == false && quadSided == false) else {
             throw FeatureEvaluationError.invalidGraph("An XNURBS divides its trimmed sheet along guides it has.")
         }
@@ -87,6 +101,7 @@ public struct XNurbsFeature: Hashable, Sendable {
         guard positionTolerance.isFinite, positionTolerance > 0, angleTolerance.isFinite, angleTolerance > 0, angleTolerance < Double.pi / 2 else {
             throw FeatureEvaluationError.invalidGraph("An XNURBS's tolerances are a positive length and an angle below a right angle.")
         }
+        try execution.checkpoint()
     }
 
     /// The features XNURBS consumes: its boundaries' and guides' curves and continuity bodies.
@@ -96,6 +111,32 @@ public struct XNurbsFeature: Hashable, Sendable {
             + guides.map { FeatureInput(featureID: $0.featureID, role: .curve) }
             + boundaries.compactMap { $0.continuity }.map { FeatureInput(featureID: $0.source, role: $0.bodyRole) })
             .filter { seen.insert($0).inserted }
+    }
+
+    func validationInputs(using execution: inout OriginalQueryExecution) throws -> [FeatureInput] {
+        try execution.consumeWork(1)
+        var result: [FeatureInput] = []
+        for boundary in boundaries {
+            try execution.consumeWork(1)
+            try OriginalParameterQueryStorage.append(FeatureInput(featureID: boundary.curve.featureID, role: .curve), to: &result, using: &execution)
+        }
+        for guide in guides {
+            try execution.consumeWork(1)
+            try OriginalParameterQueryStorage.append(FeatureInput(featureID: guide.featureID, role: .curve), to: &result, using: &execution)
+        }
+        for boundary in boundaries {
+            try execution.consumeWork(1)
+            if let continuity = boundary.continuity {
+                try OriginalParameterQueryStorage.append(FeatureInput(featureID: continuity.source, role: continuity.bodyRole), to: &result, using: &execution)
+            }
+        }
+
+        var seen = Set<FeatureInput>()
+        let filtered = try OriginalParameterQueryStorage.filter(result, using: &execution) { value, execution in
+            try OriginalParameterQueryStorage.insert(value, in: &seen, using: &execution)
+        }
+        try execution.checkpoint()
+        return filtered
     }
 
 #if !hasFeature(Embedded)

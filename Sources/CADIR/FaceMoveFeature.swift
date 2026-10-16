@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 public struct FaceMoveFeature: Hashable, Sendable {
     public let target: FaceMoveTargetReference
@@ -16,9 +17,17 @@ public struct FaceMoveFeature: Hashable, Sendable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try target.validate()
-        try face.validate()
-        try translation.validate(tolerance: tolerance)
+        try face.validate(using: &execution)
+        try translation.validate(tolerance: tolerance, using: &execution)
+
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)

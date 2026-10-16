@@ -1,4 +1,6 @@
 import CADCore
+import CADTopology
+import CADGeometry
 
 /// A sheet filling an opening of a target's open boundary, the loop through `boundarySeed`: a
 /// surface built over the loop, or with `insertedSheet` (Plasticity's Insert Sheet, Trim to hole)
@@ -42,7 +44,31 @@ public struct SurfaceFillFeature: Hashable, Sendable {
             .filter { seen.insert($0).inserted }
     }
 
+    func validationInputs(using execution: inout OriginalQueryExecution) throws -> [FeatureInput] {
+        try execution.consumeWork(1)
+        var result: [FeatureInput] = []
+        try OriginalParameterQueryStorage.append(FeatureInput(featureID: targetFeatureID, role: .target), to: &result, using: &execution)
+        if let insertedSheet { try OriginalParameterQueryStorage.append(FeatureInput(featureID: insertedSheet, role: .body), to: &result, using: &execution) }
+        for guide in guides {
+            try execution.consumeWork(1)
+            try OriginalParameterQueryStorage.append(FeatureInput(featureID: guide.featureID, role: .guide), to: &result, using: &execution)
+        }
+
+        var seen = Set<FeatureInput>()
+        let filtered = try OriginalParameterQueryStorage.filter(result, using: &execution) { value, execution in
+            try OriginalParameterQueryStorage.insert(value, in: &seen, using: &execution)
+        }
+        try execution.checkpoint()
+        return filtered
+    }
+
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         guard insertedSheet != targetFeatureID else {
             throw FeatureEvaluationError.invalidGraph("An inserted sheet is another sheet than the one with the opening.")
         }
@@ -52,13 +78,14 @@ public struct SurfaceFillFeature: Hashable, Sendable {
         guard trimsToSheet == false || insertedSheet != nil else {
             throw FeatureEvaluationError.invalidGraph("Trim to sheet trims the opening's sheet to an inserted sheet.")
         }
-        try boundarySeed.validate()
+        try boundarySeed.validate(using: &execution)
         guard boundarySeed.subshapeID.featureID == targetFeatureID,
               case .edge = boundarySeed.geometrySignature else {
             throw FeatureEvaluationError.invalidGraph(
                 "Surface fill requires an edge reference owned by its target feature."
             )
         }
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)

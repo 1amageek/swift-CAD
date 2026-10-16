@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 /// How a surface (a Loft's end section, a Square's side) meets a body along one of the body's
 /// edges: tangent (G1) or curvature (G2) continuous with the face beside the edge, its
@@ -70,7 +71,13 @@ public struct SurfaceEdgeContinuity: Hashable, Sendable {
 #endif
 
     public func validate() throws {
-        try edge.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try edge.validate(using: &execution)
         guard bodyRole == .body || bodyRole == .sheet else {
             throw FeatureEvaluationError.invalidGraph("A continuity edge's owner publishes a body or a sheet.")
         }

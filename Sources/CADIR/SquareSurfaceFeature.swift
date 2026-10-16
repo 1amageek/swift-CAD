@@ -1,4 +1,6 @@
 import CADCore
+import CADTopology
+import CADGeometry
 
 /// Square: a four-sided sheet framed by two to four curves (sketch curves or edges of bodies
 /// through their edge curves): four meeting end to end, three meeting end to end closed by a
@@ -41,16 +43,24 @@ public struct SquareSurfaceFeature: Hashable, Sendable {
 #endif
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         guard (2...4).contains(sides.count) else {
             throw FeatureEvaluationError.invalidGraph("A Square is framed by two to four curves.")
         }
-        guard Set(sides.map { $0.curve.featureID }).count == sides.count else {
+        guard (try OriginalParameterQueryStorage.set((try OriginalParameterQueryStorage.map(sides, using: &execution) { value, execution in value.curve.featureID }), using: &execution)).count == sides.count else {
             throw FeatureEvaluationError.invalidGraph("A Square's sides are distinct curves.")
         }
         for side in sides {
-            try side.validate()
+            try execution.consumeWork(1)
+            try side.validate(using: &execution)
         }
-        try options.validate()
+        try options.validate(using: &execution)
+        try execution.checkpoint()
     }
 
     /// The features the Square consumes: its sides' curves and the bodies of continuous sides.
@@ -59,6 +69,28 @@ public struct SquareSurfaceFeature: Hashable, Sendable {
         return (sides.map { FeatureInput(featureID: $0.curve.featureID, role: .curve) }
             + sides.compactMap { $0.continuity }.map { FeatureInput(featureID: $0.source, role: $0.bodyRole) })
             .filter { seen.insert($0).inserted }
+    }
+
+    func validationInputs(using execution: inout OriginalQueryExecution) throws -> [FeatureInput] {
+        try execution.consumeWork(1)
+        var result: [FeatureInput] = []
+        for side in sides {
+            try execution.consumeWork(1)
+            try OriginalParameterQueryStorage.append(FeatureInput(featureID: side.curve.featureID, role: .curve), to: &result, using: &execution)
+        }
+        for side in sides {
+            try execution.consumeWork(1)
+            if let continuity = side.continuity {
+                try OriginalParameterQueryStorage.append(FeatureInput(featureID: continuity.source, role: continuity.bodyRole), to: &result, using: &execution)
+            }
+        }
+
+        var seen = Set<FeatureInput>()
+        let filtered = try OriginalParameterQueryStorage.filter(result, using: &execution) { value, execution in
+            try OriginalParameterQueryStorage.insert(value, in: &seen, using: &execution)
+        }
+        try execution.checkpoint()
+        return filtered
     }
 }
 
@@ -103,11 +135,18 @@ public struct SquareSide: Hashable, Sendable {
 #endif
 
     public func validate() throws {
-        try curve.validate()
-        try continuity?.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try curve.validate(using: &execution)
+        try continuity?.validate(using: &execution)
         guard !(isFree && continuity != nil) else {
             throw FeatureEvaluationError.invalidGraph("A Free Square side takes no continuity.")
         }
+        try execution.checkpoint()
     }
 }
 

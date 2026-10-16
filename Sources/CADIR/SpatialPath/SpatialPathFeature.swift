@@ -1,4 +1,5 @@
 import CADCore
+import CADTopology
 import CADGeometry
 
 public struct SpatialPathFeature: Hashable, Sendable {
@@ -18,12 +19,22 @@ public struct SpatialPathFeature: Hashable, Sendable {
     public var segmentCount: Int { isClosed ? knots.count : max(0, knots.count - 1) }
 
     public func validate(tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try tolerance.validate()
-        guard knots.count >= (isClosed ? 3 : 2), Set(knots.map { $0.id }).count == knots.count else {
+        guard knots.count >= (isClosed ? 3 : 2), (try OriginalParameterQueryStorage.set((try OriginalParameterQueryStorage.map(knots, using: &execution) { value, execution in value.id }), using: &execution)).count == knots.count else {
             throw FeatureEvaluationError.invalidGraph("A spatial path requires unique knots and at least two open or three closed knots.")
         }
-        for knot in knots { try knot.validate(tolerance: tolerance) }
+        for knot in knots {
+            try execution.consumeWork(1)
+            try knot.validate(tolerance: tolerance, using: &execution)
+        }
         for index in 0..<segmentCount {
+            try execution.consumeWork(1)
             let start = knots[index]
             let end = knots[(index + 1) % knots.count]
             let chord = (end.position - start.position).length
@@ -33,6 +44,7 @@ public struct SpatialPathFeature: Hashable, Sendable {
                 throw FeatureEvaluationError.invalidGraph("Spatial path segments must not collapse to a point.")
             }
         }
+        try execution.checkpoint()
     }
 
     /// The same exact source curve is consumed by evaluation and edit previews.

@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 public struct CurveDrivenPatternFeature: Hashable, Sendable {
     public let target: PatternTargetReference
@@ -22,7 +23,13 @@ public struct CurveDrivenPatternFeature: Hashable, Sendable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
-        try tolerance.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try execution.consumeWork(1); try tolerance.validate()
         try target.validate()
         try path.validate()
         guard target.featureID != path.featureID else {
@@ -33,8 +40,8 @@ public struct CurveDrivenPatternFeature: Hashable, Sendable {
                 message: "Curve-driven pattern target and path must be different features."
             )
         }
-        try anchor.validate()
-        try referenceDirection.validate()
+        try execution.consumeWork(1); try anchor.validate()
+        try execution.consumeWork(1); try referenceDirection.validate()
         guard referenceDirection.length > tolerance.distance else {
             throw GeometryError.invalidVectorLength(referenceDirection.length)
         }
@@ -46,6 +53,8 @@ public struct CurveDrivenPatternFeature: Hashable, Sendable {
                 message: "Curve-driven pattern count must be between 2 and 1000."
             )
         }
+
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)

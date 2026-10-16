@@ -55,6 +55,15 @@ flowchart LR
 
 ## Contracts and Invariants
 
+Complete document validation composes the existing product contribution owner
+with the same caller execution according to
+[CADIR's document validation contract](../DESIGN.md#complete-document-validation-execution).
+Existing records, targets, source-text, override/clipping/path depth and work
+ceilings remain independent. Actual metadata/target scans checkpoint the caller;
+override/clipping/path ancestry admits its source depth. Stored geometry used
+for structural target equality is charged without performing validation early,
+so original refusal order and source identity remain unchanged.
+
 ### Caller-Owned Attribute Budget Composition
 
 `ProductAttributeBudget.init(limits:using:)`, `charge(...using:)`, and

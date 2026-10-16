@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 
 /// The control structure a surface is refitted to: its degree and number of spans along U and V
@@ -20,6 +21,12 @@ public struct SurfaceControlLayout: Hashable, Sendable {
     }
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         guard Self.degrees.contains(uDegree), Self.degrees.contains(vDegree) else {
             throw FeatureEvaluationError.invalidGraph("A surface layout's degrees run from 1 to 9.")
         }

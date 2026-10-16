@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 public struct ConstrainedSurfaceFeature: Hashable, Sendable {
     public struct PointConstraint: Hashable, Sendable {
@@ -40,14 +41,23 @@ public struct ConstrainedSurfaceFeature: Hashable, Sendable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
-        try tolerance.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try execution.consumeWork(1); try tolerance.validate()
         guard points.count >= 3, positionTolerance.isFinite, positionTolerance > 0,
               angularTolerance.isFinite, angularTolerance > 0, angularTolerance <= Double.pi else {
             throw FeatureEvaluationError.invalidGraph("Constrained Surface requires at least three points and positive position/angular tolerances.")
         }
         for point in points {
-            try point.position.validate()
+            try execution.consumeWork(1)
+            try execution.consumeWork(1); try point.position.validate()
         }
+
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)

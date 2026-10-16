@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 public struct RadialPatternFeature: Hashable, Sendable {
     public let target: PatternTargetReference
@@ -22,6 +23,12 @@ public struct RadialPatternFeature: Hashable, Sendable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try tolerance.validate()
         try target.validate()
         try axisOrigin.validate()
@@ -29,7 +36,7 @@ public struct RadialPatternFeature: Hashable, Sendable {
         guard axisDirection.length > tolerance.distance else {
             throw GeometryError.invalidVectorLength(axisDirection.length)
         }
-        try angularSpacing.validateLiteralQuantities()
+        try angularSpacing.validateDocumentLiteralQuantities(using: &execution)
         guard count >= 2, count <= 1_000 else {
             throw KernelError(
                 phase: .validation,
@@ -38,6 +45,7 @@ public struct RadialPatternFeature: Hashable, Sendable {
                 message: "Radial pattern count must be between 2 and 1000."
             )
         }
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)

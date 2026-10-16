@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 import CADTopology
 
 public struct FaceKnifeFeature: Hashable, Sendable {
@@ -17,14 +18,23 @@ public struct FaceKnifeFeature: Hashable, Sendable {
     }
 
     public func validate() throws {
-        try target.validate()
-        try face.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try target.validate(using: &execution)
+        try face.validate(using: &execution)
         guard loop.count >= 3 else {
             throw FeatureEvaluationError.invalidGraph("Face Knife requires at least three loop points.")
         }
         for point in loop {
-            try point.validate()
+            try execution.consumeWork(1)
+            try execution.consumeWork(1); try point.validate()
         }
+
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)
@@ -64,7 +74,15 @@ public struct FaceKnifeTargetReference: Hashable, Sendable {
         self.featureID = featureID
     }
 
-    public func validate() throws {}
+    public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try execution.checkpoint()
+    }
 
 #if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {

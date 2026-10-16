@@ -16,6 +16,18 @@ public indirect enum CADExpression: Sendable, Hashable {
     case tan(CADExpression)
 
     public func validateLiteralQuantities() throws {
+        var admission = UnboundedAuthoringAdmission()
+        try validateLiteralQuantities(using: &admission)
+    }
+
+    public func validateLiteralQuantities<A: NumericWorkAdmission & ~Copyable>(using admission: inout A) throws {
+        try admission.consumeWork(1)
+        try admission.checkpoint()
+        try validateLiteralNode(using: &admission)
+        try admission.checkpoint()
+    }
+
+    private func validateLiteralNode<A: NumericWorkAdmission & ~Copyable>(using admission: inout A) throws {
         switch self {
         case let .constant(quantity):
             try quantity.validate()
@@ -26,20 +38,20 @@ public indirect enum CADExpression: Sendable, Hashable {
              let .multiply(left, right),
              let .divide(left, right),
              let .hypot(left, right):
-            try left.validateLiteralQuantities()
-            try right.validateLiteralQuantities()
+            try left.validateLiteralQuantities(using: &admission)
+            try right.validateLiteralQuantities(using: &admission)
         case let .bezierNaturalExtension(coordinates, length, index):
             try NaturalBezierContinuation.validateCoordinateForm(count: coordinates.count, index: index)
-            for coordinate in coordinates { try coordinate.validateLiteralQuantities() }
-            try length.validateLiteralQuantities()
+            for coordinate in coordinates { try coordinate.validateLiteralQuantities(using: &admission) }
+            try length.validateLiteralQuantities(using: &admission)
         case let .bezierShapedExtension(shape, coordinates, length, index):
             try BezierShapedExtension.validateCoordinateForm(shape: shape, count: coordinates.count, index: index)
-            for coordinate in coordinates { try coordinate.validateLiteralQuantities() }
-            try length.validateLiteralQuantities()
+            for coordinate in coordinates { try coordinate.validateLiteralQuantities(using: &admission) }
+            try length.validateLiteralQuantities(using: &admission)
         case let .sin(argument),
              let .cos(argument),
              let .tan(argument):
-            try argument.validateLiteralQuantities()
+            try argument.validateLiteralQuantities(using: &admission)
         }
     }
 }

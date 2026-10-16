@@ -51,6 +51,13 @@ flowchart LR
 
 ## Contracts and Invariants
 
+Complete validation composes into the caller execution described in
+[CADIR's document validation contract](../DESIGN.md#complete-document-validation-execution).
+Attribute indexes, owner/name sets and ownership paths admit typed storage before
+mutation; record/name/value/reference/ownership visits reach that same caller's
+work and cancellation checks. Ownership depth is admitted as actual source
+ancestry. The original local-reference, cycle and validation order are unchanged.
+
 - The development wire envelope uses
   [SchemaVersion.current](../../CADCore/SchemaVersion.swift), owned by CADCore.
   `documentFoundation` is a required field, including for an empty foundation.

@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 /// A body reflected across a plane.
 ///
@@ -37,6 +38,12 @@ public struct MirrorFeature: Hashable, Sendable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try tolerance.validate()
         try target.validate()
         try planeOrigin.validate()
@@ -47,6 +54,7 @@ public struct MirrorFeature: Hashable, Sendable {
         guard output != .kept || cutsAtPlane else {
             throw FeatureEvaluationError.invalidGraph("A mirror that keeps only the source material must cut it at the plane.")
         }
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)

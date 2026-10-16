@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 import CADTopology
 
 /// Turns a sheet over: every face of it faces the other way, keeping its geometry and trim. The
@@ -11,7 +12,14 @@ public struct ReverseSheetFeature: Hashable, Sendable {
     }
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try target.validate()
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)

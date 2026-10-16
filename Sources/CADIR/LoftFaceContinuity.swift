@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 /// Tangent or curvature continuity of a Loft at a face section: across each edge of the face's
 /// boundary the Loft leaves (or arrives) as the face beside that edge runs on, the section's own
@@ -47,6 +48,12 @@ public struct LoftFaceContinuity: Hashable, Sendable {
 #endif
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         guard tension.isFinite, tension > 0 else {
             throw FeatureEvaluationError.invalidGraph("A continuity's tension must be finite and greater than zero.")
         }

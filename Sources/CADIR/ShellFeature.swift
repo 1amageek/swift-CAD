@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 import CADTopology
 
 /// Hollow: a solid walled `thickness` thick — outside it when positive (the solid becomes the
@@ -20,8 +21,15 @@ public struct ShellFeature: Hashable, Sendable {
     }
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try target.validate()
-        guard Set(removedFaces).count == removedFaces.count else {
+        for face in removedFaces { try face.chargeStructuralComparison(using: &execution) }
+        guard (try OriginalParameterQueryStorage.set(removedFaces, using: &execution)).count == removedFaces.count else {
             throw KernelError(
                 phase: .validation,
                 code: .invalidInput,
@@ -30,7 +38,8 @@ public struct ShellFeature: Hashable, Sendable {
             )
         }
         for face in removedFaces {
-            try face.validate()
+            try execution.consumeWork(1)
+            try face.validate(using: &execution)
             guard case .face = face.geometrySignature else {
                 throw KernelError(
                     phase: .validation,
@@ -41,7 +50,8 @@ public struct ShellFeature: Hashable, Sendable {
                 )
             }
         }
-        try thickness.validateLiteralQuantities()
+        try thickness.validateDocumentLiteralQuantities(using: &execution)
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)

@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 public struct CurveEditFeature: Hashable, Sendable {
     public var source: CurveOutputReference
@@ -13,14 +14,23 @@ public struct CurveEditFeature: Hashable, Sendable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
-        try tolerance.validate()
-        try source.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try execution.consumeWork(1); try tolerance.validate()
+        try source.validate(using: &execution)
         guard edits.isEmpty == false else {
             throw FeatureEvaluationError.invalidGraph("Curve edit features must contain at least one edit.")
         }
         for edit in edits {
-            try edit.validate(on: source, tolerance: tolerance)
+            try execution.consumeWork(1)
+            try edit.validate(on: source, tolerance: tolerance, using: &execution)
         }
+
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)
@@ -108,14 +118,22 @@ public enum CurveEdit: Hashable, Sendable {
 #endif
 
     public func validate(on source: CurveOutputReference, tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(on: source, tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(on source: CurveOutputReference, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         switch self {
         case let .setControlPoint(edit):
-            try edit.validate(on: source, tolerance: tolerance)
+            try edit.validate(on: source, tolerance: tolerance, using: &execution)
         case let .setKnot(edit):
-            try edit.validate(on: source)
+            try edit.validate(on: source, using: &execution)
         case let .setWeight(edit):
-            try edit.validate(on: source)
+            try edit.validate(on: source, using: &execution)
         }
+
+        try execution.checkpoint()
     }
 }
 
@@ -129,11 +147,19 @@ public struct CurveControlPointEdit: Hashable, Sendable {
     }
 
     public func validate(on source: CurveOutputReference, tolerance: ModelingTolerance) throws {
-        try target.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(on: source, tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(on source: CurveOutputReference, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try target.validate(using: &execution)
         guard target.curve == source else {
             throw FeatureEvaluationError.invalidGraph("Curve control point edit target must match the source curve.")
         }
-        try point.validate()
+        try execution.consumeWork(1); try point.validate()
+
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)
@@ -175,13 +201,21 @@ public struct CurveKnotEdit: Hashable, Sendable {
     }
 
     public func validate(on source: CurveOutputReference) throws {
-        try target.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(on: source, using: &execution)
+    }
+
+    public func validate(on source: CurveOutputReference, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try target.validate(using: &execution)
         guard target.curve == source else {
             throw FeatureEvaluationError.invalidGraph("Curve knot edit target must match the source curve.")
         }
         guard value.isFinite else {
             throw GeometryError.invalidCoordinate(value)
         }
+
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)
@@ -227,7 +261,13 @@ public struct CurveWeightEdit: Hashable, Sendable {
     }
 
     public func validate(on source: CurveOutputReference) throws {
-        try target.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(on: source, using: &execution)
+    }
+
+    public func validate(on source: CurveOutputReference, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try target.validate(using: &execution)
         guard target.curve == source else {
             throw FeatureEvaluationError.invalidGraph("Curve weight edit target must match the source curve.")
         }
@@ -237,6 +277,8 @@ public struct CurveWeightEdit: Hashable, Sendable {
         guard value > 0.0 else {
             throw GeometryError.invalidDistance(value)
         }
+
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)

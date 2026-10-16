@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 public struct UnjoinBodyFeature: Hashable, Sendable {
     public let target: PatternTargetReference
@@ -8,7 +9,14 @@ public struct UnjoinBodyFeature: Hashable, Sendable {
     }
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try target.validate()
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)

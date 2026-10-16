@@ -1,4 +1,6 @@
 import CADCore
+import CADTopology
+import CADGeometry
 
 public struct PolySplineFeature: Sendable, Hashable {
     public var sourceMesh: Mesh
@@ -16,18 +18,26 @@ public struct PolySplineFeature: Sendable, Hashable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
-        try sourceMesh.validate(tolerance: tolerance)
-        try options.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try sourceMesh.validate(tolerance: tolerance, using: &execution)
+        try options.validate(using: &execution)
         var addresses = Set<PolySplineSurfaceControlPointAddress>()
         for override in controlPointOverrides {
-            try override.validate()
+            try execution.consumeWork(1)
+            try override.validate(using: &execution)
             let address = override.address
-            guard addresses.insert(address).inserted else {
+            guard try OriginalParameterQueryStorage.insert(address, in: &addresses, using: &execution) else {
                 throw FeatureEvaluationError.invalidGraph(
                     "PolySpline surface control point overrides must not contain duplicate addresses."
                 )
             }
         }
+        try execution.checkpoint()
     }
 }
 
@@ -49,6 +59,13 @@ public struct PolySplineOptions: Sendable, Hashable {
     }
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try execution.checkpoint()
     }
 }
 

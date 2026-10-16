@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 public struct GridPatternFeature: Hashable, Sendable {
     public let target: PatternTargetReference
@@ -28,10 +29,16 @@ public struct GridPatternFeature: Hashable, Sendable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
-        try tolerance.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try execution.consumeWork(1); try tolerance.validate()
         try target.validate()
-        try firstDirection.validate()
-        try secondDirection.validate()
+        try execution.consumeWork(1); try firstDirection.validate()
+        try execution.consumeWork(1); try secondDirection.validate()
         guard firstDirection.length > tolerance.distance else {
             throw GeometryError.invalidVectorLength(firstDirection.length)
         }
@@ -48,8 +55,8 @@ public struct GridPatternFeature: Hashable, Sendable {
                 message: "Grid pattern directions must be nonparallel."
             )
         }
-        try firstSpacing.validateLiteralQuantities()
-        try secondSpacing.validateLiteralQuantities()
+        try firstSpacing.validateDocumentLiteralQuantities(using: &execution)
+        try secondSpacing.validateDocumentLiteralQuantities(using: &execution)
         guard firstCount >= 2, secondCount >= 2 else {
             throw KernelError(
                 phase: .validation,
@@ -67,6 +74,8 @@ public struct GridPatternFeature: Hashable, Sendable {
                 message: "Grid pattern supports at most 1000 instances."
             )
         }
+
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)

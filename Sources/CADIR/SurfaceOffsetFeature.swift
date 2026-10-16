@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 public struct SurfaceOffsetFeature: Hashable, Sendable {
     public let target: SurfaceOperationTargetReference
@@ -13,8 +14,15 @@ public struct SurfaceOffsetFeature: Hashable, Sendable {
     }
 
     public func validate() throws {
-        try target.validate()
-        try distance.validateLiteralQuantities()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try target.validate(using: &execution)
+        try distance.validateDocumentLiteralQuantities(using: &execution)
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)

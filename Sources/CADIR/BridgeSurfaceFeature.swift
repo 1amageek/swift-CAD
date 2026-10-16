@@ -1,5 +1,6 @@
 import CADCore
 import CADGeometry
+import CADTopology
 
 public struct BridgeSurfaceFeature: Sendable, Hashable {
     public enum EndOrientation: String, Sendable, Hashable {
@@ -106,9 +107,15 @@ public struct BridgeSurfaceFeature: Sendable, Hashable {
 #endif
 
     public func validate(tolerance: ModelingTolerance) throws {
-        try tolerance.validate()
-        try startBoundary.validate()
-        try endBoundary.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try execution.consumeWork(1); try tolerance.validate()
+        try startBoundary.validate(using: &execution)
+        try endBoundary.validate(using: &execution)
         guard startTension.isFinite, startTension > 0,
               endTension.isFinite, endTension > 0 else {
             throw FeatureEvaluationError.invalidGraph("Bridge tensions must be finite and positive.")
@@ -118,19 +125,29 @@ public struct BridgeSurfaceFeature: Sendable, Hashable {
                 throw FeatureEvaluationError.invalidGraph("Bridge width must exceed the source distance tolerance.")
             }
         }
-        for wall in [startWall, endWall].compactMap({ $0 }) {
-            try wall.validate()
+        try execution.retainStorage(count: 2, stride: MemoryLayout<StableSubshapeReference?>.stride)
+        let walls = try OriginalParameterQueryStorage.compactMap([startWall, endWall], using: &execution,
+            transform: { value, _ in value })
+        for wall in walls {
+            try execution.consumeWork(1)
+            try wall.validate(using: &execution)
             guard case .face = wall.geometrySignature else {
                 throw FeatureEvaluationError.invalidGraph("Bridge supporting walls require stable face references.")
             }
         }
-        for transform in [startTransform, endTransform].compactMap({ $0 }) {
-            try transform.validate()
+        try execution.retainStorage(count: 2, stride: MemoryLayout<AffineTransform3D?>.stride)
+        let transforms = try OriginalParameterQueryStorage.compactMap([startTransform, endTransform], using: &execution,
+            transform: { value, _ in value })
+        for transform in transforms {
+            try execution.consumeWork(1)
+            try execution.consumeWork(1); try transform.validate()
             let determinant = transform.basisX.dot(transform.basisY.cross(transform.basisZ))
             guard determinant.isFinite, determinant != 0 else {
                 throw FeatureEvaluationError.invalidGraph("Boundary coordinate maps must be nonsingular.")
             }
         }
+        for _ in startBoundary.subshapeID.role.utf8 { try execution.consumeWork(1) }
+        for _ in endBoundary.subshapeID.role.utf8 { try execution.consumeWork(1) }
         guard (startBoundary.subshapeID != endBoundary.subshapeID || startTransform != endTransform),
               case .edge = startBoundary.geometrySignature,
               case .edge = endBoundary.geometrySignature else {
@@ -138,9 +155,32 @@ public struct BridgeSurfaceFeature: Sendable, Hashable {
                 "Bridge surface requires two distinct edge references."
             )
         }
+
+        try execution.checkpoint()
     }
 
     public var targetFeatureID: FeatureID { startBoundary.subshapeID.featureID }
+
+    func validationSourceInputs(using execution: inout OriginalQueryExecution) throws -> [FeatureInput] {
+        try execution.consumeWork(1)
+        var inputs: [FeatureInput] = []
+        try OriginalParameterQueryStorage.append(FeatureInput(featureID: targetFeatureID, role: .target),
+            to: &inputs, using: &execution)
+        try execution.retainStorage(count: 3, stride: MemoryLayout<FeatureID?>.stride)
+        let identities = try OriginalParameterQueryStorage.compactMap(
+            [endBoundary.subshapeID.featureID, startWall?.subshapeID.featureID, endWall?.subshapeID.featureID],
+            using: &execution, transform: { value, _ in value })
+        for id in identities {
+            try execution.consumeWork(1)
+            if try !OriginalParameterQueryStorage.contains(inputs, using: &execution,
+                predicate: { value, _ in value.featureID == id }) {
+                try OriginalParameterQueryStorage.append(FeatureInput(featureID: id, role: .target),
+                    to: &inputs, using: &execution)
+            }
+        }
+        try execution.checkpoint()
+        return inputs
+    }
 
     public var sourceInputs: [FeatureInput] {
         var inputs = [FeatureInput(featureID: targetFeatureID, role: .target)]

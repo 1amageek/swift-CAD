@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 import CADTopology
 
 /// Edges offset across faces (Offset Edge): each chosen edge is offset by `distance` over the one
@@ -31,19 +32,40 @@ public struct EdgeOffsetFeature: Hashable, Sendable {
     }
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        func uniqueSupportFaceCount() throws -> Int {
+            for reference in supportFaces {
+                try reference.chargeStructuralComparison(using: &execution)
+            }
+            return try OriginalParameterQueryStorage.set(supportFaces, using: &execution).count
+        }
         try target.validate()
         guard edges.isEmpty == false else {
             throw FeatureEvaluationError.invalidGraph("Offset Edge needs at least one edge.")
         }
-        for edge in edges { try edge.validate() }
-        guard Set(edges).count == edges.count else {
+        for edge in edges {
+            try execution.consumeWork(1)
+            try edge.validate(using: &execution)
+            try edge.chargeStructuralComparison(using: &execution)
+        }
+        guard (try OriginalParameterQueryStorage.set(edges, using: &execution)).count == edges.count else {
             throw FeatureEvaluationError.invalidGraph("Offset Edge's edges must be distinct.")
         }
-        guard supportFaces.isEmpty == false, Set(supportFaces).count == supportFaces.count else {
+        guard supportFaces.isEmpty == false, (try uniqueSupportFaceCount()) == supportFaces.count else {
             throw FeatureEvaluationError.invalidGraph("Offset Edge needs distinct support faces.")
         }
-        for face in supportFaces { try face.validate() }
-        try distance.validateLiteralQuantities()
+        for face in supportFaces {
+            try execution.consumeWork(1)
+            try face.validate(using: &execution)
+        }
+        try distance.validateDocumentLiteralQuantities(using: &execution)
+
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)

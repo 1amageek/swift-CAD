@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 /// Thicken: a sheet grown into a solid, `front` along its normal and `back` against it; either may
 /// be zero, not both.
@@ -18,9 +19,16 @@ public struct ThickenFeature: Hashable, Sendable {
     }
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try target.validate()
-        try front.validateLiteralQuantities()
-        try back.validateLiteralQuantities()
+        try front.validateDocumentLiteralQuantities(using: &execution)
+        try back.validateDocumentLiteralQuantities(using: &execution)
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)

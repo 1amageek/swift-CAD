@@ -1,4 +1,6 @@
 import CADCore
+import CADGeometry
+import CADTopology
 
 /// Push Face: faces of one body pushed a distance along their outward side, the faces around them
 /// re-solved to meet them. With an adjacent angle, each planar face beside a pushed planar face
@@ -26,19 +28,29 @@ public struct FaceOffsetFeature: Hashable, Sendable {
     }
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try target.validate()
         guard faces.isEmpty == false else {
             throw FeatureEvaluationError.invalidGraph("Push Face requires at least one face.")
         }
         var seen = Set<StableSubshapeReference>()
         for face in faces {
-            try face.validate()
-            guard seen.insert(face).inserted else {
+            try execution.consumeWork(1)
+            try face.validate(using: &execution)
+            try face.chargeStructuralComparison(using: &execution)
+            guard (try OriginalParameterQueryStorage.insert(face, in: &seen, using: &execution)) else {
                 throw FeatureEvaluationError.invalidGraph("Push Face faces must be unique.")
             }
         }
-        try distance.validateLiteralQuantities()
-        try adjacentAngle?.validateLiteralQuantities()
+        try distance.validateDocumentLiteralQuantities(using: &execution)
+        try adjacentAngle?.validateDocumentLiteralQuantities(using: &execution)
+
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)

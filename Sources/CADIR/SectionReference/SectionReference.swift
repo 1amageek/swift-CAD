@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 public enum SectionReference: Hashable, Sendable {
     case profile(ProfileReference)
@@ -53,13 +54,19 @@ public enum SectionReference: Hashable, Sendable {
     }
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         switch self {
         case .profile(let profile):
-            try profile.validate()
+            try profile.validate(using: &execution)
         case .curve(let curve):
-            try curve.validate()
+            try curve.validate(using: &execution)
         case .face(let face):
-            try face.validate()
+            try face.validate(using: &execution)
         }
     }
 

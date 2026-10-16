@@ -26,8 +26,14 @@ public struct SurfaceMatchFeature: Hashable, Sendable {
     }
 
     public func validate() throws {
-        try source.validate()
-        try target.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try source.validate(using: &execution)
+        try target.validate(using: &execution)
         guard source.featureID != target.featureID else {
             throw KernelError(
                 phase: .validation,
@@ -47,6 +53,7 @@ public struct SurfaceMatchFeature: Hashable, Sendable {
                 message: "Surface match parameters must be finite."
             )
         }
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)

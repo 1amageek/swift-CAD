@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 public enum SpatialPathKnotTag {}
 public typealias SpatialPathKnotID = TaggedID<SpatialPathKnotTag>
@@ -27,6 +28,12 @@ public struct SpatialPathKnot: Hashable, Sendable, Identifiable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try position.validate()
         try incoming.validate()
         try outgoing.validate()

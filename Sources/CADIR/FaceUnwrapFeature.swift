@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 /// Unwrap Face: one face of a body flattened into a sheet of its own in the world's XY plane,
 /// centred on the origin, on the face's own parameters (so it serves as a Deform reference). The
@@ -13,8 +14,16 @@ public struct FaceUnwrapFeature: Hashable, Sendable {
     }
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try target.validate()
-        try face.validate()
+        try face.validate(using: &execution)
+
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)

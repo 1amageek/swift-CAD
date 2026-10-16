@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 public struct CurveSectionReference: Hashable, Sendable {
     public var featureID: FeatureID
@@ -41,6 +42,12 @@ public struct CurveSectionReference: Hashable, Sendable {
 #endif
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         if let parameterDomain {
             guard case .closed(let lower, let upper) = parameterDomain,
                   lower.isFinite, upper.isFinite, lower < upper else {

@@ -24,15 +24,39 @@ public struct ImprintCurvesFeature: Hashable, Sendable {
     }
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try target.validate()
         guard curves.isEmpty == false else {
             throw FeatureEvaluationError.invalidGraph("Imprint needs at least one curve.")
         }
-        for curve in curves { try curve.curve.validate() }
-        guard Set(curves).count == curves.count else {
+        for curve in curves {
+            try execution.consumeWork(1)
+            try curve.curve.validate(using: &execution)
+        }
+        guard (try OriginalParameterQueryStorage.set(curves, using: &execution)).count == curves.count else {
             throw FeatureEvaluationError.invalidGraph("Imprint curves must be distinct.")
         }
-        try projection.validate()
+        try projection.validate(using: &execution)
+
+        try execution.checkpoint()
+    }
+
+    func validationCurveInputs(using execution: inout OriginalQueryExecution) throws -> [FeatureInput] {
+        try execution.consumeWork(1)
+        var seen = Set<FeatureID>()
+        let result: [FeatureInput] = try OriginalParameterQueryStorage.compactMap(curves, using: &execution) { value, execution in
+            if try OriginalParameterQueryStorage.insert(value.curve.featureID, in: &seen, using: &execution) {
+                return FeatureInput(featureID: value.curve.featureID, role: .curve)
+            }
+            return nil
+        }
+        try execution.checkpoint()
+        return result
     }
 
     /// The curves' sources as graph inputs, each once.
@@ -81,10 +105,18 @@ public enum ImprintProjection: Hashable, Sendable {
     case vector(direction: Vector3D, bidirectional: Bool, hidesOcclusion: Bool)
 
     public func validate() throws {
-        guard case let .vector(direction, _, _) = self else { return }
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        guard case let .vector(direction, _, _) = self else { try execution.checkpoint(); return }
         guard direction.isFinite, direction.length > 1e-12 else {
             throw FeatureEvaluationError.invalidGraph("An imprint direction must be a finite, nonzero vector.")
         }
+
+        try execution.checkpoint()
     }
 }
 

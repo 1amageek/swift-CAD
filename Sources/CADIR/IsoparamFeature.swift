@@ -31,17 +31,26 @@ public struct IsoparamFeature: Hashable, Sendable {
     }
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try target.validate()
-        try face.validate()
+        try face.validate(using: &execution)
         guard fractions.isEmpty == false else {
             throw FeatureEvaluationError.invalidGraph("Isoparam needs at least one line.")
         }
-        guard fractions.allSatisfy({ $0.isFinite && $0 > 0 && $0 < 1 }) else {
+        guard try OriginalParameterQueryStorage.allSatisfy(fractions, using: &execution,
+            predicate: { value, _ in value.isFinite && value > 0 && value < 1 }) else {
             throw FeatureEvaluationError.invalidGraph("Isoparam lines lie strictly inside the face's extent.")
         }
-        guard Set(fractions).count == fractions.count else {
+        guard (try OriginalParameterQueryStorage.set(fractions, using: &execution)).count == fractions.count else {
             throw FeatureEvaluationError.invalidGraph("Isoparam lines must be distinct.")
         }
+
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)

@@ -1,4 +1,6 @@
 import CADCore
+import CADTopology
+import CADGeometry
 
 public struct LoftFeature: Hashable, Sendable {
     public var sections: [LoftSectionReference]
@@ -37,6 +39,28 @@ public struct LoftFeature: Hashable, Sendable {
             .filter { seen.insert($0).inserted }
     }
 
+    func validationInputs(using execution: inout OriginalQueryExecution) throws -> [FeatureInput] {
+        try execution.consumeWork(1)
+        var result: [FeatureInput] = []
+        for section in sections {
+            try execution.consumeWork(1)
+            let children = try section.validationInputs(using: &execution)
+            try OriginalParameterQueryStorage.append(contentsOf: children, to: &result, using: &execution)
+        }
+        for guide in guides {
+            try execution.consumeWork(1)
+            try OriginalParameterQueryStorage.append(FeatureInput(featureID: guide.featureID, role: .guide), to: &result, using: &execution)
+        }
+        if let apex { try OriginalParameterQueryStorage.append(FeatureInput(featureID: apex.source, role: apex.bodyRole), to: &result, using: &execution) }
+
+        var seen = Set<FeatureInput>()
+        let filtered = try OriginalParameterQueryStorage.filter(result, using: &execution) { value, execution in
+            try OriginalParameterQueryStorage.insert(value, in: &seen, using: &execution)
+        }
+        try execution.checkpoint()
+        return filtered
+    }
+
 #if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -59,17 +83,23 @@ public struct LoftFeature: Hashable, Sendable {
 #endif
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         if let apex {
-            try apex.vertex.validate()
+            try apex.vertex.validate(using: &execution)
             guard sections.count == 1, guides.isEmpty, sections[0].hasContinuity == false, options.closesSectionLoop == false else {
                 throw FeatureEvaluationError.invalidGraph("A Loft to a vertex takes one section, no guides and no continuity.")
             }
-            try sections[0].validate()
+            try sections[0].validate(using: &execution)
             guard options.resultKind == .sheet || sections[0].section.isClosedRegion else {
                 throw FeatureEvaluationError.invalidGraph("Curve Loft sections require Sheet output.")
             }
-            try options.validate()
-            return
+            try options.validate(using: &execution)
+            try execution.checkpoint(); return
         }
         // Continuous lofting: one open curve section along two guides, one leaving each end.
         let continuesFromOneSection = sections.count == 1 && guides.count == 2 && sections[0].section.isClosedRegion == false
@@ -77,37 +107,40 @@ public struct LoftFeature: Hashable, Sendable {
         guard sections.count >= 2 || continuesFromOneSection else {
             throw FeatureEvaluationError.invalidGraph("Loft features require at least two profile sections, or one open section and two guides.")
         }
-        guard !options.closesSectionLoop || sections.allSatisfy({ $0.hasContinuity == false }) else {
+        guard try !options.closesSectionLoop || (try OriginalParameterQueryStorage.allSatisfy(sections, using: &execution, predicate: { value, execution in value.hasContinuity == false })) else {
             throw FeatureEvaluationError.invalidGraph("A closed Loft has no end sections to be continuous at.")
         }
         for section in sections {
-            try section.validate()
+            try execution.consumeWork(1)
+            try section.validate(using: &execution)
         }
-        guard options.resultKind == .sheet || sections.allSatisfy({ $0.section.isClosedRegion }) else {
+        guard try options.resultKind == .sheet || (try OriginalParameterQueryStorage.allSatisfy(sections, using: &execution, predicate: { value, execution in value.section.isClosedRegion })) else {
             throw FeatureEvaluationError.invalidGraph("Curve Loft sections require Sheet output.")
         }
-        let uniqueSections = Set(sections)
+        for section in sections { try section.chargeStructuralComparison(using: &execution) }
+        let uniqueSections = try OriginalParameterQueryStorage.set(sections, using: &execution)
         guard uniqueSections.count == sections.count else {
             throw FeatureEvaluationError.invalidGraph("Loft profile sections must be unique.")
         }
-        let uniqueFeatureIDs = Set(sections.map { $0.featureID })
+        let uniqueFeatureIDs = try OriginalParameterQueryStorage.set((try OriginalParameterQueryStorage.map(sections, using: &execution) { value, execution in value.featureID }), using: &execution)
         guard uniqueFeatureIDs.count == sections.count else {
             throw FeatureEvaluationError.invalidGraph("Loft profile section features must be unique.")
         }
-        guard sections.dropFirst().dropLast().allSatisfy({ $0.hasContinuity == false }) else {
+        guard (try OriginalParameterQueryStorage.allSatisfy(sections.dropFirst().dropLast(), using: &execution, predicate: { value, execution in value.hasContinuity == false })) else {
             throw FeatureEvaluationError.invalidGraph("Loft continuity belongs to the first or last section.")
         }
-        let guideFeatureIDs = guides.map { $0.featureID }
-        guard Set(guideFeatureIDs).count == guideFeatureIDs.count else {
+        let guideFeatureIDs = try OriginalParameterQueryStorage.map(guides, using: &execution) { value, execution in value.featureID }
+        guard (try OriginalParameterQueryStorage.set(guideFeatureIDs, using: &execution)).count == guideFeatureIDs.count else {
             throw FeatureEvaluationError.invalidGraph("Loft guide references must be unique.")
         }
-        guard guideFeatureIDs.allSatisfy({ uniqueFeatureIDs.contains($0) == false }) else {
+        guard (try OriginalParameterQueryStorage.allSatisfy(guideFeatureIDs, using: &execution, predicate: { value, execution in uniqueFeatureIDs.contains(value) == false })) else {
             throw FeatureEvaluationError.invalidGraph("Loft guides must be distinct from profile sections.")
         }
         for guide in guides {
-            try guide.validate()
+            try execution.consumeWork(1)
+            try guide.validate(using: &execution)
         }
-        try options.validate()
+        try options.validate(using: &execution)
         if options.closesSectionLoop {
             guard options.resultKind == .sheet else {
                 throw FeatureEvaluationError.invalidGraph("Closed Loft section loops must use sheet output.")
@@ -116,6 +149,7 @@ public struct LoftFeature: Hashable, Sendable {
                 throw FeatureEvaluationError.invalidGraph("Closed Loft section loops require at least three profile sections.")
             }
         }
+        try execution.checkpoint()
     }
 }
 
@@ -140,7 +174,15 @@ public struct LoftGuideReference: Hashable, Sendable {
     }
 #endif
 
-    public func validate() throws {}
+    public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try execution.checkpoint()
+    }
 }
 
 public struct LoftSectionReference: Hashable, Sendable {
@@ -247,8 +289,30 @@ public struct LoftSectionReference: Hashable, Sendable {
             + (continuity.map { [FeatureInput(featureID: $0.source, role: $0.bodyRole)] } ?? [])
     }
 
+    func validationInputs(using execution: inout OriginalQueryExecution) throws -> [FeatureInput] {
+        try execution.consumeWork(1)
+        var result: [FeatureInput] = []
+        try OriginalParameterQueryStorage.append(FeatureInput(featureID: featureID, role: section.inputRole), to: &result, using: &execution)
+        if let continuity { try OriginalParameterQueryStorage.append(FeatureInput(featureID: continuity.source, role: continuity.bodyRole), to: &result, using: &execution) }
+
+        try execution.checkpoint()
+        return result
+    }
+
     public func validate() throws {
-        try section.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    func chargeStructuralComparison(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        if case .face(let source) = section { try source.face.chargeStructuralComparison(using: &execution) }
+        if let continuity { try continuity.edge.chargeStructuralComparison(using: &execution) }
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try section.validate(using: &execution)
         guard section.isClosedRegion || profileDirection == .automatic else {
             throw FeatureEvaluationError.invalidGraph("Curve Loft traversal belongs to its curve reference, not profileDirection.")
         }
@@ -266,17 +330,18 @@ public struct LoftSectionReference: Hashable, Sendable {
             }
         }
         if let continuity {
-            try continuity.validate()
+            try continuity.validate(using: &execution)
             guard case .curve = section else {
                 throw FeatureEvaluationError.invalidGraph("Loft continuity belongs to a curve section along a body edge.")
             }
         }
         if let faceContinuity {
-            try faceContinuity.validate()
+            try faceContinuity.validate(using: &execution)
             guard case .face = section, continuity == nil else {
                 throw FeatureEvaluationError.invalidGraph("Loft face continuity belongs to a face section.")
             }
         }
+        try execution.checkpoint()
     }
 }
 
@@ -374,10 +439,17 @@ public struct LoftOptions: Hashable, Sendable {
 #endif
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         guard smoothTangentScale.isFinite,
               smoothTangentScale > 0.0 else {
             throw FeatureEvaluationError.invalidGraph("Loft smooth tangent scale must be finite and greater than zero.")
         }
+        try execution.checkpoint()
     }
 }
 

@@ -19,12 +19,24 @@ public struct ImprintBodyFeature: Hashable, Sendable {
     }
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try target.validate()
-        let features = tools.map { $0.body.featureID }
-        guard features.isEmpty == false, Set(features).count == features.count, features.contains(target.featureID) == false else {
+        let features = try OriginalParameterQueryStorage.map(tools, using: &execution) { value, _ in value.body.featureID }
+        guard features.isEmpty == false, (try OriginalParameterQueryStorage.set(features, using: &execution)).count == features.count, !(try OriginalParameterQueryStorage.contains(features, using: &execution,
+            predicate: { value, _ in value == target.featureID })) else {
             throw FeatureEvaluationError.invalidGraph("Imprint needs one or more distinct tools other than its target.")
         }
-        for tool in tools { try tool.body.validate() }
+        for tool in tools {
+            try execution.consumeWork(1)
+            try tool.body.validate()
+        }
+
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)

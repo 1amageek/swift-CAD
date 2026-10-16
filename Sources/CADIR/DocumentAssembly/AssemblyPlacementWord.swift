@@ -6,8 +6,14 @@ public struct AssemblyPlacementWord: Equatable, Sendable {
     public let factors: [AssemblyPlacementFactor]
 
     public init(factors: [AssemblyPlacementFactor]) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try self.init(factors: factors, using: &execution)
+    }
+    public init(factors: [AssemblyPlacementFactor], using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         guard !factors.isEmpty else { throw AssemblyError.invalidSource("An assembly placement word cannot be empty.") }
         for factor in factors {
+            try execution.consumeWork(1)
             if case .word = factor.originalPlacement { throw AssemblyError.invalidSource("Assembly placement words require direct factors.") }
         }
         self.factors = factors

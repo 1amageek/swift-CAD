@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 public struct PrimitiveFeature: Hashable, Sendable {
     public let definition: PrimitiveDefinition
@@ -8,7 +9,14 @@ public struct PrimitiveFeature: Hashable, Sendable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
-        try definition.validate(tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try definition.validate(tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)

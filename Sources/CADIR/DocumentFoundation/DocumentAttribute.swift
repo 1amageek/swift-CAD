@@ -2,6 +2,7 @@
 import Foundation
 #endif
 import CADCore
+import CADGeometry
 
 public struct DocumentAttribute: Hashable, Sendable {
     public var id: DocumentAttributeID
@@ -28,10 +29,21 @@ public struct DocumentAttribute: Hashable, Sendable {
     #endif
 
     public func validate() throws {
-        guard name.contains(where: { !$0.isWhitespace }) else {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        var hasNonWhitespace = false
+        for character in name {
+            try execution.consumeWork(1)
+            if !character.isWhitespace { hasNonWhitespace = true; break }
+        }
+        guard hasNonWhitespace else {
             throw DocumentFoundationError.invalidName(name)
         }
-        try value.validate()
+        try value.validate(using: &execution)
     }
 }
 

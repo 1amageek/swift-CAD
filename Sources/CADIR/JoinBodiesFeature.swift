@@ -1,5 +1,6 @@
 import CADCore
 import CADGeometry
+import CADTopology
 
 /// What joining makes of its targets.
 public enum JoinBodiesMode: String, Hashable, Sendable {
@@ -44,13 +45,21 @@ public struct JoinBodiesFeature: Hashable, Sendable {
     }
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         guard targets.count >= 2 else {
             throw FeatureEvaluationError.invalidGraph("Join bodies features require at least two target bodies.")
         }
-        let targetFeatureIDs = targets.map { $0.featureID }
-        guard Set(targetFeatureIDs).count == targetFeatureIDs.count else {
+        let targetFeatureIDs = try OriginalParameterQueryStorage.map(targets, using: &execution) { value, _ in value.featureID }
+        guard (try OriginalParameterQueryStorage.set(targetFeatureIDs, using: &execution)).count == targetFeatureIDs.count else {
             throw FeatureEvaluationError.invalidGraph("Join bodies target references must be unique.")
         }
+
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)

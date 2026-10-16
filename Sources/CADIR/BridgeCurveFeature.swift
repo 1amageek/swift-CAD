@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 public struct BridgeCurveFeature: Sendable, Hashable {
     public var start: BridgeCurveEndpointReference
@@ -16,10 +17,16 @@ public struct BridgeCurveFeature: Sendable, Hashable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
-        try tolerance.validate()
-        try start.validate(tolerance: tolerance)
-        try end.validate(tolerance: tolerance)
-        try continuityTolerances.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try execution.consumeWork(1); try tolerance.validate()
+        try start.validate(tolerance: tolerance, using: &execution)
+        try end.validate(tolerance: tolerance, using: &execution)
+        try execution.consumeWork(1); try continuityTolerances.validate()
         guard start.curve != end.curve || start.end != end.end else {
             throw KernelError(
                 phase: .validation,
@@ -28,6 +35,8 @@ public struct BridgeCurveFeature: Sendable, Hashable {
                 message: "Bridge curve endpoints must identify two distinct evaluated endpoints."
             )
         }
+
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)

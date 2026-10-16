@@ -57,6 +57,14 @@ flowchart LR
 
 ## Contracts and Invariants
 
+Complete document validation calls the actual direct assembly expansion under
+[CADIR's document validation contract](../DESIGN.md#complete-document-validation-execution).
+All original assembly source/occurrence/text/work/algebraic ceilings remain local
+contributions of the same caller execution. Scratch indexes, original placement
+words, paths, ancestry sets, sort buffers and pending/result arrays admit typed
+storage before allocation; actual path depth also admits the caller source axis.
+No child root or rounded replacement placement is introduced.
+
 ### Caller-Owned Product Lookup
 
 `AssemblyProductLookingUp.product(for:in:maximumWork:using:)` retains the existing

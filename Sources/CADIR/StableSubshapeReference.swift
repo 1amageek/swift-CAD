@@ -32,6 +32,13 @@ public struct StableSubshapeReference: Hashable, Sendable {
         try geometrySignature.validate(using: &execution)
     }
 
+    /// Pays for the stored equality/hash payload without validating or changing it.
+    func chargeStructuralComparison(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        for _ in subshapeID.role.utf8 { try execution.consumeWork(1) }
+        try geometrySignature.chargeStructuralComparison(using: &execution)
+    }
+
 #if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case subshapeID

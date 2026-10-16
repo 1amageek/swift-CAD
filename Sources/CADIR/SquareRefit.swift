@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 /// Square's Refit of a face: the face's outer loop split into four sides at its four sharpest
 /// vertices and spanned by Square's fit (`options`), its sides on the face's own edges — G0, or
@@ -24,7 +25,13 @@ public struct SquareRefit: Hashable, Sendable {
     }
 
     public func validate() throws {
-        try options.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try options.validate(using: &execution)
         guard isFree == false || order == nil else {
             throw FeatureEvaluationError.invalidGraph("A Free refit takes no continuity.")
         }

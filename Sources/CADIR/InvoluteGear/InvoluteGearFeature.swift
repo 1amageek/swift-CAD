@@ -1,4 +1,6 @@
 import CADCore
+import CADGeometry
+import CADTopology
 
 public struct InvoluteGearFeature: Hashable, Sendable {
     public enum Dimension: String, CaseIterable, Sendable {
@@ -29,24 +31,57 @@ public struct InvoluteGearFeature: Hashable, Sendable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
-        try tolerance.validate()
-        try origin.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try execution.consumeWork(1); try tolerance.validate()
+        try execution.consumeWork(1); try origin.validate()
         guard toothCount >= 3, maximumSegments >= 6, toothCount <= maximumSegments / 6,
-              Set(dimensions.keys) == Set(Dimension.allCases) else {
+              try hasCompleteDimensions(using: &execution) else {
             throw FeatureEvaluationError.invalidGraph("Gear source requires every dimension and a complete boundary budget.")
         }
-        for expression in dimensions.values { try expression.validateLiteralQuantities() }
+        for expression in dimensions.values {
+            try execution.consumeWork(1)
+            try expression.validateDocumentLiteralQuantities(using: &execution)
+        }
+
+        try execution.checkpoint()
+    }
+
+    private func hasCompleteDimensions(using execution: inout OriginalQueryExecution) throws -> Bool {
+        let actual = try OriginalParameterQueryStorage.set(dimensions.keys, using: &execution)
+        // CaseIterable materializes the ten fixed schema labels before the set is built.
+        try execution.retainStorage(count: 10, stride: MemoryLayout<Dimension>.stride)
+        let expected = try OriginalParameterQueryStorage.set(Dimension.allCases, using: &execution)
+        guard actual.count == expected.count else { return false }
+        return try OriginalParameterQueryStorage.allSatisfy(actual, using: &execution,
+            predicate: { value, _ in expected.contains(value) })
     }
 
     public func resolvedDimensions(
         using resolve: (CADExpression) throws -> Quantity
     ) throws -> [Dimension: Double] {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try resolvedDimensions(using: &execution,
+            resolve: { expression, _ in try resolve(expression) })
+    }
+
+    public func resolvedDimensions(
+        using execution: inout OriginalQueryExecution,
+        resolve: (CADExpression, inout OriginalQueryExecution) throws -> Quantity
+    ) throws -> [Dimension: Double] {
+        try execution.consumeWork(1)
         var result: [Dimension: Double] = [:]
+        try execution.retainStorage(count: 10, stride: MemoryLayout<Dimension>.stride)
         for dimension in Dimension.allCases {
+            try execution.consumeWork(1)
             guard let expression = dimensions[dimension] else {
                 throw FeatureEvaluationError.invalidGraph("Gear dimension \(dimension.rawValue) is missing.")
             }
-            let quantity = try resolve(expression)
+            let quantity = try resolve(expression, &execution)
             guard quantity.kind == dimension.quantityKind else {
                 throw UnitError.expectedQuantity(operation: "involuteGear.\(dimension.rawValue)",
                     expected: dimension.quantityKind, actual: quantity.kind)
@@ -54,8 +89,9 @@ public struct InvoluteGearFeature: Hashable, Sendable {
             guard quantity.value.isFinite, dimension == .twistAngle || quantity.value > 0 else {
                 throw FeatureEvaluationError.invalidGraph("Gear dimension \(dimension.rawValue) is invalid.")
             }
-            result[dimension] = quantity.value
+            try OriginalParameterQueryStorage.set(quantity.value, for: dimension, in: &result, using: &execution)
         }
+        try execution.checkpoint()
         return result
     }
 

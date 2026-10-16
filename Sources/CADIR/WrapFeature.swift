@@ -1,4 +1,5 @@
 import CADCore
+import CADTopology
 import CADGeometry
 
 /// How Wrap takes a point's UVN coordinates on the reference face to the target face: `s` and
@@ -78,12 +79,23 @@ public struct WrapOptions: Hashable, Sendable {
 #endif
 
     public func validate() throws {
-        for value in [scaleU, scaleV, scaleN, offsetU, offsetV] where !value.isFinite {
-            throw FeatureEvaluationError.invalidGraph("Wrap scales and offsets must be finite.")
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try execution.retainStorage(count: 5, stride: MemoryLayout<Double>.stride)
+        for value in [scaleU, scaleV, scaleN, offsetU, offsetV] {
+            try execution.consumeWork(1)
+            guard value.isFinite else {
+                throw FeatureEvaluationError.invalidGraph("Wrap scales and offsets must be finite.")
+            }
         }
         guard scaleU != 0, scaleV != 0, scaleN != 0 else {
             throw FeatureEvaluationError.invalidGraph("Wrap scales must be non-zero: a zero scale flattens the body.")
         }
+        try execution.checkpoint()
     }
 
     /// The target coordinates of reference coordinates `(s, t, n)`, `offsetN` the resolved N offset.
@@ -132,10 +144,17 @@ public struct WrapFeature: Hashable, Sendable {
     }
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try target.validate()
-        try referenceFace.validate()
-        try targetFace.validate()
-        try options.validate()
+        try referenceFace.validate(using: &execution)
+        try targetFace.validate(using: &execution)
+        try options.validate(using: &execution)
+        try execution.checkpoint()
     }
 
     /// The features this one reads: the target body, then the owners of the faces, each once.
@@ -146,6 +165,22 @@ public struct WrapFeature: Hashable, Sendable {
             inputs.append(FeatureInput(featureID: owner, role: .target))
         }
         return inputs
+    }
+
+    func validationSourceInputs(using execution: inout OriginalQueryExecution) throws -> [FeatureInput] {
+        try execution.consumeWork(1)
+        var result: [FeatureInput] = []
+        try OriginalParameterQueryStorage.append(FeatureInput(featureID: target.featureID, role: .target), to: &result, using: &execution)
+        try execution.retainStorage(count: 2, stride: MemoryLayout<FeatureID>.stride)
+        for owner in [referenceFace.subshapeID.featureID, targetFace.subshapeID.featureID] {
+            try execution.consumeWork(1)
+            if try !OriginalParameterQueryStorage.contains(result, using: &execution, predicate: { input, execution in input.featureID == owner }) {
+                try OriginalParameterQueryStorage.append(FeatureInput(featureID: owner, role: .target), to: &result, using: &execution)
+            }
+        }
+
+        try execution.checkpoint()
+        return result
     }
 
     /// A deformed body keeps its kind.

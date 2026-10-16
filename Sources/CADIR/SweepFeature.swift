@@ -1,4 +1,6 @@
 import CADCore
+import CADTopology
+import CADGeometry
 
 public struct SweepFeature: Hashable, Sendable {
     public var sections: [SectionReference]
@@ -61,43 +63,63 @@ public struct SweepFeature: Hashable, Sendable {
 #endif
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         guard sections.isEmpty == false else {
             throw FeatureEvaluationError.invalidGraph("Sweep features require at least one section.")
         }
         guard sections.count == 1 else {
             throw FeatureEvaluationError.invalidGraph("Sweep features currently require exactly one section.")
         }
-        let sectionFeatureIDs = sections.map { $0.featureID }
-        guard Set(sectionFeatureIDs).count == sectionFeatureIDs.count else {
+        let sectionFeatureIDs = try OriginalParameterQueryStorage.map(sections, using: &execution) { value, execution in value.featureID }
+        guard (try OriginalParameterQueryStorage.set(sectionFeatureIDs, using: &execution)).count == sectionFeatureIDs.count else {
             throw FeatureEvaluationError.invalidGraph("Sweep section references must be unique.")
         }
-        try sections.forEach { try $0.validate() }
-        try path.validate()
-        let guideFeatureIDs = guides.map { $0.featureID }
-        guard Set(guideFeatureIDs).count == guideFeatureIDs.count else {
+        for value in sections {
+            try execution.consumeWork(1)
+            try value.validate(using: &execution)
+        }
+        try path.validate(using: &execution)
+        let guideFeatureIDs = try OriginalParameterQueryStorage.map(guides, using: &execution) { value, execution in value.featureID }
+        guard (try OriginalParameterQueryStorage.set(guideFeatureIDs, using: &execution)).count == guideFeatureIDs.count else {
             throw FeatureEvaluationError.invalidGraph("Sweep guide references must be unique.")
         }
-        try guides.forEach { try $0.validate() }
-        let targetFeatureIDs = targets.map { $0.featureID }
-        guard Set(targetFeatureIDs).count == targetFeatureIDs.count else {
+        for value in guides {
+            try execution.consumeWork(1)
+            try value.validate(using: &execution)
+        }
+        let targetFeatureIDs = try OriginalParameterQueryStorage.map(targets, using: &execution) { value, execution in value.featureID }
+        guard (try OriginalParameterQueryStorage.set(targetFeatureIDs, using: &execution)).count == targetFeatureIDs.count else {
             throw FeatureEvaluationError.invalidGraph("Sweep target references must be unique.")
         }
-        try targets.forEach { try $0.validate() }
-        guard sectionFeatureIDs.contains(path.featureID) == false else {
+        for value in targets {
+            try execution.consumeWork(1)
+            try value.validate(using: &execution)
+        }
+        guard (try OriginalParameterQueryStorage.contains(sectionFeatureIDs, using: &execution, predicate: { value, execution in value == path.featureID })) == false else {
             throw FeatureEvaluationError.invalidGraph("Sweep path must be distinct from every section.")
         }
-        let reservedCurveFeatureIDs = Set(sectionFeatureIDs + [path.featureID])
-        guard guideFeatureIDs.allSatisfy({ reservedCurveFeatureIDs.contains($0) == false }) else {
+        var reservedCurveFeatureIDs = try OriginalParameterQueryStorage.set(sectionFeatureIDs, using: &execution)
+        try OriginalParameterQueryStorage.insert(path.featureID, in: &reservedCurveFeatureIDs, using: &execution)
+        guard (try OriginalParameterQueryStorage.allSatisfy(guideFeatureIDs, using: &execution, predicate: { value, execution in reservedCurveFeatureIDs.contains(value) == false })) else {
             throw FeatureEvaluationError.invalidGraph("Sweep guides must be distinct from sections and path.")
         }
         // A face section may combine with the body it lies on, as a face extrusion does.
-        let reservedSourceFeatureIDs = reservedCurveFeatureIDs.union(guideFeatureIDs)
-            .subtracting(sections.filter({ $0.isFace }).map { $0.featureID })
-        guard targetFeatureIDs.allSatisfy({ reservedSourceFeatureIDs.contains($0) == false }) else {
+        var reservedSourceFeatureIDs = try OriginalParameterQueryStorage.set(reservedCurveFeatureIDs, using: &execution)
+        for id in guideFeatureIDs { try OriginalParameterQueryStorage.insert(id, in: &reservedSourceFeatureIDs, using: &execution) }
+        for section in sections {
+            try execution.consumeWork(1)
+            if section.isFace { reservedSourceFeatureIDs.remove(section.featureID) }
+        }
+        guard (try OriginalParameterQueryStorage.allSatisfy(targetFeatureIDs, using: &execution, predicate: { value, execution in reservedSourceFeatureIDs.contains(value) == false })) else {
             throw FeatureEvaluationError.invalidGraph("Sweep targets must be distinct from sections, path, and guides.")
         }
         if options.resultKind == .solid {
-            guard sections.allSatisfy({ $0.isClosedRegion }) else {
+            guard (try OriginalParameterQueryStorage.allSatisfy(sections, using: &execution, predicate: { value, execution in value.isClosedRegion })) else {
                 throw FeatureEvaluationError.invalidGraph("Solid sweep sections must reference closed profiles or planar faces.")
             }
         }
@@ -114,7 +136,8 @@ public struct SweepFeature: Hashable, Sendable {
                 throw FeatureEvaluationError.invalidGraph("Sweep boolean operations require at least one target body.")
             }
         }
-        try options.validate()
+        try options.validate(using: &execution)
+        try execution.checkpoint()
     }
 }
 
@@ -139,7 +162,15 @@ public struct SweepPathReference: Hashable, Sendable {
     }
 #endif
 
-    public func validate() throws {}
+    public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try execution.checkpoint()
+    }
 }
 
 public struct SweepGuideReference: Hashable, Sendable {
@@ -163,7 +194,15 @@ public struct SweepGuideReference: Hashable, Sendable {
     }
 #endif
 
-    public func validate() throws {}
+    public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try execution.checkpoint()
+    }
 }
 
 public struct SweepTargetReference: Hashable, Sendable {
@@ -187,7 +226,15 @@ public struct SweepTargetReference: Hashable, Sendable {
     }
 #endif
 
-    public func validate() throws {}
+    public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try execution.checkpoint()
+    }
 }
 
 public struct SweepOptions: Hashable, Sendable {
@@ -282,20 +329,30 @@ public struct SweepOptions: Hashable, Sendable {
 #endif
 
     public func validate() throws {
-        try twistAngle.validateLiteralQuantities()
-        try approximationTolerance?.validateLiteralQuantities()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try twistAngle.validateDocumentLiteralQuantities(using: &execution)
+        try approximationTolerance?.validateDocumentLiteralQuantities(using: &execution)
         if let twistLaw {
             guard (2...257).contains(twistLaw.count),
                   twistLaw.first?.position == 0,
                   twistLaw.last?.position == 1,
-                  twistLaw.allSatisfy({ $0.position.isFinite && (0...1).contains($0.position) }),
-                  zip(twistLaw, twistLaw.dropFirst()).allSatisfy({ $0.position < $1.position }) else {
+                  (try OriginalParameterQueryStorage.allSatisfy(twistLaw, using: &execution, predicate: { value, execution in value.position.isFinite && (0...1).contains(value.position) })),
+                  (try OriginalParameterQueryStorage.allSatisfy(zip(twistLaw, twistLaw.dropFirst()), using: &execution, predicate: { value, execution in value.0.position < value.1.position })) else {
                 throw FeatureEvaluationError.invalidGraph("Sweep twist law requires 2...257 strictly increasing positions from zero to one.")
             }
-            for knot in twistLaw { try knot.angle.validateLiteralQuantities() }
+            for knot in twistLaw {
+                try execution.consumeWork(1)
+                try knot.angle.validateDocumentLiteralQuantities(using: &execution)
+            }
         }
-        try endScale.validateLiteralQuantities()
-        try distanceFraction.validateLiteralQuantities()
+        try endScale.validateDocumentLiteralQuantities(using: &execution)
+        try distanceFraction.validateDocumentLiteralQuantities(using: &execution)
+        try execution.checkpoint()
     }
 }
 

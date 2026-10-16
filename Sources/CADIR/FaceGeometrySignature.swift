@@ -30,6 +30,12 @@ public struct FaceGeometrySignature: Hashable, Sendable {
         }
     }
 
+    func chargeStructuralComparison(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try GeometryStructuralComparisonWork.charge(surface: surface, using: &execution)
+        for loop in loops { try loop.chargeStructuralComparison(using: &execution) }
+    }
+
 #if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey, CaseIterable {
         case surface

@@ -1,4 +1,6 @@
 import CADCore
+import CADGeometry
+import CADTopology
 
 /// The cross-section a fillet rounds an edge with (Fillet Shell's Shape): a circular `round` of
 /// the radius; a `conic` set back as the round of the distance's radius, its fullness the tension
@@ -84,9 +86,21 @@ public struct FilletFeature: Hashable, Sendable {
     }
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        func uniqueEdgeCount() throws -> Int {
+            for reference in edges {
+                try reference.chargeStructuralComparison(using: &execution)
+            }
+            return try OriginalParameterQueryStorage.set(edges, using: &execution).count
+        }
         try target.validate()
         guard (allEdges ? edges.isEmpty : !edges.isEmpty),
-              Set(edges).count == edges.count else {
+              (try uniqueEdgeCount()) == edges.count else {
             throw KernelError(
                 phase: .validation,
                 code: .invalidInput,
@@ -95,11 +109,12 @@ public struct FilletFeature: Hashable, Sendable {
             )
         }
         for edge in edges {
-            try edge.validate()
+            try execution.consumeWork(1)
+            try edge.validate(using: &execution)
         }
-        try radius.validateLiteralQuantities()
+        try radius.validateDocumentLiteralQuantities(using: &execution)
         if let endRadius {
-            try endRadius.validateLiteralQuantities()
+            try endRadius.validateDocumentLiteralQuantities(using: &execution)
             guard !allEdges, edges.count == 1, shape != .full else {
                 throw KernelError(phase: .validation, code: .invalidInput, tolerance: nil,
                                   message: "A variable fillet rounds one edge, not a full round.")
@@ -123,16 +138,22 @@ public struct FilletFeature: Hashable, Sendable {
             }
         }
         if variablePoints.isEmpty == false {
-            let positions = variablePoints.map { $0.position }
+            let positions = try OriginalParameterQueryStorage.map(variablePoints, using: &execution) { value, _ in value.position }
             guard !allEdges, edges.count == 1, shape != .full, limits == nil,
-                  positions.allSatisfy({ $0.isFinite && $0 > 0 && $0 < 1 }), zip(positions, positions.dropFirst()).allSatisfy({ $0 < $1 }) else {
+                  try OriginalParameterQueryStorage.allSatisfy(positions, using: &execution,
+                    predicate: { value, _ in value.isFinite && value > 0 && value < 1 }),
+                  try OriginalParameterQueryStorage.allSatisfy(zip(positions, positions.dropFirst()), using: &execution,
+                    predicate: { pair, _ in pair.0 < pair.1 }) else {
                 throw KernelError(phase: .validation, code: .invalidInput, tolerance: nil,
                                   message: "A fillet's variable points lie in order strictly inside its one edge.")
             }
-            for point in variablePoints { try point.radius.validateLiteralQuantities() }
+            for point in variablePoints {
+                try execution.consumeWork(1)
+                try point.radius.validateDocumentLiteralQuantities(using: &execution)
+            }
         }
         if let limits {
-            try limits.validate()
+            try execution.consumeWork(1); try limits.validate()
             guard !allEdges, edges.count == 1, shape != .full, endRadius == nil else {
                 throw KernelError(phase: .validation, code: .invalidInput, tolerance: nil,
                                   message: "Limits bound one constant fillet's edge.")
@@ -144,6 +165,8 @@ public struct FilletFeature: Hashable, Sendable {
                                 ? "A full fillet rounds across a face between each pair of edges, two by two."
                                 : "A conic, chordal or curvature fillet rounds one edge.")
         }
+
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)

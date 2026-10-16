@@ -9,7 +9,13 @@ public struct EdgeReference: Hashable, Sendable {
     }
 
     public func validate() throws {
-        try subshape.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try subshape.validate(using: &execution)
     }
 }
 
@@ -23,7 +29,13 @@ public struct EdgeParameterReference: Hashable, Sendable {
     }
 
     public func validate() throws {
-        try edge.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try edge.validate(using: &execution)
         guard parameter.isFinite else {
             throw GeometryError.invalidCoordinate(parameter)
         }
@@ -79,11 +91,17 @@ public enum EdgeSubobjectReference: Hashable, Sendable {
 #endif
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         switch self {
         case let .whole(reference):
-            try reference.validate()
+            try reference.validate(using: &execution)
         case let .parameter(reference):
-            try reference.validate()
+            try reference.validate(using: &execution)
         }
     }
 }
@@ -98,6 +116,12 @@ public struct CurveOutputReference: Hashable, Sendable {
     }
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         guard curveIndex >= 0 else {
             throw FeatureEvaluationError.invalidGraph("Curve output reference index must not be negative.")
         }
@@ -140,7 +164,13 @@ public struct CurveParameterReference: Hashable, Sendable {
     }
 
     public func validate() throws {
-        try curve.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try curve.validate(using: &execution)
         guard parameter.isFinite else {
             throw GeometryError.invalidCoordinate(parameter)
         }
@@ -155,7 +185,13 @@ public struct CurveCenterReference: Hashable, Sendable {
     }
 
     public func validate() throws {
-        try curve.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try curve.validate(using: &execution)
     }
 }
 
@@ -169,7 +205,13 @@ public struct CurveSpanReference: Hashable, Sendable {
     }
 
     public func validate() throws {
-        try curve.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try curve.validate(using: &execution)
         guard spanIndex >= 0 else {
             throw FeatureEvaluationError.invalidGraph("Curve span reference index must not be negative.")
         }
@@ -186,7 +228,13 @@ public struct CurveControlPointReference: Hashable, Sendable {
     }
 
     public func validate() throws {
-        try curve.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try curve.validate(using: &execution)
         guard controlPointIndex >= 0 else {
             throw FeatureEvaluationError.invalidGraph("Curve control point reference index must not be negative.")
         }
@@ -229,7 +277,13 @@ public struct CurveKnotReference: Hashable, Sendable {
     }
 
     public func validate() throws {
-        try curve.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try curve.validate(using: &execution)
         guard knotIndex >= 0 else {
             throw FeatureEvaluationError.invalidGraph("Curve knot reference index must not be negative.")
         }
@@ -347,19 +401,25 @@ public enum CurveSubobjectReference: Hashable, Sendable {
 #endif
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         switch self {
         case let .whole(reference):
-            try reference.validate()
+            try reference.validate(using: &execution)
         case let .parameter(reference):
-            try reference.validate()
+            try reference.validate(using: &execution)
         case let .center(reference):
-            try reference.validate()
+            try reference.validate(using: &execution)
         case let .span(reference):
-            try reference.validate()
+            try reference.validate(using: &execution)
         case let .controlPoint(reference):
-            try reference.validate()
+            try reference.validate(using: &execution)
         case let .knot(reference):
-            try reference.validate()
+            try reference.validate(using: &execution)
         }
     }
 }
@@ -372,7 +432,13 @@ public struct SurfaceReference: Hashable, Sendable {
     }
 
     public func validate() throws {
-        try subshape.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try subshape.validate(using: &execution)
     }
 }
 
@@ -388,7 +454,13 @@ public struct SurfaceParameterReference: Hashable, Sendable {
     }
 
     public func validate() throws {
-        try surface.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try surface.validate(using: &execution)
         guard u.isFinite else {
             throw GeometryError.invalidCoordinate(u)
         }
@@ -414,7 +486,13 @@ public struct SurfaceSpanReference: Hashable, Sendable {
     }
 
     public func validate() throws {
-        try surface.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try surface.validate(using: &execution)
         guard spanIndex >= 0 else {
             throw FeatureEvaluationError.invalidGraph("Surface span reference index must not be negative.")
         }
@@ -433,7 +511,13 @@ public struct SurfaceControlPointReference: Hashable, Sendable {
     }
 
     public func validate() throws {
-        try surface.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try surface.validate(using: &execution)
         guard uIndex >= 0 else {
             throw FeatureEvaluationError.invalidGraph("Surface control point U index must not be negative.")
         }
@@ -459,7 +543,13 @@ public struct SurfaceKnotReference: Hashable, Sendable {
     }
 
     public func validate() throws {
-        try surface.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try surface.validate(using: &execution)
         guard knotIndex >= 0 else {
             throw FeatureEvaluationError.invalidGraph("Surface knot reference index must not be negative.")
         }
@@ -478,7 +568,13 @@ public struct SurfaceTrimReference: Hashable, Sendable {
     }
 
     public func validate() throws {
-        try surface.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try surface.validate(using: &execution)
         guard loopIndex >= 0 else {
             throw FeatureEvaluationError.invalidGraph("Surface trim loop index must not be negative.")
         }
@@ -498,7 +594,13 @@ public struct SurfaceTrimSpanReference: Hashable, Sendable {
     }
 
     public func validate() throws {
-        try trim.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try trim.validate(using: &execution)
         guard spanIndex >= 0 else {
             throw FeatureEvaluationError.invalidGraph("Surface trim span reference index must not be negative.")
         }
@@ -515,7 +617,13 @@ public struct SurfaceTrimKnotReference: Hashable, Sendable {
     }
 
     public func validate() throws {
-        try trim.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try trim.validate(using: &execution)
         guard knotIndex >= 0 else {
             throw FeatureEvaluationError.invalidGraph("Surface trim knot reference index must not be negative.")
         }
@@ -625,23 +733,29 @@ public enum SurfaceSubobjectReference: Hashable, Sendable {
 #endif
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         switch self {
         case let .whole(reference):
-            try reference.validate()
+            try reference.validate(using: &execution)
         case let .parameter(reference):
-            try reference.validate()
+            try reference.validate(using: &execution)
         case let .span(reference):
-            try reference.validate()
+            try reference.validate(using: &execution)
         case let .controlPoint(reference):
-            try reference.validate()
+            try reference.validate(using: &execution)
         case let .knot(reference):
-            try reference.validate()
+            try reference.validate(using: &execution)
         case let .trim(reference):
-            try reference.validate()
+            try reference.validate(using: &execution)
         case let .trimSpan(reference):
-            try reference.validate()
+            try reference.validate(using: &execution)
         case let .trimKnot(reference):
-            try reference.validate()
+            try reference.validate(using: &execution)
         }
     }
 }
@@ -722,17 +836,23 @@ public enum SelectionReference: Hashable, Sendable {
 #endif
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         switch self {
         case let .subshape(reference):
-            try reference.validate()
+            try reference.validate(using: &execution)
         case let .edge(reference):
-            try reference.validate()
+            try reference.validate(using: &execution)
         case let .curve(reference):
-            try reference.validate()
+            try reference.validate(using: &execution)
         case let .sketchPoint(reference):
             try reference.validate()
         case let .surface(reference):
-            try reference.validate()
+            try reference.validate(using: &execution)
         }
     }
 }

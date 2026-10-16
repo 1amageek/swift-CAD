@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 public enum PrimitiveDefinition: Hashable, Sendable {
     case box(BoxPrimitive)
@@ -8,12 +9,18 @@ public enum PrimitiveDefinition: Hashable, Sendable {
     case torus(TorusPrimitive)
 
     public func validate(tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         switch self {
-        case let .box(primitive): try primitive.validate(tolerance: tolerance)
-        case let .cylinder(primitive): try primitive.validate(tolerance: tolerance)
-        case let .cone(primitive): try primitive.validate(tolerance: tolerance)
-        case let .sphere(primitive): try primitive.validate(tolerance: tolerance)
-        case let .torus(primitive): try primitive.validate(tolerance: tolerance)
+        case let .box(primitive): try primitive.validate(tolerance: tolerance, using: &execution)
+        case let .cylinder(primitive): try primitive.validate(tolerance: tolerance, using: &execution)
+        case let .cone(primitive): try primitive.validate(tolerance: tolerance, using: &execution)
+        case let .sphere(primitive): try primitive.validate(tolerance: tolerance, using: &execution)
+        case let .torus(primitive): try primitive.validate(tolerance: tolerance, using: &execution)
         }
     }
 

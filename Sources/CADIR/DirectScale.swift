@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 /// A scale about `origin` by one factor along each axis of the frame `xAxis`, `yAxis` and
 /// `xAxis × yAxis`; equal factors scale uniformly.
@@ -17,6 +18,12 @@ public struct DirectScale: Hashable, Sendable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try tolerance.validate()
         try origin.validate()
         try xAxis.validate()
@@ -28,7 +35,9 @@ public struct DirectScale: Hashable, Sendable {
         guard factors.count == 3 else {
             throw FeatureEvaluationError.invalidGraph("A scale has one factor per frame axis.")
         }
-        for factor in factors { try factor.validateLiteralQuantities() }
+        for factor in factors {
+            try execution.consumeWork(1)
+                try factor.validateDocumentLiteralQuantities(using: &execution) }
     }
 
 #if !hasFeature(Embedded)

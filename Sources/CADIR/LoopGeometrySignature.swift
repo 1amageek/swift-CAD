@@ -31,6 +31,11 @@ public struct LoopGeometrySignature: Hashable, Sendable {
         }
     }
 
+    func chargeStructuralComparison(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        for coedge in coedges { try coedge.chargeStructuralComparison(using: &execution) }
+    }
+
 #if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey, CaseIterable {
         case role

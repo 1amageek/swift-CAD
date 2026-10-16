@@ -35,6 +35,12 @@ public struct FaceMatchFeature: Hashable, Sendable {
     }
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try target.validate()
         try source.validate()
         guard faces.isEmpty == false else {
@@ -42,18 +48,24 @@ public struct FaceMatchFeature: Hashable, Sendable {
         }
         var seen = Set<StableSubshapeReference>()
         for face in faces {
-            try face.validate()
-            guard seen.insert(face).inserted else {
+            try execution.consumeWork(1)
+            try face.validate(using: &execution)
+            try face.chargeStructuralComparison(using: &execution)
+            guard (try OriginalParameterQueryStorage.insert(face, in: &seen, using: &execution)) else {
                 throw FeatureEvaluationError.invalidGraph("Match Face faces must be unique.")
             }
         }
-        try referenceFace.validate()
+        try referenceFace.validate(using: &execution)
+        try referenceFace.chargeStructuralComparison(using: &execution)
+        try execution.consumeWork(1)
         guard seen.contains(referenceFace) == false else {
             throw FeatureEvaluationError.invalidGraph("Match Face cannot match a face to itself.")
         }
         guard source.featureID != target.featureID || sourcePlacement == nil else {
             throw FeatureEvaluationError.invalidGraph("Match Face places only a reference face of another body.")
         }
+
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)
@@ -90,6 +102,19 @@ public struct FaceMatchFeature: Hashable, Sendable {
         try container.encode(grow, forKey: .grow)
     }
 #endif
+
+    func validationInputs(using execution: inout OriginalQueryExecution) throws -> [FeatureInput] {
+        try execution.consumeWork(1)
+        var inputs: [FeatureInput] = []
+        try OriginalParameterQueryStorage.append(FeatureInput(featureID: target.featureID, role: .target),
+            to: &inputs, using: &execution)
+        if source.featureID != target.featureID {
+            try OriginalParameterQueryStorage.append(FeatureInput(featureID: source.featureID, role: .body),
+                to: &inputs, using: &execution)
+        }
+        try execution.checkpoint()
+        return inputs
+    }
 
     /// The inputs the feature reads: its target, and the reference face's body when that is
     /// another.

@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 import CADTopology
 
 public struct RevolveFeature: Hashable, Sendable {
@@ -86,7 +87,13 @@ public struct RevolveFeature: Hashable, Sendable {
     /// one holds is known only once the curve is evaluated, so a solid curve revolve is admitted
     /// here and checked by the evaluator.
     private func validateSection() throws {
-        try section.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validateSection(using: &execution)
+    }
+
+    private func validateSection(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try section.validate(using: &execution)
         if thickness != nil {
             guard resultKind == .solid, section.isClosedRegion else {
                 throw FeatureEvaluationError.invalidGraph("A thin revolve walls a closed section into a solid.")
@@ -98,19 +105,30 @@ public struct RevolveFeature: Hashable, Sendable {
             }
         } else {
             guard resultKind == .solid, !targets.isEmpty,
-                  Set(targets.map { $0.featureID }).count == targets.count,
-                  section.isFace || !targets.contains(where: { $0.featureID == section.featureID }) else {
+                  (try OriginalParameterQueryStorage.set((try OriginalParameterQueryStorage.map(targets, using: &execution) { value, execution in value.featureID }), using: &execution)).count == targets.count,
+                  try section.isFace || !(try OriginalParameterQueryStorage.contains(targets, using: &execution, predicate: { value, execution in value.featureID == section.featureID })) else {
                 throw FeatureEvaluationError.invalidGraph("Boolean revolve requires solid output and unique targets distinct from its section.")
             }
-            try targets.forEach { try $0.validate() }
+            for value in targets {
+                try execution.consumeWork(1)
+                try value.validate(using: &execution)
+            }
         }
+        try execution.checkpoint()
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
-        try validateSection()
-        try axis.validate(tolerance: tolerance)
-        try angle.validateLiteralQuantities()
-        try thickness?.validateLiteralQuantities()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try validateSection(using: &execution)
+        try axis.validate(tolerance: tolerance, using: &execution)
+        try angle.validateDocumentLiteralQuantities(using: &execution)
+        try thickness?.validateDocumentLiteralQuantities(using: &execution)
+        try execution.checkpoint()
     }
 }
 
@@ -124,9 +142,16 @@ public struct RevolveAxis: Hashable, Sendable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try tolerance.validate()
         try origin.validate()
         _ = try direction.normalized(tolerance: tolerance.distance)
+        try execution.checkpoint()
     }
 
     public func normalizedDirection(tolerance: ModelingTolerance) throws -> Vector3D {

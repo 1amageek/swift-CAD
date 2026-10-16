@@ -1,4 +1,6 @@
 import CADCore
+import CADTopology
+import CADGeometry
 
 public struct Mesh: Sendable, Hashable {
     /// The contiguous run of triangles one B-rep face generated.
@@ -59,6 +61,24 @@ public struct Mesh: Sendable, Hashable {
         return uses.values.allSatisfy { $0 == 2 }
     }
 
+    func validationIsClosedSurface(using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
+        guard indices.isEmpty == false else { return false }
+        var uses: [[UInt32]: Int] = [:]
+        for start in stride(from: 0, to: indices.count - indices.count % 3, by: 3) {
+            try execution.consumeWork(1)
+            for k in 0..<3 {
+                try execution.consumeWork(1)
+                let (a, b) = (indices[start + k], indices[start + (k + 1) % 3])
+                try execution.retainStorage(count: 2, stride: MemoryLayout<UInt32>.stride)
+                let key = [min(a, b), max(a, b)]
+                let count = uses[key, default: 0] + 1
+                try OriginalParameterQueryStorage.set(count, for: key, in: &uses, using: &execution)
+            }
+        }
+        return try OriginalParameterQueryStorage.allSatisfy(uses.values, using: &execution) { count, execution in count == 2 }
+    }
+
 #if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case positions
@@ -113,6 +133,12 @@ public struct Mesh: Sendable, Hashable {
 #endif
 
     public func validate(tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard !positions.isEmpty else {
             throw ExportError.emptyMesh
@@ -124,13 +150,16 @@ public struct Mesh: Sendable, Hashable {
             throw ExportError.invalidMesh("Mesh index count must be divisible by 3.")
         }
         for (positionIndex, position) in positions.enumerated() {
+            try execution.consumeWork(1)
             guard position.x.isFinite,
                   position.y.isFinite,
                   position.z.isFinite else {
                 throw ExportError.invalidMesh("Mesh position \(positionIndex) contains a non-finite coordinate.")
             }
         }
-        for index in indices where Int(index) >= positions.count {
+        for index in indices {
+            try execution.consumeWork(1)
+            if Int(index) < positions.count { continue }
             throw ExportError.invalidMesh("Mesh index \(index) is out of range.")
         }
         if !normals.isEmpty && normals.count != positions.count {
@@ -143,6 +172,7 @@ public struct Mesh: Sendable, Hashable {
             throw ExportError.invalidMesh("Mesh vertex color count must match position count.")
         }
         for (normalIndex, normal) in normals.enumerated() {
+            try execution.consumeWork(1)
             guard normal.x.isFinite,
                   normal.y.isFinite,
                   normal.z.isFinite else {
@@ -155,6 +185,7 @@ public struct Mesh: Sendable, Hashable {
             }
         }
         for (textureCoordinateIndex, textureCoordinate) in textureCoordinates.enumerated() {
+            try execution.consumeWork(1)
             guard textureCoordinate.x.isFinite,
                   textureCoordinate.y.isFinite else {
                 throw ExportError.invalidMesh(
@@ -163,6 +194,7 @@ public struct Mesh: Sendable, Hashable {
             }
         }
         for (vertexColorIndex, vertexColor) in vertexColors.enumerated() {
+            try execution.consumeWork(1)
             do {
                 try vertexColor.validate()
             } catch {
@@ -172,12 +204,13 @@ public struct Mesh: Sendable, Hashable {
         var referencedPositions = Set<Int>()
         var triangleIndex = 0
         while triangleIndex < indices.count {
+            try execution.consumeWork(1)
             let firstIndex = Int(indices[triangleIndex])
             let secondIndex = Int(indices[triangleIndex + 1])
             let thirdIndex = Int(indices[triangleIndex + 2])
-            referencedPositions.insert(firstIndex)
-            referencedPositions.insert(secondIndex)
-            referencedPositions.insert(thirdIndex)
+            try OriginalParameterQueryStorage.insert(firstIndex, in: &referencedPositions, using: &execution)
+            try OriginalParameterQueryStorage.insert(secondIndex, in: &referencedPositions, using: &execution)
+            try OriginalParameterQueryStorage.insert(thirdIndex, in: &referencedPositions, using: &execution)
             guard firstIndex != secondIndex,
                   secondIndex != thirdIndex,
                   firstIndex != thirdIndex else {
@@ -196,7 +229,9 @@ public struct Mesh: Sendable, Hashable {
             }
             if !normals.isEmpty {
                 let faceNormal = areaVector / areaVectorLength
+                try execution.retainStorage(count: 3, stride: MemoryLayout<Int>.stride)
                 for normalIndex in [firstIndex, secondIndex, thirdIndex] {
+                    try execution.consumeWork(1)
                     guard normals[normalIndex].dot(faceNormal) > tolerance.angle else {
                         throw ExportError.invalidMesh(
                             "Mesh normal \(normalIndex) does not agree with triangle \(triangleIndex / 3) winding."
@@ -206,10 +241,10 @@ public struct Mesh: Sendable, Hashable {
             }
             triangleIndex += 3
         }
-        if let unreferencedPosition = positions.indices.first(where: { !referencedPositions.contains($0) }) {
+        if let unreferencedPosition = try OriginalParameterQueryStorage.first(positions.indices, using: &execution, predicate: { index, execution in !referencedPositions.contains(index) }) {
             throw ExportError.invalidMesh("Mesh position \(unreferencedPosition) is not referenced by any triangle.")
         }
-        try validateFaceRuns()
+        try validateFaceRuns(using: &execution)
     }
 
     /// Checks that recorded face provenance partitions the triangles exactly.
@@ -218,14 +253,17 @@ public struct Mesh: Sendable, Hashable {
     /// truthful state of a mesh that was not tessellated from a B-rep. A mesh
     /// that records any run must partition every triangle, because a partial
     /// partition would let a consumer resolve a triangle to the wrong face.
-    private func validateFaceRuns() throws {
+    private func validateFaceRuns(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         guard !faceRuns.isEmpty else {
             return
         }
         var coveredTriangles = 0
         var recordedFaceIDs = Set<FaceID>()
+        try execution.retainStorage(count: faceRuns.count, stride: MemoryLayout<FaceID>.stride)
         recordedFaceIDs.reserveCapacity(faceRuns.count)
         for (runIndex, run) in faceRuns.enumerated() {
+            try execution.consumeWork(1)
             guard run.triangleCount > 0 else {
                 throw ExportError.invalidMesh("Mesh face run \(runIndex) records no triangle.")
             }

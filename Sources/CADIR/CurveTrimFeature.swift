@@ -14,12 +14,20 @@ public struct CurveTrimFeature: Hashable, Sendable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
-        try tolerance.validate()
-        try source.validate()
-        try domain.validate(tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try execution.consumeWork(1); try tolerance.validate()
+        try source.validate(using: &execution)
+        try execution.consumeWork(1); try domain.validate(tolerance: tolerance)
         guard case .closed = domain else {
             throw FeatureEvaluationError.invalidGraph("Curve trim features require a finite closed parameter domain.")
         }
+
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)

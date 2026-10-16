@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 /// A clamped, non-rational B-spline in the sketch plane.
 ///
@@ -85,6 +86,12 @@ public struct SketchSpline: Sendable, Hashable {
     /// vector that is finite, non-decreasing, clamped, of positive domain and interior
     /// multiplicity at most `degree`.
     public func validateForm() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validateForm(using: &execution)
+    }
+
+    public func validateForm(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         guard (1...Self.maximumDegree).contains(degree) else {
             throw SketchError.unsupportedEntity(
                 "Sketch spline degree must be between 1 and \(Self.maximumDegree)."
@@ -105,7 +112,13 @@ public struct SketchSpline: Sendable, Hashable {
         guard knots.count == count + degree + 1 else {
             throw SketchError.unsupportedEntity("A sketch spline's knot vector needs control points + degree + 1 values.")
         }
-        guard knots.allSatisfy({ $0.isFinite }), zip(knots, knots.dropFirst()).allSatisfy({ $0 <= $1 }) else {
+        guard try knots.allSatisfy({ knot in
+            try execution.consumeWork(1)
+            return knot.isFinite
+        }), try zip(knots, knots.dropFirst()).allSatisfy({ pair in
+            try execution.consumeWork(1)
+            return pair.0 <= pair.1
+        }) else {
             throw SketchError.unsupportedEntity("A sketch spline's knots must be finite and non-decreasing.")
         }
         let first = knots[0], last = knots[knots.count - 1]
@@ -120,6 +133,7 @@ public struct SketchSpline: Sendable, Hashable {
         var run = 0
         var previous: Double?
         for knot in interior {
+            try execution.consumeWork(1)
             run = knot == previous ? run + 1 : 1
             previous = knot
             guard run <= degree else {

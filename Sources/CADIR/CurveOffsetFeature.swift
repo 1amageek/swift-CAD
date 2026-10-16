@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 public struct CurveOffsetFeature: Hashable, Sendable {
     public var source: CurveOutputReference
@@ -19,10 +20,18 @@ public struct CurveOffsetFeature: Hashable, Sendable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
-        try tolerance.validate()
-        try source.validate()
-        try distance.validateLiteralQuantities()
-        try planeNormal.validateUnitLength(tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try execution.consumeWork(1); try tolerance.validate()
+        try source.validate(using: &execution)
+        try distance.validateDocumentLiteralQuantities(using: &execution)
+        try execution.consumeWork(1); try planeNormal.validateUnitLength(tolerance: tolerance)
+
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)

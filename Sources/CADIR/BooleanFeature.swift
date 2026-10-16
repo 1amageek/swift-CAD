@@ -1,5 +1,6 @@
 import CADCore
 import CADGeometry
+import CADTopology
 
 /// Combines target bodies with tool bodies, solids or sheets. The tools act together as one
 /// region, their union; the result lives in the frame of the operands without a placement.
@@ -51,27 +52,37 @@ public struct BooleanFeature: Hashable, Sendable {
     }
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         guard targets.isEmpty == false else {
             throw FeatureEvaluationError.invalidGraph("Boolean features require at least one target body.")
         }
         guard tools.isEmpty == false else {
             throw FeatureEvaluationError.invalidGraph("Boolean features require at least one tool body.")
         }
-        let targetFeatureIDs = targets.map { $0.featureID }
-        guard Set(targetFeatureIDs).count == targetFeatureIDs.count else {
+        let targetFeatureIDs = try OriginalParameterQueryStorage.map(targets, using: &execution) { value, _ in value.featureID }
+        guard (try OriginalParameterQueryStorage.set(targetFeatureIDs, using: &execution)).count == targetFeatureIDs.count else {
             throw FeatureEvaluationError.invalidGraph("Boolean target references must be unique.")
         }
-        let toolFeatureIDs = tools.map { $0.featureID }
-        guard Set(toolFeatureIDs).count == toolFeatureIDs.count else {
+        let toolFeatureIDs = try OriginalParameterQueryStorage.map(tools, using: &execution) { value, _ in value.featureID }
+        guard (try OriginalParameterQueryStorage.set(toolFeatureIDs, using: &execution)).count == toolFeatureIDs.count else {
             throw FeatureEvaluationError.invalidGraph("Boolean tool references must be unique.")
         }
-        guard Set(targetFeatureIDs).isDisjoint(with: toolFeatureIDs) else {
+        let targetIdentities = try OriginalParameterQueryStorage.set(targetFeatureIDs, using: &execution)
+        guard try OriginalParameterQueryStorage.allSatisfy(toolFeatureIDs, using: &execution,
+            predicate: { value, _ in !targetIdentities.contains(value) }) else {
             throw FeatureEvaluationError.invalidGraph("Boolean tool must be distinct from every target.")
         }
         // A Region Boolean divides space by faces alone, so no operand has a material.
         guard operation != .region || (targetMaterial == .default && toolMaterial == .default) else {
             throw FeatureEvaluationError.invalidGraph("A Region Boolean takes no operand material.")
         }
+
+        try execution.checkpoint()
     }
 }
 
@@ -133,7 +144,15 @@ public struct BooleanTargetReference: Hashable, Sendable {
         self.placement = placement
     }
 
-    public func validate() throws {}
+    public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try execution.checkpoint()
+    }
 }
 
 public struct BooleanToolReference: Hashable, Sendable {
@@ -147,7 +166,15 @@ public struct BooleanToolReference: Hashable, Sendable {
         self.placement = placement
     }
 
-    public func validate() throws {}
+    public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try execution.checkpoint()
+    }
 }
 
 /// How a Boolean takes an operand's material.

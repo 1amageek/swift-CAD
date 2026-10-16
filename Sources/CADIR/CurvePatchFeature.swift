@@ -1,4 +1,6 @@
 import CADCore
+import CADGeometry
+import CADTopology
 
 /// Patch from closed curves: a sheet spanning curves (sketch curves or edges of bodies through their
 /// edge curves) that join end to end into one closed loop, or one closed curve.
@@ -33,12 +35,30 @@ public struct CurvePatchFeature: Hashable, Sendable {
 #endif
 
     public func validate() throws {
-        guard curves.isEmpty == false, Set(curves.map { $0.featureID }).count == curves.count else {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        guard curves.isEmpty == false, (try OriginalParameterQueryStorage.set(try OriginalParameterQueryStorage.map(curves, using: &execution) { value, _ in value.featureID }, using: &execution)).count == curves.count else {
             throw FeatureEvaluationError.invalidGraph("A curve patch spans one or more distinct curves.")
         }
         for curve in curves {
-            try curve.validate()
+            try execution.consumeWork(1)
+            try curve.validate(using: &execution)
         }
+
+        try execution.checkpoint()
+    }
+
+    func validationInputs(using execution: inout OriginalQueryExecution) throws -> [FeatureInput] {
+        try execution.consumeWork(1)
+        let result = try OriginalParameterQueryStorage.map(curves, using: &execution) { value, _ in
+            FeatureInput(featureID: value.featureID, role: .curve)
+        }
+        try execution.checkpoint()
+        return result
     }
 
     /// The features the patch consumes: its curves.

@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 /// Delete Redundant Topology on a solid or a sheet: faces on one surface merge across the edges
 /// between them and edges on one curve across the vertices between them, the shape unchanged.
@@ -10,7 +11,14 @@ public struct RemoveRedundantTopologyFeature: Hashable, Sendable {
     }
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try target.validate()
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)

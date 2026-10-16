@@ -45,6 +45,11 @@ public struct CurveSpanGeometrySignature: Hashable, Sendable {
         }
     }
 
+    func chargeStructuralComparison(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(9)
+        try GeometryStructuralComparisonWork.charge(curve: curve, using: &execution)
+    }
+
 #if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey, CaseIterable {
         case curve

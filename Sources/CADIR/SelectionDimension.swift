@@ -8,6 +8,7 @@ import WASILibc
 #error("CADIR numeric algorithms require the target C math module.")
 #endif
 import CADCore
+import CADGeometry
 
 public struct SelectionDimension: Sendable, Hashable {
     public var id: SelectionDimensionID
@@ -48,10 +49,20 @@ public struct SelectionDimension: Sendable, Hashable {
         parameters: ParameterTable = ParameterTable(),
         tolerance: ModelingTolerance
     ) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(parameters: parameters, tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(
+        parameters: ParameterTable = ParameterTable(),
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try tolerance.validate()
-        try first.validate()
-        try second.validate()
-        let quantity = try parameters.resolvedValue(for: target)
+        try first.validate(using: &execution)
+        try second.validate(using: &execution)
+        let quantity = try parameters.resolvedValue(for: target, using: &execution)
         guard quantity.kind == kind.quantityKind else {
             throw UnitError.expectedQuantity(
                 operation: "selection.dimension.target",

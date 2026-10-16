@@ -1,5 +1,7 @@
 import HashTreeCollections
 import CADCore
+import CADGeometry
+import CADTopology
 
 public struct DocumentFoundation: Hashable, Sendable {
     public private(set) var attributes: [DocumentAttribute]
@@ -38,40 +40,74 @@ public struct DocumentFoundation: Hashable, Sendable {
     }
 
     public func validate(in document: CADDocument) throws {
-        let index = try attributeIndex()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(in: document, using: &execution)
+    }
+
+    public func validate(in document: CADDocument, using execution: inout OriginalQueryExecution) throws {
+        let index = try attributeIndex(using: &execution)
         var names: [DocumentObjectReference: Set<String>] = [:]
         for attribute in attributes {
-            try CurrentTaskCancellationChecker().checkCancellation()
+            try execution.consumeWork(1)
             guard attribute.owner.documentID == document.id else { throw DocumentFoundationError.foreignOwner(attribute.owner) }
-            if !names[attribute.owner, default: []].insert(attribute.name).inserted {
+            for _ in attribute.name.utf8 { try execution.consumeWork(1) }
+            var ownerNames = names[attribute.owner, default: []]
+            if !ownerNames.isEmpty {
+                try execution.retainStorage(count: ownerNames.count, stride: MemoryLayout<String>.stride)
+            }
+            let insertedName = try OriginalParameterQueryStorage.insert(attribute.name, in: &ownerNames, using: &execution)
+            try OriginalParameterQueryStorage.set(ownerNames, for: attribute.owner, in: &names, using: &execution)
+            if !insertedName {
                 throw DocumentFoundationError.duplicateName(attribute.name, owner: attribute.owner)
             }
             try validateLocal(attribute.owner, in: document, attributes: index)
-            for reference in attribute.value.objectReferences {
-                try CurrentTaskCancellationChecker().checkCancellation()
+            switch attribute.value {
+            case .reference(let reference):
+                try execution.consumeWork(1)
                 try validateLocal(reference, in: document, attributes: index)
+            case .references(let references):
+                for reference in references {
+                    try execution.consumeWork(1)
+                    try validateLocal(reference, in: document, attributes: index)
+                }
+            default: break
             }
         }
         var complete = Set<DocumentAttributeID>()
-        for attribute in attributes where !complete.contains(attribute.id) {
+        for attribute in attributes {
+            try execution.consumeWork(1)
+            if complete.contains(attribute.id) { continue }
             var path = Set<DocumentAttributeID>()
             var current: DocumentAttributeID? = attribute.id
             while let id = current, !complete.contains(id) {
-                try CurrentTaskCancellationChecker().checkCancellation()
-                guard path.insert(id).inserted else { throw DocumentFoundationError.ownershipCycle(id) }
+                try execution.consumeWork(1)
+                try execution.admitSourceDepth(path.count + 1)
+                guard try OriginalParameterQueryStorage.insert(id, in: &path, using: &execution) else { throw DocumentFoundationError.ownershipCycle(id) }
                 guard let owner = index[id]?.owner else { throw DocumentFoundationError.missingAttribute(id) }
                 if case .attribute(let parent) = owner.target { current = parent } else { current = nil }
             }
-            complete.formUnion(path)
+            for id in path {
+                try execution.consumeWork(1)
+                if !complete.contains(id) {
+                    try OriginalParameterQueryStorage.insert(id, in: &complete, using: &execution)
+                }
+            }
         }
     }
 
     private func attributeIndex() throws -> [DocumentAttributeID: DocumentAttribute] {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try attributeIndex(using: &execution)
+    }
+
+    private func attributeIndex(using execution: inout OriginalQueryExecution) throws -> [DocumentAttributeID: DocumentAttribute] {
         var index: [DocumentAttributeID: DocumentAttribute] = [:]
         for attribute in attributes {
-            try CurrentTaskCancellationChecker().checkCancellation()
-            try attribute.validate()
-            guard index.updateValue(attribute, forKey: attribute.id) == nil else { throw DocumentFoundationError.duplicateAttribute(attribute.id) }
+            try execution.consumeWork(1)
+            try attribute.validate(using: &execution)
+            let previousAttribute = index[attribute.id]
+            try OriginalParameterQueryStorage.set(attribute, for: attribute.id, in: &index, using: &execution)
+            guard previousAttribute == nil else { throw DocumentFoundationError.duplicateAttribute(attribute.id) }
         }
         return index
     }

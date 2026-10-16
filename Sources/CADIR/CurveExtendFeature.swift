@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 public struct CurveExtendFeature: Hashable, Sendable {
     public let source: CurveOutputReference
@@ -16,8 +17,16 @@ public struct CurveExtendFeature: Hashable, Sendable {
     }
 
     public func validate() throws {
-        try source.validate()
-        try distance.validateLiteralQuantities()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try source.validate(using: &execution)
+        try distance.validateDocumentLiteralQuantities(using: &execution)
+
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)

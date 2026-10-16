@@ -27,6 +27,12 @@ public struct ProfileReference: Hashable, Sendable {
 #endif
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         guard profileIndex >= 0 else {
             throw FeatureEvaluationError.invalidGraph("Profile index must not be negative.")
         }

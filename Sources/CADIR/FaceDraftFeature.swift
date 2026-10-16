@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 import CADTopology
 
 /// Draft Face, isocline: faces of one solid turned about where they cross the neutral plane (the
@@ -37,24 +38,36 @@ public struct FaceDraftFeature: Hashable, Sendable {
     }
 
     public func validate() throws {
-        try target.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try target.validate(using: &execution)
         guard faces.isEmpty == false else {
             throw FeatureEvaluationError.invalidGraph("Face Draft requires at least one face target.")
         }
         var seen = Set<StableSubshapeReference>()
         for face in faces {
-            try face.validate()
-            guard seen.insert(face).inserted else {
+            try execution.consumeWork(1)
+            try face.validate(using: &execution)
+            try face.chargeStructuralComparison(using: &execution)
+            guard (try OriginalParameterQueryStorage.insert(face, in: &seen, using: &execution)) else {
                 throw FeatureEvaluationError.invalidGraph("Face Draft targets must be unique.")
             }
         }
-        try neutralFace.validate()
+        try neutralFace.validate(using: &execution)
+        try neutralFace.chargeStructuralComparison(using: &execution)
+        try execution.consumeWork(1)
         guard seen.contains(neutralFace) == false else {
             throw FeatureEvaluationError.invalidGraph("Face Draft neutral face must be distinct from target faces.")
         }
-        try angle.validateLiteralQuantities()
-        try neutralOffset?.validateLiteralQuantities()
-        try method.validate()
+        try angle.validateDocumentLiteralQuantities(using: &execution)
+        try neutralOffset?.validateDocumentLiteralQuantities(using: &execution)
+        try method.validate(using: &execution)
+
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)
@@ -119,8 +132,15 @@ public enum FaceDraftMethod: Hashable, Sendable {
     case normal
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         switch self {
         case .isocline, .normal:
+            try execution.checkpoint()
             return
         case let .curve(pivots):
             guard pivots.isEmpty == false else {
@@ -128,14 +148,18 @@ public enum FaceDraftMethod: Hashable, Sendable {
             }
             var seen = Set<StableSubshapeReference>()
             for pivot in pivots {
-                try pivot.validate()
-                guard seen.insert(pivot).inserted else {
+                try execution.consumeWork(1)
+                try pivot.validate(using: &execution)
+                try pivot.chargeStructuralComparison(using: &execution)
+                guard (try OriginalParameterQueryStorage.insert(pivot, in: &seen, using: &execution)) else {
                     throw FeatureEvaluationError.invalidGraph("A curve draft's pivot edges must be unique.")
                 }
             }
         case let .surface(reference):
-            try reference.validate()
+            try reference.validate(using: &execution)
         }
+
+        try execution.checkpoint()
     }
 }
 
@@ -146,7 +170,15 @@ public struct FaceDraftTargetReference: Hashable, Sendable {
         self.featureID = featureID
     }
 
-    public func validate() throws {}
+    public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try execution.checkpoint()
+    }
 
 #if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {

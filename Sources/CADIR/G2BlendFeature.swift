@@ -1,4 +1,6 @@
 import CADCore
+import CADGeometry
+import CADTopology
 
 public struct G2BlendFeature: Hashable, Sendable {
     public let target: G2BlendTargetReference
@@ -16,9 +18,21 @@ public struct G2BlendFeature: Hashable, Sendable {
     }
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        func uniqueEdgeCount() throws -> Int {
+            for reference in edges {
+                try reference.chargeStructuralComparison(using: &execution)
+            }
+            return try OriginalParameterQueryStorage.set(edges, using: &execution).count
+        }
         try target.validate()
         guard edges.isEmpty == false,
-              Set(edges).count == edges.count else {
+              (try uniqueEdgeCount()) == edges.count else {
             throw KernelError(
                 phase: .validation,
                 code: .invalidInput,
@@ -27,9 +41,12 @@ public struct G2BlendFeature: Hashable, Sendable {
             )
         }
         for edge in edges {
-            try edge.validate()
+            try execution.consumeWork(1)
+            try edge.validate(using: &execution)
         }
-        try distance.validateLiteralQuantities()
+        try distance.validateDocumentLiteralQuantities(using: &execution)
+
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)

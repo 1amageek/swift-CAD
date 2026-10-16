@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 /// Bridge Surface: a blend between two sheets set back by `width` from where they meet — on their
 /// extensions when they do not — shaped as a curvature-continuous (G2) quintic or a straight
@@ -156,21 +157,28 @@ public struct SheetBridgeFeature: Hashable, Sendable {
 #endif
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         guard first != second else {
             throw FeatureEvaluationError.invalidGraph("A Bridge Surface joins two different sheets.")
         }
         guard tension.isFinite, tension > 0, tension <= 1.5 else {
             throw FeatureEvaluationError.invalidGraph("A Bridge Surface's tension lies in (0, 1.5].")
         }
-        try width.validateLiteralQuantities()
+        try width.validateDocumentLiteralQuantities(using: &execution)
         if let angularAllowance, !(angularAllowance.isFinite && angularAllowance > 0 && angularAllowance < Double.pi / 2) {
             throw FeatureEvaluationError.invalidGraph("A Bridge Surface's angle allowance lies strictly between 0 and a right angle.")
         }
         if let curvatureAllowance, !(curvatureAllowance.isFinite && curvatureAllowance > 0) {
             throw FeatureEvaluationError.invalidGraph("A Bridge Surface's curvature allowance is positive.")
         }
-        try edges?.first.validate()
-        try edges?.second.validate()
+        try edges?.first.validate(using: &execution)
+        try edges?.second.validate(using: &execution)
+        try execution.checkpoint()
     }
 
     /// The features the bridge consumes: its two sheets.

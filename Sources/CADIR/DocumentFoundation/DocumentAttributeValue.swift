@@ -2,6 +2,7 @@
 import Foundation
 #endif
 import CADCore
+import CADGeometry
 
 public enum DocumentAttributeValue: Hashable, Sendable {
     case boolean(Bool)
@@ -74,21 +75,27 @@ public enum DocumentAttributeValue: Hashable, Sendable {
     #endif
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         switch self {
         case .real(let value):
             guard value.isFinite else { throw DocumentFoundationError.invalidValue("Real attribute must be finite.") }
         case .reals(let values):
             for value in values {
-                try CurrentTaskCancellationChecker().checkCancellation()
+                try execution.consumeWork(1)
                 guard value.isFinite else { throw DocumentFoundationError.invalidValue("Every real array element must be finite.") }
             }
         case .quantity(let quantity):
             guard quantity.value.isFinite else { throw DocumentFoundationError.invalidValue("Quantity attribute must be finite.") }
-        case .subshapeReference(let reference): try reference.validate()
+        case .subshapeReference(let reference): try reference.validate(using: &execution)
         case .subshapeReferences(let references):
             for reference in references {
-                try CurrentTaskCancellationChecker().checkCancellation()
-                try reference.validate()
+                try execution.consumeWork(1)
+                try reference.validate(using: &execution)
             }
         default: break
         }

@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 /// A planar face of a body or sheet taken as a section: its loops, read where the face is when the
 /// feature is evaluated, bound the region the section stands for, and its outward normal is the
@@ -17,7 +18,13 @@ public struct FaceSectionReference: Hashable, Sendable {
     }
 
     public func validate() throws {
-        try face.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try face.validate(using: &execution)
         guard bodyRole == .body || bodyRole == .sheet else {
             throw FeatureEvaluationError.invalidGraph("A face section's owner publishes a body or a sheet.")
         }

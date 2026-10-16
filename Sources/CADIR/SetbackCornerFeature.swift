@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 public struct SetbackCornerFeature: Hashable, Sendable {
     public let target: SetbackCornerTargetReference
@@ -16,9 +17,15 @@ public struct SetbackCornerFeature: Hashable, Sendable {
     }
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try target.validate()
-        try vertex.validate()
-        try radius.validateLiteralQuantities()
+        try vertex.validate(using: &execution)
+        try radius.validateDocumentLiteralQuantities(using: &execution)
         guard case .vertex = vertex.geometrySignature else {
             throw KernelError(
                 phase: .validation,
@@ -28,6 +35,7 @@ public struct SetbackCornerFeature: Hashable, Sendable {
                 message: "Setback corner requires a stable vertex selection."
             )
         }
+        try execution.checkpoint()
     }
 
 #if !hasFeature(Embedded)
