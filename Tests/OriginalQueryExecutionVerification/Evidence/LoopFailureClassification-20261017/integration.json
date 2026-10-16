@@ -1,0 +1,30 @@
+{
+  "status": "passed",
+  "sourceCommit": "bcf10a314dcb1b2784789eb07bd25b1da77fb1a0",
+  "mainSourceRoot": "/Users/1amageek/Desktop/3D/swift-CAD",
+  "sourceParityCount": 3927,
+  "sourceScope": {
+    "CADKernel": {
+      "Sources/CADKernel/FiniteFaceContainment/DefaultFacePointContainmentTester.swift": "7a5ddae98fdf08240646420a775cf66e9248dd6caee52b0e1cf51df09339a273",
+      "Sources/CADKernel/FiniteFaceContainment/FacePointContainmentTesting.swift": "9edcf3b2740dfe895213a0e244700756dd3c0b108fd6c732f1e9fc51e703ecb9",
+      "Sources/CADKernel/FiniteFaceContainment/FacePointContainmentPreparationCache.swift": "a84a091a75a49252999be63b3edd60ee4a289d7b89e0dce0802d49dbef8a656f",
+      "Sources/CADKernel/PreparedBooleanOperation/PreparedBooleanQueryLifetime.swift": "85b21396bd8214ab18865b89656ca833d98a556456b3ffaedd85fb82eea63e24",
+      "Sources/CADKernel/OriginalBRepBounds/OriginalFaceParameterBounds.swift": "15f6e1e8b382203823afafaf23b07d5482acea5cf71532c7e53b905dbe06b21b",
+      "Sources/CADKernel/OriginalGeometryQuery/OriginalQueryExecution+Kernel.swift": "3eefe74bebf926f6271411241d1df19f7cea226ac20f1f239917889de7967e8b"
+    },
+    "CADModeling": {
+      "Sources/CADModeling/ExactFacePcurve/ExactFacePcurveBuilder.swift": "734166a982b9ecdaa5ec001ff95ea50e2fa25bae4bd5c3768b47b85258193d34"
+    }
+  },
+  "productionModulesGenerated": 0,
+  "actualPublicOracles": [
+    "PASS authoredRectanglePreparesAndClassifiesItsOriginalUV",
+    "PASS lowerLoopWorkRefusalPreservesItsOriginalClassificationAndContext",
+    "PASS lowerLoopCallerCancellationKeepsItsCause"
+  ],
+  "freshClientCompileLinkSeconds": 1.1613249170040945,
+  "freshRuntimeSeconds": 0.9314270419999957,
+  "rawIntegrationReceiptSHA256": "6bcab777d481636030efc83ec1be651348211dcbb4b6b6d91ba6a016d0c64e6e",
+  "review": "review.json",
+  "scope": "Finite U1.ERROR.LOOPCLASS caller delivery; whole ERROR/U1-U4 and seven1/7 unchanged."
+}

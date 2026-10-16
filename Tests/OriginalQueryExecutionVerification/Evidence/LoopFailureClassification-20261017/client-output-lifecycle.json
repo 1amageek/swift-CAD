@@ -1,0 +1,9 @@
+{
+  "status": "completed-client-executables-deleted-after-evidence-archival",
+  "removedExecutables": 9,
+  "removedAllocatedBytes": 1135751168,
+  "preservedCompilerPhaseAndMetadataFileCount": 269,
+  "additiveRetentionManifestSHA256": "bd8f911df84acb5f7d934921d7b2faeb6d5c92b63b5185688c90688343927619",
+  "finalObservedFreeGiB": 98,
+  "finalVerificationArtifactGiB": 6.7
+}

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "four-target-behavior-passed",
+  "status": "reviewed-main-integrated",
   "scope": "U1.ERROR.LOOPCLASS finite actual prepared face caller; whole U1/U1-U4 and seven requirements incomplete",
   "sourceRoot": "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD",
   "accepted": {
@@ -237,6 +237,22 @@
       "sha256": "1ebbd435c54dbbce098c5dfe1c0672f0d4a538112bd0a939386f3cab55fcf814",
       "bytes": 245
     },
+    "Raw/main-delivery/client-link.log.gz": {
+      "sha256": "5dbcb2a88a6ab9fc22c1e6a76d0dd9ba032daed9030f9b99782191a5698ae274",
+      "bytes": 308
+    },
+    "Raw/main-delivery/integration.json.gz": {
+      "sha256": "e72e7b97f81c96032467d86d58b83112cda25a2fe78fadccbd24727f4cae3112",
+      "bytes": 435032
+    },
+    "Raw/main-delivery/runtime.log.gz": {
+      "sha256": "7ff8286d03044ec164a59c717727c171dfa2099b9c96a861b1a7dde7e5d6578b",
+      "bytes": 137
+    },
+    "Runner/main-integration.py.gz": {
+      "sha256": "a5028fa813f08ab984657428f761f83a1ff42f402026d12aa571f3315ee19c2c",
+      "bytes": 1881
+    },
     "Runner/run.py.gz": {
       "sha256": "64c4cc082bc053b2e215dd231d53f40a183bb7995a093bce5351aedde17fdbff",
       "bytes": 5086
@@ -278,8 +294,16 @@
       "bytes": 2665
     },
     "VERIFICATION.md": {
-      "sha256": "b7e7d3292c9567c140c2f38ee661dcab5d67d552e011abfe582f3b5f2143b124",
-      "bytes": 6015
+      "sha256": "7130e26caf3cf37c57ade81136ca7a676c93dea1817b4b7951693eae910e46dc",
+      "bytes": 6659
+    },
+    "client-output-lifecycle.json": {
+      "sha256": "b92d0591e9daaa8e028d7660f6e6b1b746791947d700322d628dcf24d3859cbe",
+      "bytes": 372
+    },
+    "integration.json": {
+      "sha256": "f2db3fb8aa4b36a78fe69b0cce6494af3b315352fd3b8ace20e785e0cc76f970",
+      "bytes": 1904
     },
     "review.json": {
       "sha256": "645602083b997100148343167654e1236b3abe1188f1eddcb2b696d3d3cf2d55",
@@ -293,5 +317,10 @@
   "review": {
     "path": "review.json",
     "status": "closed-no-blockers"
-  }
+  },
+  "integration": {
+    "path": "integration.json",
+    "sourceCommit": "bcf10a314dcb1b2784789eb07bd25b1da77fb1a0"
+  },
+  "clientOutputLifecycle": "client-output-lifecycle.json"
 }
