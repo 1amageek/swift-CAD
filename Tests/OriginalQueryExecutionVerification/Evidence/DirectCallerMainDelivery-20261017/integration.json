@@ -164,6 +164,13 @@
       "bytes": 1425,
       "rawSHA256": "d399eb277e25741350df0a267c22d6dffe7a3d62677cb9292a2c8c7a98f98394",
       "rawBytes": 6039
+    },
+    "Cleanup/main-clients.json.gz": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/storage-main-clients-cleanup-20261017.json",
+      "sha256": "fe77cc6ab73ab2804c2ee140944c1cbf17e0622aa3973537aba462db75ae257d",
+      "bytes": 3662,
+      "rawSHA256": "cdf3709de26470b3ea808e24833521e3b48cbc35a6f1c454691da21f0724114f",
+      "rawBytes": 16204
     }
   },
   "pending": [
@@ -175,7 +182,9 @@
   "cleanup": {
     "allocatedBytesRemoved": 676876288,
     "sourceLogProductPinsUnchanged": true,
-    "executableReplay": "Retired only for explicitly deleted completed clients; current producer modules are retained."
+    "executableReplay": "Retired only for explicitly deleted completed clients; current producer modules are retained.",
+    "mainClientAllocatedBytesRemoved": 370405376,
+    "mainClientReplay": "Completed build and accepted duplicate copies retired after successful38-case Main execution; original six-module producer products/Collections/source/log/archive retained."
   },
-  "push": "Normal upstream push follows this metadata commit."
+  "push": "Four verified responsibility commits and delivery metadata pushed normally to origin/main through221df458; remote-tracking HEAD equality confirmed. Subsequent cleanup metadata has no production-code change."
 }
