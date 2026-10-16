@@ -1,0 +1,33 @@
+{
+  "sourceCommit": "157b78d6d18ea1a142a532fda2231ef9b0d8d83e",
+  "previousMain": "50100228e9b82b66cb5ad40786037705164de668",
+  "integration": "normal-fast-forward",
+  "mainRoot": "/Users/1amageek/Desktop/3D/swift-CAD",
+  "candidateRoot": "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD",
+  "sourceCount": 3924,
+  "newCompilation": false,
+  "finalEvidenceIndexSHA256": "d922a77f77ec8b5db1c2b73940a72f2d21c4ebd8f8d92d7513b047e14e944bfc",
+  "runtime": {
+    "passedFunctions": 3,
+    "elapsedSeconds": 1.6224536669906229,
+    "compilerCount": 0
+  },
+  "retainedRaw": {
+    "integration/main-integration-authority-r1/receipt.json.gz": {
+      "rawSHA256": "280ff788a60e63232db5e9256d35ed3bae8cc1882166ce5e43309dc2b679e152",
+      "gzipSHA256": "935070ece2e6f1e7e0067bfaebd9834c30d7c13680152843b29f07668624d79f"
+    },
+    "integration/main-integration-public-replay-r1/receipt.json.gz": {
+      "rawSHA256": "3af2521df91c4754789c4b3d300173ce696c0da79d81df89b6bc270df29f504c",
+      "gzipSHA256": "ee0c86094330937a083b76f57e9390d2f1516409f0c14b6ac85ab5ac0769f8f9"
+    },
+    "integration/main-integration-public-replay-r1/test-runtime.log.gz": {
+      "rawSHA256": "a1cde3326f77ccc04c3cc4bcc2584189f087a8c00fb9deb1a90c9c931fd118e2",
+      "gzipSHA256": "2ad842b145b28fe0ae4e67377471187654d053ea0ce1aa31d332889b47a17ae6"
+    }
+  },
+  "protected": {
+    "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/pending-public-publisher.patch": "97db4b01b16d6c5a66cdd0bfdfbeda4aa939389f12481b2e0ba8d10d873e8016",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADKernel/BRepDrawing/BRepDrawingSilhouetteProducer.swift": "3686efa109b77c4f33fd59e9b315a1fd751b35ee0608e5e3824ff85866d00f87"
+  }
+}

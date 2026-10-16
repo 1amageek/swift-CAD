@@ -117,3 +117,14 @@ Other analytic/procedural offset families, general source migration, full U1–U
 M4–M8, whole G01 and whole G01–G22 remain open. Whole requirements stay 1/7
 (requirement five only). iOS and visionOS SDK declarations are deployment
 configuration evidence; no device runtime execution is claimed here.
+
+## Main Integration
+
+Source commit `157b78d6` fast-forwards main from `50100228`. The existing runner
+verifies all 3,924 current Main sources and all six accepted module/object
+pairs before product-only reuse, with zero compilation. The same three real
+Kernel/document callers pass again in 1.622 seconds. Test origins remain the
+exact accepted Candidate paths; all four selected Main test files are byte
+identical. [integration.json](integration.json) binds raw authority, actual
+runtime and protected drafts. A metadata-only delivery commit records the
+completed integration without changing source or verification premises.

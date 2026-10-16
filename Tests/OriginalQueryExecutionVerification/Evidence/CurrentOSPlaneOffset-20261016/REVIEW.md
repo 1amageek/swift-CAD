@@ -34,5 +34,6 @@ prepared/one-shot endpoint regression remains open and its strict oracle is
 unchanged. Those observations are neither erased nor presented as passing tests.
 Full source-family coverage, U1–U4 and the whole intersection requirements remain
 outside this finite delivery. Final Native/ASAN/normal-WASM/Embedded runtime acceptance is now complete for
-this boundary. The main-integration gate must pass before its progress leaves
-are marked complete.
+this boundary. The main-integration gate passes exact source/product reuse and a fresh
+three-function actual public caller replay; raw evidence is in
+[integration.json](integration.json).
