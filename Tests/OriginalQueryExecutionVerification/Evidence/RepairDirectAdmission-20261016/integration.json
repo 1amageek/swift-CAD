@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "status": "passed",
+  "commit": "cf6532ed877ad0a3bff3d7ce0002256dad7bc1a2",
+  "sourceRoot": "/Users/1amageek/Desktop/3D/swift-CAD",
+  "testRoot": "/Users/1amageek/Desktop/3D/swift-CAD",
+  "sourceCount": 2380,
+  "moduleCounts": {
+    "CADCore": 67,
+    "CADGeometry": 2171,
+    "CADTopology": 142
+  },
+  "moduleCompilerInvocations": 0,
+  "clientBuild": "fresh Main fixture inputs; no old build resume",
+  "artifacts": {
+    "authority": "integration/main-topology-authority-r1/receipt.json.gz",
+    "runtime": "integration/main-public-replay-r1/receipt.json.gz",
+    "results": "integration/main-public-replay-r1/results.xml.gz"
+  },
+  "authoritySHA256": "e7acc01e8859ee9c66788b24932f3805c3fe8b900130da97548672024410c4d0",
+  "nativeProductOrigin": {
+    "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-repair-direct-20261016/native-final-r4/receipt.json",
+    "sha256": "9d3f0a71e5ebd9745a55a02bf11d6edf39f0bc944c5327715ea1a56d0c350c8b"
+  },
+  "runtimeReceiptSHA256": "5d24543e06782760e87de68bcc71bd73b8df391022157a2cb136efe260752349",
+  "selectedFunctions": [
+    "displacementRollbackRestoresCandidateLedgerAndSpentCharges",
+    "exactResourceBoundariesPreserveIndependentAxes",
+    "missingSpatialCurveReconstructsFromTheWholeIncidentPlaneChart",
+    "periodicRestorationRetainsTheExactPeriodTranslation",
+    "solidOrientationRestoresMaterialRoleAndPositiveVolume"
+  ],
+  "passedFunctions": 5,
+  "sourceFixtureProductPostflight": true,
+  "clientBuildSeconds": 14.716523125011008,
+  "runtimeSeconds": 1.6282885830005398,
+  "executable": {
+    "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-repair-direct-20261016/main-public-replay-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests",
+    "sha256": "44f6b1c427011bb8da0aa549e5718abe860aa1bcf79684cb22e9ffd4b98ed8cd"
+  },
+  "sourceAndProductMetadata": "Complete exact source maps, compiler/SDK/dependency/product hashes, test input copies and actual commands remain byte-preserved in the raw authority/runtime receipts.",
+  "evidenceIndexBeforeIntegrationSHA256": "e1ab21b02116b05a2511bf62a0973baca3d5e3bac5149669b2722352aa1e2e5f",
+  "previousNativePortableCountsUnchanged": true,
+  "actualMetrics": {
+    "exactWork": 26802,
+    "exactStorageBytes": 258348,
+    "rollbackControlWork": 31193,
+    "rollbackCandidateWork": 34334
+  },
+  "sourceUpstreamShipment": {
+    "confirmed": true,
+    "authority": "Root report: normal push and ls-remote origin refs/heads/main matched source commit; no additional network performed by verification owner.",
+    "commit": "cf6532ed877ad0a3bff3d7ce0002256dad7bc1a2"
+  }
+}

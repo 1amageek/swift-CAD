@@ -35,9 +35,13 @@ same-caller resource/cancellation/lifetime behavior, lower edge-length witnesses
 and actual displacement rollback with ledger restoration. The prior explicit
 nil-algebra refusal and independent coefficient-depth controls remain successful.
 
-Main integration, source commits and the final progress record are owned by Root
-and have separate replay evidence. This package does not itself claim main replay.
+Main integration is recorded in `integration.json`; source commits and the final
+progress record remain owned by Root. The main replay uses the exact committed source and retained products.
 
 The final ASAN and normal WASM scope is **21 unchanged + 3 targeted final controls = 24 unique oracles** per target. The final canonical shell-edge accessor, pruning accessor and strict rollback predicate each run against the same retained modules. Their raw original 24-line receipts remain unchanged; this supplement is not counted as 27 cases and is not a new all-24 aggregate run.
 
-Root accepted the review and finding closure after all final targeted runtimes passed. The one comprehensive review and one finding-limited confirmation are closed; earlier runtime-pending statements remain only in the verbatim historical review archives. The concrete fixture findings have final Native/portable behavior evidence. No additional review cycle is claimed. Main integration remains a separate later gate.
+Root accepted the review and finding closure after all final targeted runtimes passed. The one comprehensive review and one finding-limited confirmation are closed; earlier runtime-pending statements remain only in the verbatim historical review archives. The concrete fixture findings have final Native/portable behavior evidence. No additional review cycle is claimed. Main integration is now closed by the separately recorded public five-function replay.
+
+## Main Integration
+
+Main commit `cf6532ed877ad0a3bff3d7ce0002256dad7bc1a2` passed strict equality for all 2380 production inputs and the actual Core/Geometry/Topology products, with **zero module compiler invocations**. A fresh client built from the eight Main test files passed the five selected public functions: original constantU/V reconstruction, intrinsic periodic restoration, strict displacement rollback, positive solid orientation, and cumulative exact work/storage boundaries. Build 14.717 seconds; runtime 1.628 seconds. The prior Native composed 37 and each portable unique 24 counts are unchanged. Raw receipt, actual command/log and XML identities are retained under `integration/`.
