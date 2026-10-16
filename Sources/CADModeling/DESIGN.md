@@ -1818,12 +1818,62 @@ storage before allocation. The existing Natural and Shaped extension producer
 owns its numerical iterations, temporary buffers and failure semantics; full
 admission requires that actual producer to receive the same execution rather
 than a speculative outer charge or another interpreter. Table-wide parameter
-validation and dependency resolution remain the existing `resolve(_:)`
-responsibility; this finite Selection entry does not claim direct bounded
-resolution of an entire unresolved parameter table.
+validation and dependency resolution belong to the separate whole-table entry
+below; expression evaluation does not silently resolve a different table.
 
 [ParameterExpressionAdmissionTests](../../Tests/CADModelingTests/ParameterExpressionAdmissionTests.swift)
 owns arithmetic/trigonometry/hypot/reference/variable and both Bezier producer
 cases, original unit/domain errors, exact cumulative work and storage boundaries,
 independent value-depth refusal and cancellation before output. Selection owns
 composition of its X and Y reads with its already active caller execution.
+
+### Whole Parameter Table Resolution Admission
+
+`ParameterResolving.resolve(_:using:)` is an existential requirement. The actual
+`ParameterResolver` ordinary entry creates one independent execution and delegates
+to it; the direct entry never substitutes another resolver or creates a child
+budget. A legacy external provider without this capability checkpoints and throws
+the explicit typed unsupported-capability failure instead of calling its ordinary
+entry. Existing expression evaluation requirements and mathematical laws remain
+unchanged.
+
+```text
+ordinary resolve -> one execution -> direct table validation
+caller resolve --------------------> names -> every root DFS -> resolved table
+                                      same execution, scopes and final checkpoint
+```
+
+The original phase order is table validation, name-index construction, and every
+parameter root in the original Dictionary traversal order. The existing DFS memo,
+visiting-stack cycle, unknown reference, kind/unit/finite checks and thirteen-case
+expression interpreter retain their original order and values. Even an unreferenced
+root is resolved. The source table is borrowed through its immutable COW backing;
+the output names and memo dictionaries retain their own keys/values after the
+source and execution are released.
+
+Every names/root/DFS/visiting comparison visit pays caller work. Variable-length
+name-key lookups and insertions pay their UTF-8 traversal. Existing typed parameter
+storage helpers admit dictionary and visiting/cycle array growth before allocation;
+the resolved memo is the output values buffer and is not copied into a second
+unaccounted buffer. No hypothetical full-table precharge replaces the actual loops.
+Dependency traversal retains the existing threaded expression value depth,
+including each reference's original child-depth increment. Modeling adds no
+source-depth limit to this scalar DFS. The required IR table-validation call
+keeps its own authored-source ancestry contract on the same execution, separately
+from value, coefficient, geometric and transport limits.
+The ordinary policy and every active caller allocation/contribution policy remain
+the owners of work/storage limits. No fixed table-size or depth ceiling is invented.
+
+Cancellation is checked at entry, during paid validation/DFS/storage operations,
+and after the completed output value is assembled but before it is returned.
+Failures propagate with their original cause and restore caller scopes; partial
+tables are not published. Invalid key/name/reference/cycle/unit rejection order
+is inherited from the existing table validator before output construction.
+
+[WholeTableAdmissionChecks](../../Tests/CADModelingTests/WholeTableAdmissionChecks.swift)
+is shared by Native and the portable entry. It covers dependent and independent
+roots, original failure order/values, exact work/storage N and N−1, independent
+depths (including no additional Model source depth beyond IR validation), selected
+scopes, entry/interior/final cancellation, and retained output
+after COW source mutation/release. Source review or typechecking alone does not
+complete the Native/ASAN/ordinary-WASM/Embedded caller contract.

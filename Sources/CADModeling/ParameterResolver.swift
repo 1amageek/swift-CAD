@@ -6,29 +6,42 @@ import WASILibc
 import CADCore
 import CADIR
 import CADGeometry
+import CADTopology
 
 public struct ParameterResolver: ParameterResolving {
     public init() {}
 
     public func resolve(_ table: ParameterTable) throws -> ResolvedParameterTable {
-        try table.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try resolve(table, using: &execution)
+    }
+
+    public func resolve(_ table: ParameterTable,
+        using execution: inout OriginalQueryExecution) throws -> ResolvedParameterTable {
+        try execution.checkpoint()
+        try table.validate(using: &execution)
 
         var names: [String: ParameterID] = [:]
         for parameter in table.parameters.values {
+            try execution.consumeWork(1)
+            for _ in parameter.name.utf8 { try execution.consumeWork(1) }
             if names[parameter.name] != nil {
                 throw ParameterError.duplicateName(parameter.name)
             }
-            names[parameter.name] = parameter.id
+            for _ in parameter.name.utf8 { try execution.consumeWork(1) }
+            try OriginalParameterQueryStorage.set(parameter.id, for: parameter.name, in: &names, using: &execution)
         }
 
         var state = ResolutionState(table: table)
-        var execution = try OriginalQueryExecution.independentGeometry()
 
         for parameterID in table.parameters.keys {
+            try execution.consumeWork(1)
             _ = try state.resolve(parameterID, depth: 0, using: &execution)
         }
 
-        return ResolvedParameterTable(values: state.resolved, names: names)
+        let result = ResolvedParameterTable(values: state.resolved, names: names)
+        try execution.checkpoint()
+        return result
     }
 
     public func evaluate(
@@ -72,17 +85,23 @@ public struct ParameterResolver: ParameterResolving {
 
         mutating func resolve(_ parameterID: ParameterID, depth: Int,
             using execution: inout OriginalQueryExecution) throws -> Quantity {
+            try execution.consumeWork(1)
             if let value = resolved[parameterID] {
                 return value
             }
             guard let parameter = table.parameters[parameterID] else {
                 throw ParameterError.unknownReference(parameterID)
             }
-            if visiting.contains(parameterID) {
-                throw ParameterError.cycleDetected(visiting + [parameterID])
+            for visited in visiting {
+                try execution.consumeWork(1)
+                if visited == parameterID {
+                    var cycle = try OriginalParameterQueryStorage.materialize(visiting, using: &execution)
+                    try OriginalParameterQueryStorage.append(parameterID, to: &cycle, using: &execution)
+                    throw ParameterError.cycleDetected(cycle)
+                }
             }
 
-            visiting.append(parameterID)
+            try OriginalParameterQueryStorage.append(parameterID, to: &visiting, using: &execution)
             defer {
                 visiting.removeLast()
             }
@@ -90,7 +109,7 @@ public struct ParameterResolver: ParameterResolving {
             guard value.kind == parameter.kind else {
                 throw ParameterError.kindMismatch(parameterID: parameterID, expected: parameter.kind, actual: value.kind)
             }
-            resolved[parameterID] = value
+            try OriginalParameterQueryStorage.set(value, for: parameterID, in: &resolved, using: &execution)
             return value
         }
 
