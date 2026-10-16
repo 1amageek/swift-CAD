@@ -1,6 +1,7 @@
 import CADCore
 import CADGeometry
 import CADTopology
+import HashTreeCollections
 
 enum OriginalFaceParameterBounds {
     static func resolve(for faceID: FaceID, surface: Surface3D, model: BRepModel,

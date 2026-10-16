@@ -3,7 +3,16 @@ import CADGeometry
 import CADIR
 import CADModeling
 import CADTopology
-import Foundation
+import HashTreeCollections
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("Finite face containment requires the target C math module.")
+#endif
 
 public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
   FacePointContainmentSessionPreparing,
@@ -50,7 +59,7 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
   private func consume(_ depth: Int, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
     let maximumSubdivisionDepth = min(self.maximumSubdivisionDepth, execution.effectiveLimits.maximumSubdivisionDepth)
     let remainingSourceDepth = min(16, self.remainingSourceDepth, execution.effectiveLimits.remainingSourceDepth)
-    try Task.checkCancellation()
+    guard !Task<Never, Never>.isCancelled else { throw CancellationError() }
     guard maximumSubdivisionDepth >= 0, maximumSubdivisionDepth <= 48,
           remainingSourceDepth >= 0, (0...32).contains(maximumAlgebraicDepth) else {
       throw KernelError(phase: .classification, code: .invalidInput, tolerance: tolerance,

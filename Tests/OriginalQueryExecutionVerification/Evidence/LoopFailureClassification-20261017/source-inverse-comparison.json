@@ -1,0 +1,16 @@
+{
+  "changes": {
+    "Sources/CADKernel/FiniteFaceContainment/DefaultFacePointContainmentTester.swift": {
+      "beforeSHA256": "76492257f8f1d6b5b15ae8e2a3e47e8c396941b0c4a18ef5a08add0254cedcbe",
+      "afterSHA256": "7a5ddae98fdf08240646420a775cf66e9248dd6caee52b0e1cf51df09339a273",
+      "inverseByteEqual": true
+    },
+    "Sources/CADKernel/OriginalBRepBounds/OriginalFaceParameterBounds.swift": {
+      "beforeSHA256": "7745e7850628de9fb392af18c54b1350857476f3e27d2b3a7b3ced5466495e03",
+      "afterSHA256": "15f6e1e8b382203823afafaf23b07d5482acea5cf71532c7e53b905dbe06b21b",
+      "inverseByteEqual": true
+    }
+  },
+  "allInverseByteEqual": true,
+  "scope": "Two direct collection imports, target C-math import, same-position current-task cancellation guard only; formulas, callbacks, state, ownership, caller limits and all other source bytes preserved."
+}

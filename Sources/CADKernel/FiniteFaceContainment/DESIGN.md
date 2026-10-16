@@ -43,6 +43,15 @@ Bounded model-space containment retains the exact face's complete finite origina
 | Preparation cache | Synchronous caller-owned local dictionary | Exact face-ID lookup in one original snapshot | No shared concurrent mutation |
 
 ## Failure, Concurrency, and Constraints
+The target must provide its C math module through the same Darwin, Glibc or
+WASILibc import selection used by CADCore. The four `hypot` expressions share
+their unchanged implementation across targets; this import boundary introduces
+no numerical fallback or target-dependent containment algorithm.
+Persistent topology-map access imports its owning HashTreeCollections module
+directly. The pre-validation cancellation check reads the current Task's
+`isCancelled` flag and throws the original `CancellationError`, without invoking
+an additional caller checkpoint or changing its position before input guards.
+
 Missing source references, discontinuous original trim charts, unresolved original containment, invalid caller limits, exhausted producer work/depth and cancellation fail explicitly. Primitive constant-level periodic bands retain their existing contract. General nonconstant noncontractible bands remain a separate existing source gap; no ordinary bounded polygon result establishes their completeness. Original pcurve reconstruction and validation preparation must also forward caller admission before a whole-query budget guarantee.
 
 Loop preparation publishes lower failures through Geometry's existing original-query
@@ -62,8 +71,19 @@ the four existing outer visits selects the lower work boundary without injecting
 an error or relying on entry-zero refusal. The public code, retained original cause,
 resource axis and caller operation/entry/stage must agree. A caller-checkpoint
 cancellation at the same completed nonzero prefix must remain CancellationError.
-Production repair remains pending until the real resource fixture is observed red
-and the same boundary is observed green.
+The accepted [Native caller evidence](../../../Tests/OriginalQueryExecutionVerification/Evidence/U1CallerCompletion-20261016/direct-callers/VERIFICATION.md)
+records all three checks passing in the final 36-function gate, after the original
+lower-loop resource-classification failure was observed. Portable completion of
+this finite boundary additionally requires those same three oracles to execute
+the actual Kernel prepared-session implementation on ASAN, normal WASM and
+Embedded WASM. Reuse of lower-module products must verify their source and product
+receipts; lower Topology success does not substitute for Kernel execution. Each
+target retains the same protocol session witnesses, immutable preparation owner,
+caller work/storage/depth limits and Mutex-protected cancellation counter. This
+gate does not claim containment support for additional source families or whole
+Kernel portability.
+The [four-target caller evidence](../../../Tests/OriginalQueryExecutionVerification/Evidence/LoopFailureClassification-20261017/VERIFICATION.md)
+binds the final source to these three actual Kernel oracles and the scoped review.
 
 After source work, verify original-image trims, holes, periodic chart representatives, singular closed boundaries and foreign session IDs, together with work/depth/cancellation failures. Recheck Boolean region classification, ray classification, surface queries and edit publication after changes to original pcurve or projection authority. Source-only work does not establish behavioral completion.
 

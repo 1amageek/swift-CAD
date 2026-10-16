@@ -1,0 +1,30 @@
+{
+  "status": "closed-no-blockers",
+  "reviewer": "u1_common_verification",
+  "sourceReviewCount": 1,
+  "pendingRuntimeConfirmation": "Closed as part of the same review after actual four-target receipts arrived. No additional source review cycle.",
+  "sourceScope": {
+    "tester": "7a5ddae98fdf08240646420a775cf66e9248dd6caee52b0e1cf51df09339a273",
+    "bounds": "15f6e1e8b382203823afafaf23b07d5482acea5cf71532c7e53b905dbe06b21b",
+    "portableFixture": "3e112a67478c212e64d67f92e7da96fcd6d77b64d75c716f5e94faf040296bf5"
+  },
+  "nativePredicatesMapped": 16,
+  "actualOraclesPerTarget": 3,
+  "targetedHashComparisons": 139,
+  "runtimeSeconds": {
+    "native": 1.2581766250077635,
+    "asan": 2.1862047079921467,
+    "wasm": 0.4979334590025246,
+    "embedded": 0.2480452919990057
+  },
+  "receiptSHA256": {
+    "native": "7df30599acc819e24c05bfe3b65de53482d574cc7b64f3ccd1e999ac34c4848e",
+    "asan": "55e3245cb33f430496cf32fc60a2cdc45976ce116b74fe79cd95d798ebdd48cf",
+    "wasm": "3d7fe106c881484a4f2078d1c8fb377191058e29d0d069b0466532f975374496",
+    "embedded": "c8fd7f8bce5880ca5edeea25382d7aa33fb083eb1ebd77bcb9f6829b57384164"
+  },
+  "findings": [],
+  "limitsUnchanged": true,
+  "sourceFamiliesOrWholeKernelCompletion": false,
+  "newBuildsOrRuntimeReplaysForReview": 0
+}

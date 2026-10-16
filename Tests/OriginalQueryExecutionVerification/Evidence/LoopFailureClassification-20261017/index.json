@@ -1,0 +1,297 @@
+{
+  "schemaVersion": 1,
+  "status": "four-target-behavior-passed",
+  "scope": "U1.ERROR.LOOPCLASS finite actual prepared face caller; whole U1/U1-U4 and seven requirements incomplete",
+  "sourceRoot": "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD",
+  "accepted": {
+    "native": {
+      "receipt": "Raw/final/native/receipt.json.gz",
+      "originalReceiptSHA256": "7df30599acc819e24c05bfe3b65de53482d574cc7b64f3ccd1e999ac34c4848e",
+      "runtimeSeconds": 1.2581766250077635,
+      "clientCompileLinkSeconds": 2.030285417000414,
+      "clientPeakRSSBytes": 417562624,
+      "expectedOutputLines": [
+        "PASS authoredRectanglePreparesAndClassifiesItsOriginalUV",
+        "PASS lowerLoopWorkRefusalPreservesItsOriginalClassificationAndContext",
+        "PASS lowerLoopCallerCancellationKeepsItsCause"
+      ],
+      "lowerModulesRegenerated": false,
+      "modelingModuleRegenerated": false,
+      "kernelModuleRegenerated": false
+    },
+    "asan": {
+      "receipt": "Raw/final/asan/receipt.json.gz",
+      "originalReceiptSHA256": "55e3245cb33f430496cf32fc60a2cdc45976ce116b74fe79cd95d798ebdd48cf",
+      "runtimeSeconds": 2.1862047079921467,
+      "clientCompileLinkSeconds": 4.981993875000626,
+      "clientPeakRSSBytes": 872005632,
+      "expectedOutputLines": [
+        "PASS authoredRectanglePreparesAndClassifiesItsOriginalUV",
+        "PASS lowerLoopWorkRefusalPreservesItsOriginalClassificationAndContext",
+        "PASS lowerLoopCallerCancellationKeepsItsCause"
+      ],
+      "lowerModulesRegenerated": false,
+      "modelingModuleRegenerated": false,
+      "kernelModuleRegenerated": true
+    },
+    "wasm": {
+      "receipt": "Raw/final/wasm/receipt.json.gz",
+      "originalReceiptSHA256": "3d7fe106c881484a4f2078d1c8fb377191058e29d0d069b0466532f975374496",
+      "runtimeSeconds": 0.4979334590025246,
+      "clientCompileLinkSeconds": 2.2553033330041217,
+      "clientPeakRSSBytes": 945635328,
+      "expectedOutputLines": [
+        "PASS authoredRectanglePreparesAndClassifiesItsOriginalUV",
+        "PASS lowerLoopWorkRefusalPreservesItsOriginalClassificationAndContext",
+        "PASS lowerLoopCallerCancellationKeepsItsCause"
+      ],
+      "lowerModulesRegenerated": false,
+      "modelingModuleRegenerated": false,
+      "kernelModuleRegenerated": true
+    },
+    "embedded": {
+      "receipt": "Raw/final/embedded/receipt.json.gz",
+      "originalReceiptSHA256": "c8fd7f8bce5880ca5edeea25382d7aa33fb083eb1ebd77bcb9f6829b57384164",
+      "runtimeSeconds": 0.2480452919990057,
+      "clientCompileLinkSeconds": 71.75577529100701,
+      "clientPeakRSSBytes": 4392140800,
+      "expectedOutputLines": [
+        "PASS authoredRectanglePreparesAndClassifiesItsOriginalUV",
+        "PASS lowerLoopWorkRefusalPreservesItsOriginalClassificationAndContext",
+        "PASS lowerLoopCallerCancellationKeepsItsCause"
+      ],
+      "lowerModulesRegenerated": false,
+      "modelingModuleRegenerated": false,
+      "kernelModuleRegenerated": false
+    }
+  },
+  "compilerOrigins": {
+    "u1-loopclass-final-20261017-native": {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-loopclass-final-20261017/native/receipt.json",
+      "sha256": "883aac06b5754244e34d86c011dc5f0425749ff8005b6c00c0722a729441b2c7",
+      "scope": "CADModeling successful compiler phase only",
+      "overallStatus": "passed"
+    },
+    "u1-loopclass-current-20261017-native": {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-loopclass-current-20261017/native/receipt.json",
+      "sha256": "b98abd86c1a7ce8f4611e136af629e3abc7d455f18cb64ae817da3e60137b61e",
+      "scope": "CADKernel successful compiler phase only",
+      "overallStatus": "passed"
+    },
+    "u1-loopclass-portable-20261017-asan": {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-loopclass-portable-20261017/asan/receipt.json",
+      "sha256": "53ba33b0ec7c01010738ad52195710eb4980c0aeaa41fb36f754589835b0df83",
+      "scope": "CADModeling successful compiler phase only",
+      "overallStatus": "passed"
+    },
+    "u1-loopclass-portable-20261017-wasm": {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-loopclass-portable-20261017/wasm/receipt.json",
+      "sha256": "1593be663b1a22b305ca2f425ecdeaf5db9f978fc941dae5bbc61eedda296eb5",
+      "scope": "CADModeling successful compiler phase only",
+      "overallStatus": "passed"
+    },
+    "u1-loopclass-final-20261017-embedded": {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-loopclass-final-20261017/embedded/receipt.json",
+      "sha256": "3f217bf2b8af70c7071aa872f236d8f9b07210bc15ee7ac5448c999e5d0058e8",
+      "scope": "CADModeling successful compiler phase only",
+      "overallStatus": "failed"
+    },
+    "u1-loopclass-current-20261017-embedded": {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-loopclass-current-20261017/embedded/receipt.json",
+      "sha256": "ae670afdf4d59d8eb6766f41fef38979dbf403f4929c74dd885d9436868600e1",
+      "scope": "CADKernel successful compiler phase only",
+      "overallStatus": "failed"
+    }
+  },
+  "wholeRequirementCompleteCount": 1,
+  "files": {
+    "Diagnostics/u1-loopclass-current-20261017/CADKernel.log.gz": {
+      "sha256": "1f4651551a03c6e7f0aae5b5b6742a3231b46781af2fa0a91f6935e6925326a4",
+      "bytes": 467
+    },
+    "Diagnostics/u1-loopclass-current-20261017/client-link.log.gz": {
+      "sha256": "278e0104fe0abcf1ec9684223cf24d178bbf3973895bf1575f2a6b71c3c177ce",
+      "bytes": 583
+    },
+    "Diagnostics/u1-loopclass-current-20261017/receipt.json.gz": {
+      "sha256": "3e8ab369ea54d2175678fc3304daeb4fa27268925ed7e4ca0fba5970ad43d6a3",
+      "bytes": 239223
+    },
+    "Diagnostics/u1-loopclass-final-20261017/CADKernel.log.gz": {
+      "sha256": "77024a91c221133bb1e2f1db5599cc80d6e93588934e28c18040355efde3496a",
+      "bytes": 1556
+    },
+    "Diagnostics/u1-loopclass-final-20261017/receipt.json.gz": {
+      "sha256": "4b4c1d965192bca3f345d78fb820da0fc84af048d87a1eedb79067bf2077e515",
+      "bytes": 238896
+    },
+    "Diagnostics/u1-loopclass-portable-20261017/CADKernel.log.gz": {
+      "sha256": "a0d5b19674fe77abbda04100e14a56cb9aadf92b65fba83802485f6084f7f20b",
+      "bytes": 269
+    },
+    "Diagnostics/u1-loopclass-portable-20261017/receipt.json.gz": {
+      "sha256": "85badbc4b9e17ddb29225e143daee5dcfea7416b3b4c98e48ca10ef1ed886bdc",
+      "bytes": 238820
+    },
+    "Raw/compiler-origins/u1-loopclass-current-20261017-embedded/CADKernel.log.gz": {
+      "sha256": "1f4651551a03c6e7f0aae5b5b6742a3231b46781af2fa0a91f6935e6925326a4",
+      "bytes": 467
+    },
+    "Raw/compiler-origins/u1-loopclass-current-20261017-embedded/receipt.json.gz": {
+      "sha256": "3e8ab369ea54d2175678fc3304daeb4fa27268925ed7e4ca0fba5970ad43d6a3",
+      "bytes": 239223
+    },
+    "Raw/compiler-origins/u1-loopclass-current-20261017-native/CADKernel.log.gz": {
+      "sha256": "ae611ba332bea9548b28c691c7ffad216f1c96a5d6110fc84f709a602d284e23",
+      "bytes": 466
+    },
+    "Raw/compiler-origins/u1-loopclass-current-20261017-native/receipt.json.gz": {
+      "sha256": "361be262800b84e9b41f3a85dba50ee0ef50ed72ed0fda85d640a7834aa4686d",
+      "bytes": 240749
+    },
+    "Raw/compiler-origins/u1-loopclass-final-20261017-embedded/CADModeling.log.gz": {
+      "sha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "bytes": 20
+    },
+    "Raw/compiler-origins/u1-loopclass-final-20261017-embedded/receipt.json.gz": {
+      "sha256": "4b4c1d965192bca3f345d78fb820da0fc84af048d87a1eedb79067bf2077e515",
+      "bytes": 238896
+    },
+    "Raw/compiler-origins/u1-loopclass-final-20261017-native/CADModeling.log.gz": {
+      "sha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "bytes": 20
+    },
+    "Raw/compiler-origins/u1-loopclass-final-20261017-native/receipt.json.gz": {
+      "sha256": "e650d33ae4284cf929cde1f7c64483650779ef36d38de50c5b89c8fad2b547f3",
+      "bytes": 240614
+    },
+    "Raw/compiler-origins/u1-loopclass-portable-20261017-asan/CADModeling.log.gz": {
+      "sha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "bytes": 20
+    },
+    "Raw/compiler-origins/u1-loopclass-portable-20261017-asan/receipt.json.gz": {
+      "sha256": "af5a2694d32f2f063e0614201210dafdcc66301dfba68f9f798a78d364fc7287",
+      "bytes": 239660
+    },
+    "Raw/compiler-origins/u1-loopclass-portable-20261017-wasm/CADModeling.log.gz": {
+      "sha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "bytes": 20
+    },
+    "Raw/compiler-origins/u1-loopclass-portable-20261017-wasm/receipt.json.gz": {
+      "sha256": "b3944161b9c8fce82e7f6bf3d4232c78bd9eab59393c965d889b40dabacdc824",
+      "bytes": 239652
+    },
+    "Raw/final/asan/CADKernel.log.gz": {
+      "sha256": "edafe31179c3eb1419d67e6cf4fe967bfba8ed333e1c115af0d315f7b4e03d57",
+      "bytes": 463
+    },
+    "Raw/final/asan/client-link.log.gz": {
+      "sha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "bytes": 20
+    },
+    "Raw/final/asan/receipt.json.gz": {
+      "sha256": "e18e8f0c4a3ef28c62dd7f7d6d3339a1ed3e2815b32f3c4223e61a14f50d26b6",
+      "bytes": 239871
+    },
+    "Raw/final/asan/runtime.log.gz": {
+      "sha256": "7ff8286d03044ec164a59c717727c171dfa2099b9c96a861b1a7dde7e5d6578b",
+      "bytes": 137
+    },
+    "Raw/final/embedded/client-link.log.gz": {
+      "sha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "bytes": 20
+    },
+    "Raw/final/embedded/receipt.json.gz": {
+      "sha256": "a0ad10798c313bbc395008b732652bce1ff71da2c445ed7a447bf6e41790bd1b",
+      "bytes": 239460
+    },
+    "Raw/final/embedded/runtime.log.gz": {
+      "sha256": "e5abace6e3d31886d02f65e63dfd6aad6a525c4c7ce28f78bd1a6194ba83f892",
+      "bytes": 245
+    },
+    "Raw/final/native/client-link.log.gz": {
+      "sha256": "5dbcb2a88a6ab9fc22c1e6a76d0dd9ba032daed9030f9b99782191a5698ae274",
+      "bytes": 308
+    },
+    "Raw/final/native/receipt.json.gz": {
+      "sha256": "d6c0087c746e59be5c702b2a561d6f6e8789420f98857f2ea332c9778ccbd89b",
+      "bytes": 240863
+    },
+    "Raw/final/native/runtime.log.gz": {
+      "sha256": "7ff8286d03044ec164a59c717727c171dfa2099b9c96a861b1a7dde7e5d6578b",
+      "bytes": 137
+    },
+    "Raw/final/wasm/CADKernel.log.gz": {
+      "sha256": "a6a0f15c15e2d451817c301b472029f3910a30d4a7ae18bdf1458cc1450a5479",
+      "bytes": 463
+    },
+    "Raw/final/wasm/client-link.log.gz": {
+      "sha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "bytes": 20
+    },
+    "Raw/final/wasm/receipt.json.gz": {
+      "sha256": "9dba6b0253b040e837330eb7660fcd5a7d6b8d24cf889209b273790dff64ef6c",
+      "bytes": 239860
+    },
+    "Raw/final/wasm/runtime.log.gz": {
+      "sha256": "1ebbd435c54dbbce098c5dfe1c0672f0d4a538112bd0a939386f3cab55fcf814",
+      "bytes": 245
+    },
+    "Runner/run.py.gz": {
+      "sha256": "64c4cc082bc053b2e215dd231d53f40a183bb7995a093bce5351aedde17fdbff",
+      "bytes": 5086
+    },
+    "Source/Sources/CADKernel/FiniteFaceContainment/DefaultFacePointContainmentTester.swift.gz": {
+      "sha256": "62e0b5e634f6e663f504bdfe44305a2387cbc533fa5f8fd59401ae97316ff4a6",
+      "bytes": 9527
+    },
+    "Source/Sources/CADKernel/FiniteFaceContainment/FacePointContainmentPreparationCache.swift.gz": {
+      "sha256": "f15483fd9d53f096aa65adbea04ad5b3837466d7ca2a3223186c087ce30b33e2",
+      "bytes": 490
+    },
+    "Source/Sources/CADKernel/FiniteFaceContainment/FacePointContainmentTesting.swift.gz": {
+      "sha256": "95dadbcd11d76c9a1d4c38f35f45a88e65ad0c7bf69e0102827e12d88a915ada",
+      "bytes": 792
+    },
+    "Source/Sources/CADKernel/OriginalBRepBounds/OriginalFaceParameterBounds.swift.gz": {
+      "sha256": "bf01bdc59f5287047b869df7f1951049137bf995c7ea1e5b531227d7c7d7a163",
+      "bytes": 795
+    },
+    "Source/Sources/CADKernel/OriginalGeometryQuery/OriginalQueryExecution+Kernel.swift.gz": {
+      "sha256": "becb12424cd8e55c8de9e8d8d023c08da2d63273627e3f3b7e85cc2a9a69b6cc",
+      "bytes": 581
+    },
+    "Source/Sources/CADKernel/PreparedBooleanOperation/PreparedBooleanQueryLifetime.swift.gz": {
+      "sha256": "31a7394cf43607ace47f4b0578c250b2702d13ccd8398b0277ee4847fe3031e2",
+      "bytes": 848
+    },
+    "Source/Sources/CADModeling/ExactFacePcurve/ExactFacePcurveBuilder.swift.gz": {
+      "sha256": "333d8b04e7f803dc5d467a477fdf9f0389cd91946b339adf4f61b366e6523351",
+      "bytes": 4734
+    },
+    "Source/Tests/CADKernelTests/FaceContainmentLoopFailureClassificationTests.swift.gz": {
+      "sha256": "c52204a209c86912dcabd6e9d9d765191f3abef709f39d6925ae5f3af84a9d54",
+      "bytes": 2203
+    },
+    "Source/Tests/OriginalQueryExecutionVerification/FaceContainmentLoopFailureClassificationPortable.swift.gz": {
+      "sha256": "161c662e011b0c2e9176a6e9e49604c214ed248550f85f0818b7d6727f430a9a",
+      "bytes": 2665
+    },
+    "VERIFICATION.md": {
+      "sha256": "b7e7d3292c9567c140c2f38ee661dcab5d67d552e011abfe582f3b5f2143b124",
+      "bytes": 6015
+    },
+    "review.json": {
+      "sha256": "645602083b997100148343167654e1236b3abe1188f1eddcb2b696d3d3cf2d55",
+      "bytes": 1274
+    },
+    "source-inverse-comparison.json": {
+      "sha256": "c01ab5dc62369fe01784a003f495d2c70fab94331993e5c824be0a9cf58f499a",
+      "bytes": 866
+    }
+  },
+  "review": {
+    "path": "review.json",
+    "status": "closed-no-blockers"
+  }
+}
