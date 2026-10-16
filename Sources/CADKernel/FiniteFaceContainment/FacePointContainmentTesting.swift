@@ -4,6 +4,7 @@ import CADIR
 import CADTopology
 
 public protocol FacePointContainmentTesting: Sendable {
+    var preparationCapabilities: FacePointContainmentCapabilities { get }
     func contains(_ point: Point3D, on faceID: FaceID, in model: BRepModel,
         tolerance: ModelingTolerance) throws -> Bool
     func contains(_ point: Point3D, on faceID: FaceID, in model: BRepModel,
@@ -16,6 +17,7 @@ public protocol FacePointContainmentTesting: Sendable {
 }
 
 public extension FacePointContainmentTesting {
+    var preparationCapabilities: FacePointContainmentCapabilities { .init() }
     func preparedContainmentSession(for faceIDs: [FaceID], in model: BRepModel,
         tolerance: ModelingTolerance) throws -> (any FacePointContainmentSession)? { nil }
     // FIXME(INCOMPLETE_IMPLEMENTATION): Injected providers without an actual direct

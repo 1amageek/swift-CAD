@@ -287,13 +287,13 @@ package struct BRepSewingEdgeSubdivider {
         let u = alignedPeriodicParameter(
             surfaceProjection.u,
             domain: lift.surface.uDomain,
-            coordinates: parameterCurve.controlPoints.map(\.x)
+            coordinates: parameterCurve.controlPoints.map { $0.x }
         )
         try execution.retainStorage(count: parameterCurve.controlPoints.count, stride: MemoryLayout<Double>.stride)
         let v = alignedPeriodicParameter(
             surfaceProjection.v,
             domain: lift.surface.vDomain,
-            coordinates: parameterCurve.controlPoints.map(\.y)
+            coordinates: parameterCurve.controlPoints.map { $0.y }
         )
         let projection: CurveParameterProjection
         do {

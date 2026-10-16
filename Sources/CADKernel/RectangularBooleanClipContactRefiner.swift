@@ -2,6 +2,7 @@ import CADCore
 import CADGeometry
 import CADIR
 import CADTopology
+import HashTreeCollections
 
 /// Refines a tolerance-band boundary contact to the exact face-local trim
 /// coordinate carried by a surface-surface intersection pcurve.

@@ -24,6 +24,10 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
   private let remainingSourceDepth: Int
   private let maximumAlgebraicDepth: Int
 
+  public var preparationCapabilities: FacePointContainmentCapabilities {
+    .init(pointCaching: self, parameterCaching: self)
+  }
+
   public init(
     maximumSubdivisionDepth: Int = 48,
     remainingSourceDepth: Int = 16,
@@ -183,6 +187,24 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
     try consume(0, tolerance: tolerance, using: &execution)
     let result: SurfaceParameterProjectionResult
     if let domain = preparedFace.parameterBounds {
+      let nativePlane: Bool
+      switch preparedFace.surface {
+      case .plane, .analytic(.plane): nativePlane = true
+      default: nativePlane = false
+      }
+      if nativePlane {
+        let candidate = try preparedFace.surface.parameterProjectionResult(of: point,
+          tolerance: tolerance, using: &execution)
+        if case .projected(let projection) = candidate,
+          projection.u.isFinite, projection.v.isFinite,
+          projection.u >= domain.u.lower, projection.u <= domain.u.upper,
+          projection.v >= domain.v.lower, projection.v <= domain.v.upper {
+          // This is the existing primitive proximity capability, not source
+          // equality or exclusion. Original finite trim predicates still decide material.
+          return try contains(SurfaceParameter(u: projection.u, v: projection.v),
+            on: preparedFace, tolerance: tolerance, using: &execution)
+        }
+      }
       result = try DefaultSurfaceParameterProjector().projectionResult(of: point,
         on: preparedFace.surface, over: domain,
         options: SurfaceParameterProjectionOptions(), tolerance: tolerance,

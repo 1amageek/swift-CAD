@@ -36,6 +36,30 @@ context never selects the containment formula, proof ceiling or source policy.
 
 Bounded model-space containment retains the exact face's complete finite original UV extent in its immutable preparation. Projection over that extent forwards the same caller ledger and the stricter of the caller and historical projection depth ceilings. A projected witness must carry an original residual upper bound within the requested distance tolerance. Returning false from projection requires complete original threshold exclusion; a closest-point residual upper bound above the tolerance does not establish that exclusion. Ambiguous threshold coverage remains an explicit lower failure. An untrimmed native plane/cylinder, including its equivalent analytic primitive case, uses the existing direct analytic projection/reconstruction and modeling residual threshold without a finite box. This capability is selected from the actual support case, never execution context. Nil parameter bounds represent only that untrimmed primitive capability. A point within distance tolerance may therefore be contained without being source-equal; this proximity policy issues no original-intersection or identity authority. Other paths retain required finite original extent; unbounded foreign/procedural membership remains an explicit unsupported producer.
 
+A finite prepared native plane, including its analytic primitive representation,
+may consume the existing Geometry direct projection as a positive proximity
+candidate. Only a `.projected` result with finite native UV contained without tolerance expansion
+by the retained closed parameter bounds enters the existing original UV material
+predicate. This does not issue source equality, a global-minimum certificate or
+absence. An outside-tolerance result or an out-of-bounds candidate continues to
+the existing complete finite projector; lower throws, resource refusals and
+cancellation propagate without a fallback catch. Other support families retain
+their existing finite projection path. Source preparation, original trim
+predicates, caller admission and retained session lifetime remain unchanged.
+
+`FacePointContainmentTesting.preparationCapabilities` is a protocol requirement
+that publishes an immutable opaque view of the provider's existing point and
+parameter preparation witnesses. `DefaultFacePointContainmentTester` supplies
+itself for both capabilities. The compatibility default supplies neither; the
+consumer then invokes that same injected provider's direct point requirement.
+No consumer performs a runtime cast or substitutes a different provider.
+Only module-owned conformances can construct nonempty preparation capabilities;
+the public empty initializer preserves existing external provider semantics.
+The view retains the same immutable provider values, with no mutable cache,
+unchecked proof constructor, source preparation or new execution. Invocation-local
+preparation caches and all lower validation, work, bytes and depth policies remain
+unchanged on every target. UV splitting selects this witness on all targets.
+
 ## State, Ownership, and Lifecycle
 | State | All-target storage | Read | Mutation / lifetime |
 |---|---|---|---|
@@ -86,6 +110,16 @@ The [four-target caller evidence](../../../Tests/OriginalQueryExecutionVerificat
 binds the final source to these three actual Kernel oracles and the scoped review.
 
 After source work, verify original-image trims, holes, periodic chart representatives, singular closed boundaries and foreign session IDs, together with work/depth/cancellation failures. Recheck Boolean region classification, ray classification, surface queries and edit publication after changes to original pcurve or projection authority. Source-only work does not establish behavioral completion.
+
+`FinitePlaneContainmentAdmissionTests` owns the finite native-plane positive
+capability controls. Both original plane representations exercise ordinary,
+direct and retained-session off-plane proximity within the unchanged distance;
+source COW removal and owner release precede retained reads. Outside finite UV
+and outside-distance controls preserve complete finite rejection. The actual
+Geometry source-validation work boundary and caller cancellation retain their
+original cause without fallback. The exact planar UV splitter cell supplies the
+causal public consumer regression; these checks do not claim general SSI or
+source-equality coverage.
 
 ## Original Trim Box Interior
 Byte-admitted classification overloads retain one original boundary-exclusion DFS stack per invocation and reuse it across all outer/hole boundaries. Its depth-first traversal requires at most caller depth plus one cells; that owned capacity is admitted before allocation. Modified-patch curve-copy payload is admitted before construction. Ordinary entries select one operation execution. The same execution remains a required lower dependency for Topology enclosure/winding temporaries; owning this stack does not authorize a whole query storage claim.

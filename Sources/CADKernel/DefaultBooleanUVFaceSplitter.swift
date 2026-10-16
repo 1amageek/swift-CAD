@@ -2,7 +2,7 @@ import CADCore
 import CADGeometry
 import CADIR
 import CADTopology
-import Foundation
+import HashTreeCollections
 
 public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
   private struct RegisteredPairCurve: Hashable {
@@ -63,7 +63,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
       throw contextualized(
         error,
         stage: "input graph validation",
-        tolerance: tolerance
+        tolerance: tolerance, context: execution.context
       )
     }
     var splits: [BooleanFaceSplit] = []
@@ -122,7 +122,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
           throw contextualized(
             error,
             stage: "curved face-pair contact registration",
-            tolerance: tolerance
+            tolerance: tolerance, context: execution.context
           )
         }
       }
@@ -182,7 +182,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
           throw contextualized(
             error,
             stage: "curved face-pair clipping",
-            tolerance: tolerance
+            tolerance: tolerance, context: execution.context
           )
         }
         continue
@@ -263,19 +263,12 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
   private func contextualized(
       _ error: any Error,
       stage: String,
-      tolerance: ModelingTolerance
+      tolerance: ModelingTolerance,
+      context: OriginalQueryFailureContext
   ) -> any Error {
-      let wrapped = KernelError.wrapping(error, phase: .topology, tolerance: tolerance)
-      let classification = KernelError(
-          phase: wrapped.phase,
-          code: wrapped.code,
-          featureID: wrapped.featureID,
-          subshapeID: wrapped.subshapeID,
-          residual: wrapped.residual,
-          tolerance: wrapped.tolerance ?? tolerance,
-          message: "Boolean UV face splitting \(stage) failed: \(wrapped.message)"
-      )
-      return OriginalQueryFailure.contextualizing(error, classification: classification)
+      OriginalQueryFailure.contextualizing(error,
+          diagnosticPrefix: "Boolean UV face splitting \(stage) failed: ",
+          context: context, tolerance: tolerance)
   }
 
   private func planeGeometry(
@@ -416,7 +409,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
           throw contextualized(
             error,
             stage: "isolated curved face-pair point classification",
-            tolerance: tolerance
+            tolerance: tolerance, context: execution.context
           )
         }
       case .curve(let curveIntersection):
@@ -441,7 +434,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
           throw contextualized(
             error,
             stage: "curved face-pair intersection-curve clipping",
-            tolerance: tolerance
+            tolerance: tolerance, context: execution.context
           )
         }
         switch clipped {
@@ -509,7 +502,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
     case .transverseSegment(let start, let end):
       return [0.0] + orderedPointKey(start.point, end.point)
     case .closedCurve(let curve):
-      let points = curve.samples.map(\.uvPoint.point)
+      let points = curve.samples.map { $0.uvPoint.point }
       let minimum = points.min(by: lexicographicPointOrder) ?? .origin
       let maximum = points.max(by: lexicographicPointOrder) ?? .origin
       let count = Double(max(points.count, 1))
@@ -711,7 +704,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         to: &clusterMembers[resolvedIndex, default: []], using: &execution)
     }
     for (clusterIndex, members) in clusterMembers.sorted(by: { $0.key < $1.key }) {
-      guard members.contains(where: \.isRecovered) else { continue }
+      guard members.contains(where: { $0.isRecovered }) else { continue }
       var canonical: Point3D? = nil
       for member in members where member.isRecovered == false {
         if let current = canonical {
@@ -818,19 +811,9 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
             contactProjectionCache[key] = .noIntersection
             continue
           } catch {
-            let wrapped = KernelError.wrapping(
-              error,
-              phase: .geometry,
-              tolerance: tolerance
-            )
-            let classification = KernelError(
-              phase: wrapped.phase,
-              code: wrapped.code,
-              residual: wrapped.residual,
-              tolerance: wrapped.tolerance ?? tolerance,
-              message: "Boolean intersection contact projection failed: \(wrapped.message)"
-            )
-            throw OriginalQueryFailure.contextualizing(error, classification: classification)
+            throw OriginalQueryFailure.contextualizing(error,
+              diagnosticPrefix: "Boolean intersection contact projection failed: ",
+              context: execution.context, tolerance: tolerance)
           }
         }
         if let refined = try contactRefiner.refine(
@@ -919,7 +902,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
       throw contextualized(
         error,
         stage: "intersection-curve contact registration",
-        tolerance: tolerance
+        tolerance: tolerance, context: execution.context
       )
     }
     if contacts.count < 2 {
@@ -962,7 +945,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
       }
     }
 
-    var boundaries = contacts.map(\.parameter)
+    var boundaries = contacts.map { $0.parameter }
     switch curve.parameterDomain {
     case .closed(let lower, let upper):
       try OriginalParameterQueryStorage.append(contentsOf: [lower, upper], to: &boundaries, using: &execution)
@@ -1013,7 +996,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
           error,
           stage:
             "trimmed intersection interval \(intervalOrdinal) midpoint containment at curve parameter \(midpoint)",
-          tolerance: tolerance
+          tolerance: tolerance, context: execution.context
         )
       }
       guard midpointIsContained else { continue }
@@ -1079,7 +1062,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
           error,
           stage:
             "trimmed intersection interval \(intervalOrdinal) endpoint construction over [\(lower), \(upper)]",
-          tolerance: tolerance
+          tolerance: tolerance, context: execution.context
         )
       }
     }
@@ -1102,7 +1085,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         tolerance: tolerance
       , using: &execution)
     {
-      let keptOrdinals = Set(result.map(\.ordinal))
+    let keptOrdinals = Set(result.map { $0.ordinal })
       let lastOrdinal = intervals.count - 1
       for (missing, neighbor) in [(0, lastOrdinal), (lastOrdinal, 0)]
       where keptOrdinals.contains(neighbor)
@@ -1184,7 +1167,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
       throw contextualized(
         error,
         stage: "trimmed intersection chain assembly",
-        tolerance: tolerance
+        tolerance: tolerance, context: execution.context
       )
     }
   }
@@ -1315,7 +1298,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         throw contextualized(
           error,
           stage: "closed intersection sample \(index) at curve parameter \(parameter)",
-          tolerance: tolerance
+          tolerance: tolerance, context: execution.context
         )
       }
     }
@@ -1342,7 +1325,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
   ) throws -> Bool {
     try execution.consumeWork(1)
     if let parameterContainment =
-      facePointContainment as? any FaceParameterContainmentPreparationCaching
+      facePointContainment.preparationCapabilities.parameterCaching
     {
       guard
         try parameterContainment.contains(
@@ -1551,7 +1534,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         error,
         stage:
           "intersection pcurve evaluation at parameter \(parameter) in domain \(intersection.curve.parameterDomain)",
-        tolerance: tolerance
+        tolerance: tolerance, context: execution.context
       )
     }
     let targetPoint: Point3D
@@ -1565,7 +1548,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
       throw contextualized(
         error,
         stage: "target surface evaluation at UV (\(target.u), \(target.v))",
-        tolerance: tolerance
+        tolerance: tolerance, context: execution.context
       )
     }
     let toolPoint: Point3D
@@ -1579,7 +1562,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
       throw contextualized(
         error,
         stage: "tool surface evaluation at UV (\(tool.u), \(tool.v))",
-        tolerance: tolerance
+        tolerance: tolerance, context: execution.context
       )
     }
     let residual = max(
@@ -1660,7 +1643,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
   ) throws -> Bool {
     try execution.consumeWork(1)
     if let parameterContainment =
-      facePointContainment as? any FaceParameterContainmentPreparationCaching
+      facePointContainment.preparationCapabilities.parameterCaching
     {
       return try parameterContainment.contains(
         parameter,
@@ -1771,7 +1754,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
       return cached
     }
     let result: Bool
-    if let cachingTester = facePointContainment as? any FacePointContainmentPreparationCaching {
+    if let cachingTester = facePointContainment.preparationCapabilities.pointCaching {
       result = try cachingTester.contains(
         point,
         on: faceID,

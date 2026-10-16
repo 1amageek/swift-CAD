@@ -1,0 +1,425 @@
+{
+  "scope": "Exact delivery-owned 20 production/design files and 12 fixtures; Bridge excluded.",
+  "sourceRoot": "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD",
+  "members": {
+    "Sources/CADGeometry/NativeExactGeometricRelations/DESIGN.md": {
+      "sha256": "57511c8473f3cb6e7b5624bf4298ac1f2538807dee3a5a64f20c28b8d082549a",
+      "bytes": 78869,
+      "role": "design"
+    },
+    "Sources/CADGeometry/NativeExactGeometricRelations/OriginalQueryFailure.swift": {
+      "sha256": "467104076b3c04c5db0308ad6d49bc681278f8f91737865991cc0c089d70bb16",
+      "bytes": 2511,
+      "role": "production"
+    },
+    "Sources/CADKernel/BooleanClosedFaceIntersection.swift": {
+      "sha256": "a79657d61b3a59e0010a18ee9e8103a466a285f2bcca44358575e766b467032b",
+      "bytes": 5402,
+      "role": "production"
+    },
+    "Sources/CADKernel/BooleanOpenFaceArrangementBuilder.swift": {
+      "sha256": "5abcc8c1b589a86f652434590fe7d678f11a60b8cb2cc3f84ffc7abd20628dc1",
+      "bytes": 118577,
+      "role": "production"
+    },
+    "Sources/CADKernel/BooleanUVSplitGraph.swift": {
+      "sha256": "3306e0ca49f17fc5f99987166ca2630c0765bd632ec4378e36a0d69898b6a11d",
+      "bytes": 6863,
+      "role": "production"
+    },
+    "Sources/CADKernel/DESIGN.md": {
+      "sha256": "8ba5d6a4cd106eb4e0b4e86862a67884b347e21f1a7702afd763c60ba8de0441",
+      "bytes": 139844,
+      "role": "design"
+    },
+    "Sources/CADKernel/DefaultBooleanUVFaceSplitter.swift": {
+      "sha256": "5da3b1cafda46b9d2ad7d062fe2bd6b67537f1be5b63e6edf53ffc2b75fe09f2",
+      "bytes": 64741,
+      "role": "production"
+    },
+    "Sources/CADKernel/ExactIntersectionFacePatchMaterializer.swift": {
+      "sha256": "968b2cb26c06d3f0d0feaf25b8f3f2a89d56bddd8d241acf4fc460d32120b401",
+      "bytes": 9038,
+      "role": "production"
+    },
+    "Sources/CADKernel/FiniteFaceContainment/DESIGN.md": {
+      "sha256": "fa3579c874a7f5e94a6b8998f4eaa3d65a736b5bccbd80449ddee17e151f44a6",
+      "bytes": 18230,
+      "role": "design"
+    },
+    "Sources/CADKernel/FiniteFaceContainment/DefaultFacePointContainmentTester.swift": {
+      "sha256": "07c039529a618805efac7895af3d72d4006d9e1a4401c581c512ec2aa8aeb090",
+      "bytes": 53252,
+      "role": "production"
+    },
+    "Sources/CADKernel/FiniteFaceContainment/FacePointContainmentCapabilities.swift": {
+      "sha256": "fbbc7b7353a653e22791414dafabc1906f1c6cf7d41ed1d90c84a4e361d4e427",
+      "bytes": 689,
+      "role": "production"
+    },
+    "Sources/CADKernel/FiniteFaceContainment/FacePointContainmentTesting.swift": {
+      "sha256": "5ca01ea27efac4445d0fc7e2cd2fc8b1b176b892db51efe404e82fbb3c9e66f4",
+      "bytes": 5089,
+      "role": "production"
+    },
+    "Sources/CADKernel/OpenIntersectionFacePatchMaterializer.swift": {
+      "sha256": "851df96c064b6d9e29ecea5c5f82468ce6a3fec5d4f6a945d58a7c8d026d4d3e",
+      "bytes": 17128,
+      "role": "production"
+    },
+    "Sources/CADKernel/OriginalTrimContact/DESIGN.md": {
+      "sha256": "80597b7ca82efd0ef491ba7e065c3ee722ad12e39990a6f7ceb5c810c4d7f1f0",
+      "bytes": 6506,
+      "role": "design"
+    },
+    "Sources/CADKernel/OriginalTrimContact/ExactTrimEdgeIntersector.swift": {
+      "sha256": "a0cc1aa9e24a20244460cd2f8cb11596104597f1c8695708805e3ee3bc878e2b",
+      "bytes": 84361,
+      "role": "production"
+    },
+    "Sources/CADKernel/RectangularBooleanClipContactRefiner.swift": {
+      "sha256": "cc490d1da2678abd43bf42aa06e8847ef69f60f75d194f0f2c935bf62c6be6e3",
+      "bytes": 17909,
+      "role": "production"
+    },
+    "Sources/CADKernel/SharedCurveFaceArrangement.swift": {
+      "sha256": "3475a3570acb59486c9fbc302ad7aa0d0af00fea3351d38ef0ced0b65a70077e",
+      "bytes": 8769,
+      "role": "production"
+    },
+    "Sources/CADModeling/BRepSewingEdgeSubdivider.swift": {
+      "sha256": "973861c2a55e26c8e625e31795e3499a462f53a65b27f0f1b3d4f57280a4b387",
+      "bytes": 17026,
+      "role": "production"
+    },
+    "Sources/CADModeling/SourceFacePatch/DESIGN.md": {
+      "sha256": "735217c0c4b7c5edaccd9871223ee468305ec07619dc43ea336c5d8693a2a0a8",
+      "bytes": 3885,
+      "role": "design"
+    },
+    "Sources/CADModeling/SourceFacePatch/SourceBRepFacePatchBuilder.swift": {
+      "sha256": "a8f0293a8e308b1cbfccb3bfbf9e7f70441691c92dd10e8edb0fe48dbbfe371f",
+      "bytes": 10453,
+      "role": "production"
+    },
+    "Tests/CADGeometryTests/OriginalQueryDiagnosticPrefixChecks.swift": {
+      "sha256": "36c50cbc32add0d989fc4c009a6c4b64bcff5116d3c18d020cc2d8ba78f56e93",
+      "bytes": 6792,
+      "role": "fixture"
+    },
+    "Tests/CADGeometryTests/OriginalQueryDiagnosticPrefixTests.swift": {
+      "sha256": "95d50b45032319bcd0084f31b5f3786fb608a86deb64dc1ab9feeabb049d1917",
+      "bytes": 962,
+      "role": "fixture"
+    },
+    "Tests/CADKernelTests/FinitePlaneContainmentAdmissionChecks.swift": {
+      "sha256": "601a7eab03343430e59754500f5d422bafd2255a451892b21ef016e70da340ea",
+      "bytes": 9507,
+      "role": "fixture"
+    },
+    "Tests/CADKernelTests/FinitePlaneContainmentAdmissionTests.swift": {
+      "sha256": "139040eb0334184a3ea766ad2f09c1049f47b3a1622660a2f7c92e2943675eb5",
+      "bytes": 700,
+      "role": "fixture"
+    },
+    "Tests/CADKernelTests/KernelDiagnosticFailureClassificationTests.swift": {
+      "sha256": "80a8065d7697437943ac2fabd3e0beb4ff67748b1f150e575c906b2066f7b964",
+      "bytes": 5110,
+      "role": "fixture"
+    },
+    "Tests/CADKernelTests/KernelTrimDiagnosticFailureChecks.swift": {
+      "sha256": "7b5da3290f13369fbbd4facc20dd206ca1e90b7d8fab5f415b9fb775ff54feb4",
+      "bytes": 5002,
+      "role": "fixture"
+    },
+    "Tests/CADKernelTests/KernelUVSplitDiagnosticChecks.swift": {
+      "sha256": "2177a88255def582458ddc9c92b24d79f62b65fb9235f79fff4480d656ad6875",
+      "bytes": 15320,
+      "role": "fixture"
+    },
+    "Tests/CADKernelTests/KernelUVSplitDiagnosticTests.swift": {
+      "sha256": "9875534dcf83693ba1309fff2b6bd9017c02b850ae54f6eaa29e218c61177746",
+      "bytes": 962,
+      "role": "fixture"
+    },
+    "Tests/OriginalQueryExecutionVerification/FinitePlaneContainmentAdmissionPortable.swift": {
+      "sha256": "43fcddad23bb1b90ebd79cf1ec563bfd0fd92c12ee4da189f0a30486c56afec9",
+      "bytes": 631,
+      "role": "fixture"
+    },
+    "Tests/OriginalQueryExecutionVerification/KernelTrimDiagnosticFailurePortable.swift": {
+      "sha256": "74f757b16479af9be5feb18858577d33288a379c753868c6120f89e517879fda",
+      "bytes": 703,
+      "role": "fixture"
+    },
+    "Tests/OriginalQueryExecutionVerification/KernelUVSplitDiagnosticPortable.swift": {
+      "sha256": "893f8b29097c50e5e8386847dd914cc76085a108e1023f6c73e5cd24b1d6ad43",
+      "bytes": 877,
+      "role": "fixture"
+    },
+    "Tests/OriginalQueryExecutionVerification/OriginalQueryDiagnosticPrefixPortable.swift": {
+      "sha256": "8c885a12abfe85b1284ec454517b835f361052b2d4d4e3e7917eb078d6eec1c9",
+      "bytes": 898,
+      "role": "fixture"
+    }
+  },
+  "currentNativeAuthority": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-full-r9/receipt.json",
+    "sha256": "96022991cbe7e96ead20646f1fa8e7c904f330ac62aefd51f7ec22d70a7cf172",
+    "matchingOwnedProductionFiles": 15,
+    "mismatches": []
+  },
+  "archives": {
+    "SourceAndFixtures.tar.gz": "All 32 listed exact whole files",
+    "LogsAndDrivers.tar.gz": {
+      "Drivers/metadata-clients-r1/index.json": {
+        "sha256": "f16b86af825251f25394ebaff47eb4e2b8dc1b68025c4a9f4643cec566fdd9f5",
+        "bytes": 8791
+      },
+      "Drivers/metadata-clients-r1/run.py": {
+        "sha256": "4084522307a11c9b5a3f54564347b9ecede64cea39803d7d0c31bc7f7ca19733",
+        "bytes": 10028
+      },
+      "Drivers/trim-clients-r3/index.json": {
+        "sha256": "a731498c609e163e61fa9e8ad0f493f63cda673ec5a9a7d8a728a62806463c53",
+        "bytes": 57503
+      },
+      "Drivers/trim-clients-r3/run.py": {
+        "sha256": "cb50792b7968a46275ce9cdca46947a31a8250ae28cb949072c26ac88502ac0c",
+        "bytes": 9089
+      },
+      "Drivers/uv-finite-clients-r7/UVFinitePlanePortable.swift": {
+        "sha256": "2c0dcb99be457bc52fcf658302d43f67292da2f3585e9a9f5d5432b1724702a4",
+        "bytes": 1403
+      },
+      "Drivers/uv-finite-clients-r7/run.py": {
+        "sha256": "3190eb9d83c6deed69de7dfc69c3a5f01c39770bc4dd468ff80e7fb3d58d2a81",
+        "bytes": 11672
+      },
+      "Drivers/uv-finite-clients-r8/UVFinitePlanePortable.swift": {
+        "sha256": "2c0dcb99be457bc52fcf658302d43f67292da2f3585e9a9f5d5432b1724702a4",
+        "bytes": 1403
+      },
+      "Drivers/uv-finite-clients-r8/run.py": {
+        "sha256": "6efa9109249622fc646d95acac38d0e387ff515845cf0ea746fe33998e3a7858",
+        "bytes": 20302
+      },
+      "metadata-clients-r1/asan/client-link.log": {
+        "sha256": "7559b671dc1df355039f45b5aa7848ab88a1153bf4641699e9dad7f04b253659",
+        "bytes": 907
+      },
+      "metadata-clients-r1/asan/runtime.log": {
+        "sha256": "f0575fd70418c9d97d7d49337809f2edc435ab588f8ba5509cf6058eb55fa1f5",
+        "bytes": 261
+      },
+      "metadata-clients-r1/embedded/client-link.log": {
+        "sha256": "fc5d9584539220f9aa1f2f8614df83834248f3db9c5a54bf27ca91de282f8d49",
+        "bytes": 1822
+      },
+      "metadata-clients-r1/embedded/runtime.log": {
+        "sha256": "f1904419817c7fc93494b3ac7886603b8a2f640fe68b9d2ceec6d94b5cb4b055",
+        "bytes": 428
+      },
+      "metadata-clients-r1/wasm/client-link.log": {
+        "sha256": "0311ca50e76a3daa26c45d12ef2af4d894fda3b554838b62c1e15745af05ccaa",
+        "bytes": 907
+      },
+      "metadata-clients-r1/wasm/runtime.log": {
+        "sha256": "1cb26c9387d36ebb2ab9690a3b03f8af95a63fd34652fc071ba15ca2f50d8bf4",
+        "bytes": 428
+      },
+      "native-callers-r1/compiler-version.log": {
+        "sha256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c",
+        "bytes": 77
+      },
+      "native-callers-r1/results.xml": {
+        "sha256": "0886a732898c8c6712797d274c1070cbad919055bbec5c23f20cff6a01f40ad9",
+        "bytes": 4625
+      },
+      "native-callers-r1/test-build-and-list.log": {
+        "sha256": "101a4822aee2d2a0a4a0a37a9972347a4b89743175963498c907cdfd1dbbe959",
+        "bytes": 56683
+      },
+      "native-callers-r1/test-runtime.log": {
+        "sha256": "2fcbf9e5fd40c303c7ebea2e22881ca980965930879f50dcb2f72ee3337a4daf",
+        "bytes": 6781
+      },
+      "native-source-metadata-r3/compiler-version.log": {
+        "sha256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c",
+        "bytes": 77
+      },
+      "native-source-metadata-r3/results.xml": {
+        "sha256": "c220474154f74597b76b1c6ed0857e5d13fe8b090480656c8f7e1609256622a0",
+        "bytes": 2613
+      },
+      "native-source-metadata-r3/test-build-and-list.log": {
+        "sha256": "98a13dde00db3d8aa795d65c45a0d6dbc4503f1045a432294528a71634a8c1ab",
+        "bytes": 51997
+      },
+      "native-source-metadata-r3/test-runtime.log": {
+        "sha256": "d25c9fc87f4ed58829d8402755c1fee9c53b212f645226bf35f353a4067de7e6",
+        "bytes": 8003
+      },
+      "native-uv-capability-r1/compiler-version.log": {
+        "sha256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c",
+        "bytes": 77
+      },
+      "native-uv-capability-r1/results.xml": {
+        "sha256": "cc81ca05fdc495869c42cd6db22267c7a2ff8c97d8a2d9dfb7616727d3760c8f",
+        "bytes": 1378
+      },
+      "native-uv-capability-r1/test-build-and-list.log": {
+        "sha256": "5cb01e0565581b835de7c6d9dc7128abde67ba5c8d5283b231f11c36935a839e",
+        "bytes": 54974
+      },
+      "native-uv-capability-r1/test-runtime.log": {
+        "sha256": "6f542c42a62ab46ce32dc28914eca6ddfe3fd2c223801c7753b5410f25f27b9c",
+        "bytes": 2224
+      },
+      "original-native-red/KernelDiagnosticFailureClassificationTests.swift": {
+        "sha256": "664d1b6a4a4a67c1ccbf0b91b8ce8e59c7c54b9e53015de73e3a7984555f77c9",
+        "bytes": 6779
+      },
+      "original-native-red/compiler-version.log": {
+        "sha256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c",
+        "bytes": 77
+      },
+      "original-native-red/results.xml": {
+        "sha256": "20fef9c7fdadce0b89a3b51f22b2070d050fe8fd1a1d4785125200673ed2f569",
+        "bytes": 3415
+      },
+      "original-native-red/test-build-and-list.log": {
+        "sha256": "f80e76e35e45d4716ab0fcd65bd596072c437aa37e7894c78c15ef48f077be2f",
+        "bytes": 47480
+      },
+      "original-native-red/test-runtime.log": {
+        "sha256": "cabc1a5ef818924bfd19d8f7c1378f188a498f4d7cd35438105d404b322cca62",
+        "bytes": 7397
+      },
+      "trim-clients-r3/asan/CADKernel.log": {
+        "sha256": "b45f2c196c164efbecbf7d4691224227ed551cd89ca81113787a86f3caf6e685",
+        "bytes": 2813
+      },
+      "trim-clients-r3/asan/CADKernelSources.rsp": {
+        "sha256": "b6bc50509577e81de4bd22e9d025a76b4b64d89fe20dac75b17cc605222b48bf",
+        "bytes": 381
+      },
+      "trim-clients-r3/asan/client-link.log": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "trim-clients-r3/asan/runtime.log": {
+        "sha256": "fa1bfa165aedd8a841744e5e8b131cebb9ec6914ba22b6250c6fafcc64244618",
+        "bytes": 166
+      },
+      "trim-clients-r3/embedded/CADKernel.log": {
+        "sha256": "cf6f92d6e0308016e75013c64dcef80a50cac3716cb05a62323f2f956fe39ab4",
+        "bytes": 2833
+      },
+      "trim-clients-r3/embedded/CADKernelSources.rsp": {
+        "sha256": "ecb2bf682d9d9d25692781b30ac4bbe4a5b7d4477fcaa748b94195ccd389e576",
+        "bytes": 389
+      },
+      "trim-clients-r3/embedded/client-link.log": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "trim-clients-r3/embedded/runtime.log": {
+        "sha256": "dcf9960f43ba777fd2ba9ba320a32ddc68942ea6f4a77cd81321503d3f46693b",
+        "bytes": 333
+      },
+      "trim-clients-r3/wasm/CADKernel.log": {
+        "sha256": "823f05d03397b3a9694ab82fc7a4fbaeae4f02dff0677f5055aeddaa89d06543",
+        "bytes": 2813
+      },
+      "trim-clients-r3/wasm/CADKernelSources.rsp": {
+        "sha256": "dd8e8ffc9c6985096b06b6c1e59082239da2678c3dcd161573d7c012d902e37f",
+        "bytes": 381
+      },
+      "trim-clients-r3/wasm/client-link.log": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "trim-clients-r3/wasm/runtime.log": {
+        "sha256": "ae91c6bc1edae1d4d52ec8f284eaac29db90edafe0e2d66b967801eff8f0b172",
+        "bytes": 333
+      },
+      "uv-finite/asan/CADKernel.log": {
+        "sha256": "7cee401ee5db4d0b12f1028746652475d211dae358ec930cc53e5d4b5920985e",
+        "bytes": 3753
+      },
+      "uv-finite/asan/CADKernelSources.rsp": {
+        "sha256": "452e9c943a5fd637411d26cfcba4a20caf6ff1e7860395535c8435501a6057d4",
+        "bytes": 5444
+      },
+      "uv-finite/asan/CADModeling.log": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "uv-finite/asan/CADModelingSources.rsp": {
+        "sha256": "7d5fc488264b77013be66ae29637e5f58eccf17ea9e004d977cd9971331c2abc",
+        "bytes": 3059
+      },
+      "uv-finite/asan/UVFinitePlanePortable.swift": {
+        "sha256": "2c0dcb99be457bc52fcf658302d43f67292da2f3585e9a9f5d5432b1724702a4",
+        "bytes": 1403
+      },
+      "uv-finite/asan/client-link.log": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "uv-finite/asan/runtime.log": {
+        "sha256": "90eb880ae9d44813f6441d63f26969104eaba603afca2c06f24ea242c3dff982",
+        "bytes": 663
+      },
+      "uv-finite/embedded/CADKernel.log": {
+        "sha256": "1837a1051f6d323fd95f0720684bbf8d5f454b891e5ebecc6da5902219cda921",
+        "bytes": 3777
+      },
+      "uv-finite/embedded/CADKernelSources.rsp": {
+        "sha256": "0020e9709d76860ff4eac2a4fc4d5a472bb40643090d31846563422e4662eda6",
+        "bytes": 5564
+      },
+      "uv-finite/embedded/UVFinitePlanePortable.swift": {
+        "sha256": "2c0dcb99be457bc52fcf658302d43f67292da2f3585e9a9f5d5432b1724702a4",
+        "bytes": 1403
+      },
+      "uv-finite/embedded/client-link.log": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "uv-finite/embedded/runtime.log": {
+        "sha256": "4f71c340bf861e5c737ab9169a7c4d5908726bad78326d7601e5db4fce99cef0",
+        "bytes": 830
+      },
+      "uv-finite/wasm/CADKernel.log": {
+        "sha256": "bcb63351f960d1538b151eeeb0c370c78abefb9845b75c3a89c5c6c60a93b766",
+        "bytes": 3753
+      },
+      "uv-finite/wasm/CADKernelSources.rsp": {
+        "sha256": "fa26444b15b1a68af60f8cf552822dd7295b9c4c95164ea7a9dd6915f54c9c4f",
+        "bytes": 5444
+      },
+      "uv-finite/wasm/CADModeling.log": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "uv-finite/wasm/CADModelingSources.rsp": {
+        "sha256": "af6b92ff0235a39edcb8f6dc985541b941c82aab7fd17768d400f0ad38508d56",
+        "bytes": 3059
+      },
+      "uv-finite/wasm/UVFinitePlanePortable.swift": {
+        "sha256": "2c0dcb99be457bc52fcf658302d43f67292da2f3585e9a9f5d5432b1724702a4",
+        "bytes": 1403
+      },
+      "uv-finite/wasm/client-link.log": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "uv-finite/wasm/runtime.log": {
+        "sha256": "53eb6511f9374983362854c691bb19573b0c40369458514939015d994993a2dc",
+        "bytes": 830
+      }
+    }
+  }
+}

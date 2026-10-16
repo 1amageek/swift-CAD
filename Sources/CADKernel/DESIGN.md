@@ -1613,6 +1613,21 @@ Body topology removal preserves the existing traversal, mutation order, missing-
 errors and subshape IDs. Its ordinary entry creates one execution; the admitted entry
 passes the same execution through reference collection and the actual model mutation.
 Resource and cancellation failures remain throwing at this boundary.
+Boolean UV splitting, trim contact, shared/open arrangements and face-patch
+materialization add diagnostic text through Geometry's
+[diagnostic-only failure boundary](../CADGeometry/NativeExactGeometricRelations/DESIGN.md#direct-public-failure-contract).
+They preserve the lower typed cause, classification and query context instead
+of passing an erased Geometry failure to Core's foreign-error fallback. This
+changes no Boolean geometry, arrangement order, result coverage or local limit.
+`KernelDiagnosticFailureClassificationTests` owns nonzero-prefix work refusal,
+genuine empty graph and nonempty crossing-line controls, and lower cancellation.
+The UV splitter imports HashTreeCollections directly for original topology-map
+access. Its implementation uses no Foundation API; every target retains the
+same source arithmetic, caller execution and immutable containment providers.
+Its point, parameter, residual and recovered-contact readers use noncapturing
+field closures on all targets. They preserve the same getters, traversal and
+array operations without requiring runtime keypath metadata. Graph validation
+keeps both current-task cancellation guards at their original positions.
 
 ```text
 ordinary entry -> one execution -> default direct witness

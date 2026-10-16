@@ -54,6 +54,27 @@ and prepared creation use the same failure contract. This is an explicit public
 failure-type migration; obsolete concrete catches are migrated rather than kept
 as duplicate compatibility paths.
 
+Diagnostic-only callers use `OriginalQueryFailure.contextualizing(_:diagnosticPrefix:context:tolerance:)`.
+This boundary first publishes the incoming typed cause with the supplied context
+and tolerance, then changes only its classification message by prepending the
+diagnostic prefix. The published phase, code, feature and subshape IDs, residual,
+tolerance, original cause and immutable inner context are retained. Missing
+context is filled by the existing publication contract; diagnostic wording never
+selects classification. Cancellation is returned unchanged. An unknown foreign
+cause remains unclassified. This overload does not introduce another execution,
+source lookup or proof obligation after failure.
+
+The existing `contextualizing(_:classification:)` overload remains an explicit
+classification-owner operation. In particular, aggregation of several failed
+original contact charts may retain its existing intersection/non-discrete
+classification, and a feature owner may retain its existing phase/scope decision.
+Diagnostic prefixes do not use that override path. Core does not learn Geometry
+failure types or dynamically discover erased classification conformers.
+`OriginalQueryDiagnosticPrefixChecks` owns the common Native and portable
+metadata, original cause/context, cancellation, foreign-error and explicit
+reclassification predicates. Its Native wrapper is
+`OriginalQueryDiagnosticPrefixTests`; its portable entry calls those same checks.
+
 Embedded clients consume serialized Swift library modules and generate the
 required Swift code in the client, following the [Embedded library model](https://docs.swift.org/main/documentation/embeddedswift/libraries/).
 A verification link must not add standalone pure Swift library code objects to

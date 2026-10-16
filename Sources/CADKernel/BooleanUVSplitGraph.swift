@@ -2,6 +2,7 @@ import CADCore
 import CADGeometry
 import CADIR
 import CADTopology
+import HashTreeCollections
 
 public struct BooleanUVSplitGraph: Hashable, Sendable {
     public let splits: [BooleanFaceSplit]
@@ -21,7 +22,7 @@ public struct BooleanUVSplitGraph: Hashable, Sendable {
     public func validate(intersectionGraph: BooleanIntersectionGraph,
         validatedModel: ValidatedBRepModel,
         using execution: inout OriginalQueryExecution) throws {
-        try Task.checkCancellation(); try execution.consumeWork(1)
+        guard !Task<Never, Never>.isCancelled else { throw CancellationError() }; try execution.consumeWork(1)
         guard validatedModel.validationLevel != .modeling else {
             throw KernelError(phase: .validation, code: .invalidInput,
                 tolerance: validatedModel.tolerance,
@@ -72,7 +73,7 @@ public struct BooleanUVSplitGraph: Hashable, Sendable {
                 try validate(component: component, tolerance: tolerance, using: &execution)
             }
         }
-        try Task.checkCancellation()
+        guard !Task<Never, Never>.isCancelled else { throw CancellationError() }
     }
 
     private func validate(component: BooleanFaceSplitComponent,

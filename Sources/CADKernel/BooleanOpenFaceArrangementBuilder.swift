@@ -86,7 +86,7 @@ struct BooleanOpenFaceArrangementBuilder {
             throw contextualized(
                 error,
                 stage: "source-face extraction",
-                tolerance: tolerance
+                tolerance: tolerance, context: execution.context
             )
         }
         var outerLoops: [BRepSewingLoop] = []
@@ -120,7 +120,7 @@ struct BooleanOpenFaceArrangementBuilder {
             throw contextualized(
                 error,
                 stage: "source-domain construction",
-                tolerance: tolerance
+                tolerance: tolerance, context: execution.context
             )
         }
         var intersectionEndpoints: [Point3D] = []
@@ -150,7 +150,7 @@ struct BooleanOpenFaceArrangementBuilder {
             throw contextualized(
                 error,
                 stage: "exact crossing detection",
-                tolerance: tolerance
+                tolerance: tolerance, context: execution.context
             )
         }
         // Endpoints contributed by other faces sharing the same
@@ -214,7 +214,7 @@ struct BooleanOpenFaceArrangementBuilder {
                     throw contextualized(
                         error,
                         stage: "subdivision of source edge \(sourceEdge.stableID)",
-                        tolerance: tolerance
+                        tolerance: tolerance, context: execution.context
                     )
                 }
                 try OriginalParameterQueryStorage.append(contentsOf: segments, to: &resegmentedEdges, using: &execution)
@@ -260,7 +260,7 @@ struct BooleanOpenFaceArrangementBuilder {
                 throw contextualized(
                     error,
                     stage: "subdivision of intersection edge \(boundary.edge.stableID)",
-                    tolerance: tolerance
+                    tolerance: tolerance, context: execution.context
                 )
             }
             for (segmentIndex, edge) in segments.enumerated() {
@@ -296,7 +296,7 @@ struct BooleanOpenFaceArrangementBuilder {
             throw contextualized(
                 error,
                 stage: "intersection-chart alignment",
-                tolerance: tolerance
+                tolerance: tolerance, context: execution.context
             )
         }
         do {
@@ -309,7 +309,7 @@ struct BooleanOpenFaceArrangementBuilder {
             throw contextualized(
                 error,
                 stage: "coincident-edge merging",
-                tolerance: tolerance
+                tolerance: tolerance, context: execution.context
             )
         }
         try OriginalParameterQueryStorage.sort(&baseEdges, using: &execution) { $0.edge.stableID < $1.edge.stableID }
@@ -338,7 +338,7 @@ struct BooleanOpenFaceArrangementBuilder {
             throw contextualized(
                 error,
                 stage: "graph construction",
-                tolerance: tolerance
+                tolerance: tolerance, context: execution.context
             )
         }
         let cycles: [Cycle]
@@ -348,7 +348,7 @@ struct BooleanOpenFaceArrangementBuilder {
             throw contextualized(
                 error,
                 stage: "cycle extraction",
-                tolerance: tolerance
+                tolerance: tolerance, context: execution.context
             )
         }
         guard cycles.isEmpty == false else {
@@ -374,7 +374,7 @@ struct BooleanOpenFaceArrangementBuilder {
             throw contextualized(
                 error,
                 stage: "face-patch materialization",
-                tolerance: tolerance
+                tolerance: tolerance, context: execution.context
             )
         }
         return Result(
@@ -725,7 +725,7 @@ struct BooleanOpenFaceArrangementBuilder {
                         throw contextualized(
                             error,
                             stage: "intersection of \(first.edge.stableID) with \(second.edge.stableID)",
-                            tolerance: tolerance
+                            tolerance: tolerance, context: execution.context
                         )
                     }
                     switch intersections {
@@ -2169,7 +2169,7 @@ struct BooleanOpenFaceArrangementBuilder {
             throw contextualized(
                 error,
                 stage: "signed-area certification for cycle \(cycleStableKey(cycle, graph: graph)) with lifted points \(points)",
-                tolerance: tolerance
+                tolerance: tolerance, context: execution.context
             )
         }
     }
@@ -2722,19 +2722,12 @@ struct BooleanOpenFaceArrangementBuilder {
     private func contextualized(
         _ error: any Error,
         stage: String,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        context: OriginalQueryFailureContext
     ) -> any Error {
-        let wrapped = KernelError.wrapping(error, phase: .topology, tolerance: tolerance)
-        let classification = KernelError(
-            phase: wrapped.phase,
-            code: wrapped.code,
-            featureID: wrapped.featureID,
-            subshapeID: wrapped.subshapeID,
-            residual: wrapped.residual,
-            tolerance: wrapped.tolerance ?? tolerance,
-            message: "Open Boolean arrangement \(stage) failed: \(wrapped.message)"
-        )
-        return OriginalQueryFailure.contextualizing(error, classification: classification)
+        OriginalQueryFailure.contextualizing(error,
+            diagnosticPrefix: "Open Boolean arrangement \(stage) failed: ",
+            context: context, tolerance: tolerance)
     }
 
     private struct Node: Sendable {

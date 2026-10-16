@@ -32,5 +32,9 @@ All copied arrays and stable-key maps are invocation-local construction state. P
 ## Failure, Concurrency, and Constraints
 Missing source support, loop, edge, vertex, native trim or pcurve fails explicitly. Counter/byte arithmetic overflow and caller resource/cancellation failures propagate. No separate hidden whole-feature ceiling is introduced.
 
+Original topology-map access imports its owning HashTreeCollections module
+directly on every target. This visibility dependency preserves the same stored
+owners, field reads, traversal, fees and immutable publication on Embedded.
+
 ## Verification and Change Impact
 After source work, verify reversed and singular/closed uses, holes, original image curves and supports, complete ancestry, deterministic stable keys, cancellation and caller exhaustion. Recheck sewing publication, finite-face classifiers and edits consuming copied source patches. Source-only changes do not establish behavioral completion.

@@ -1,0 +1,670 @@
+{
+  "status": "scoped-verification-passed-main-integration-pending",
+  "scope": "Diagnostic prefix and same-caller Kernel Trim/UV/finite-plane admission; no whole ERROR/U1/seven-requirement completion.",
+  "durableRoot": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017",
+  "sourceManifest": "manifest.json",
+  "sourceAndDesignCount": 20,
+  "fixtureCount": 12,
+  "runs": {
+    "metadata-clients-r1/asan": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/metadata-clients-r1/asan/receipt.json",
+      "receiptSHA256": "c1673d2ef07cffdbbb86eda07e5bc6494fafa9a47ff23c48b7d9f2353313b164",
+      "originalStatus": "passed",
+      "scope": "all selected checks",
+      "acceptedFunctions": null,
+      "expectedOutputLines": [
+        "PASS prefixPreservesEveryPublishedFieldAndInnerContext",
+        "PASS rawResourcePublicationRetainsCauseAndFillsOnlyMissingContext",
+        "PASS explicitClassificationOwnerStillControlsItsAggregateDecision",
+        "PASS diagnosticPrefixNeverClassifiesCancellationOrInventsForeignAuthority"
+      ],
+      "executedTestCases": null,
+      "steps": {
+        "client-link": {
+          "exitCode": 0,
+          "elapsedSeconds": 2.3812692499923287,
+          "sampledPeakProcessTreeRSSBytes": 776404992,
+          "stopReason": null,
+          "logSHA256": "7559b671dc1df355039f45b5aa7848ab88a1153bf4641699e9dad7f04b253659"
+        },
+        "runtime": {
+          "exitCode": 0,
+          "elapsedSeconds": 1.193055124997045,
+          "sampledPeakProcessTreeRSSBytes": 32768,
+          "stopReason": null,
+          "logSHA256": "f0575fd70418c9d97d7d49337809f2edc435ab588f8ba5509cf6058eb55fa1f5"
+        }
+      },
+      "postflightDrift": [],
+      "sourcesProductsAndLogsUnchanged": true
+    },
+    "metadata-clients-r1/wasm": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/metadata-clients-r1/wasm/receipt.json",
+      "receiptSHA256": "c7797ef473b2148e5c9eac49ef8cf7992e2ad6f455640764ffb659e20b927842",
+      "originalStatus": "passed",
+      "scope": "all selected checks",
+      "acceptedFunctions": null,
+      "expectedOutputLines": [
+        "PASS prefixPreservesEveryPublishedFieldAndInnerContext",
+        "PASS rawResourcePublicationRetainsCauseAndFillsOnlyMissingContext",
+        "PASS explicitClassificationOwnerStillControlsItsAggregateDecision",
+        "PASS diagnosticPrefixNeverClassifiesCancellationOrInventsForeignAuthority"
+      ],
+      "executedTestCases": null,
+      "steps": {
+        "client-link": {
+          "exitCode": 0,
+          "elapsedSeconds": 1.6392110839951783,
+          "sampledPeakProcessTreeRSSBytes": 801587200,
+          "stopReason": null,
+          "logSHA256": "0311ca50e76a3daa26c45d12ef2af4d894fda3b554838b62c1e15745af05ccaa"
+        },
+        "runtime": {
+          "exitCode": 0,
+          "elapsedSeconds": 0.23537183400185313,
+          "sampledPeakProcessTreeRSSBytes": 950272,
+          "stopReason": null,
+          "logSHA256": "1cb26c9387d36ebb2ab9690a3b03f8af95a63fd34652fc071ba15ca2f50d8bf4"
+        }
+      },
+      "postflightDrift": [],
+      "sourcesProductsAndLogsUnchanged": true
+    },
+    "metadata-clients-r1/embedded": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/metadata-clients-r1/embedded/receipt.json",
+      "receiptSHA256": "93c0e9e4a9c9d57f26e1deb9c2d3711907e753f7b51f92962d2e1c0017934877",
+      "originalStatus": "passed",
+      "scope": "all selected checks",
+      "acceptedFunctions": null,
+      "expectedOutputLines": [
+        "PASS prefixPreservesEveryPublishedFieldAndInnerContext",
+        "PASS rawResourcePublicationRetainsCauseAndFillsOnlyMissingContext",
+        "PASS explicitClassificationOwnerStillControlsItsAggregateDecision",
+        "PASS diagnosticPrefixNeverClassifiesCancellationOrInventsForeignAuthority"
+      ],
+      "executedTestCases": null,
+      "steps": {
+        "client-link": {
+          "exitCode": 0,
+          "elapsedSeconds": 1.4115828340000007,
+          "sampledPeakProcessTreeRSSBytes": 257572864,
+          "stopReason": null,
+          "logSHA256": "fc5d9584539220f9aa1f2f8614df83834248f3db9c5a54bf27ca91de282f8d49"
+        },
+        "runtime": {
+          "exitCode": 0,
+          "elapsedSeconds": 0.23590800000238232,
+          "sampledPeakProcessTreeRSSBytes": 933888,
+          "stopReason": null,
+          "logSHA256": "f1904419817c7fc93494b3ac7886603b8a2f640fe68b9d2ceec6d94b5cb4b055"
+        }
+      },
+      "postflightDrift": [],
+      "sourcesProductsAndLogsUnchanged": true
+    },
+    "trim-clients-r3/asan": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/trim-clients-r3/asan/receipt.json",
+      "receiptSHA256": "f0f8e7eda080494cb0db642d5fb19dedd258e083fbc0c877ebbf869942bb8e93",
+      "originalStatus": "passed",
+      "scope": "all selected checks",
+      "acceptedFunctions": null,
+      "expectedOutputLines": [
+        "PASS crossingLinesRetainTheirNonemptyContact",
+        "PASS trimContactLowerWorkRefusalRetainsItsOriginalClassification",
+        "PASS lowerTrimCallerCancellationRetainsItsOriginalCause"
+      ],
+      "executedTestCases": null,
+      "steps": {
+        "CADKernel": {
+          "exitCode": 0,
+          "elapsedSeconds": 1.6346424579969607,
+          "sampledPeakProcessTreeRSSBytes": 237535232,
+          "stopReason": null,
+          "logSHA256": "b45f2c196c164efbecbf7d4691224227ed551cd89ca81113787a86f3caf6e685"
+        },
+        "client-link": {
+          "exitCode": 0,
+          "elapsedSeconds": 2.8107512919959845,
+          "sampledPeakProcessTreeRSSBytes": 911818752,
+          "stopReason": null,
+          "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "runtime": {
+          "exitCode": 0,
+          "elapsedSeconds": 1.2070269170071697,
+          "sampledPeakProcessTreeRSSBytes": 32768,
+          "stopReason": null,
+          "logSHA256": "fa1bfa165aedd8a841744e5e8b131cebb9ec6914ba22b6250c6fafcc64244618"
+        }
+      },
+      "postflightDrift": [],
+      "sourcesProductsAndLogsUnchanged": true
+    },
+    "trim-clients-r3/wasm": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/trim-clients-r3/wasm/receipt.json",
+      "receiptSHA256": "c1560c4bd9addcc222318f54c24bd93b250e843258f21ac75b9e1e30717334c6",
+      "originalStatus": "passed",
+      "scope": "all selected checks",
+      "acceptedFunctions": null,
+      "expectedOutputLines": [
+        "PASS crossingLinesRetainTheirNonemptyContact",
+        "PASS trimContactLowerWorkRefusalRetainsItsOriginalClassification",
+        "PASS lowerTrimCallerCancellationRetainsItsOriginalCause"
+      ],
+      "executedTestCases": null,
+      "steps": {
+        "CADKernel": {
+          "exitCode": 0,
+          "elapsedSeconds": 1.1667829590005567,
+          "sampledPeakProcessTreeRSSBytes": 266846208,
+          "stopReason": null,
+          "logSHA256": "823f05d03397b3a9694ab82fc7a4fbaeae4f02dff0677f5055aeddaa89d06543"
+        },
+        "client-link": {
+          "exitCode": 0,
+          "elapsedSeconds": 1.6310907500010217,
+          "sampledPeakProcessTreeRSSBytes": 900399104,
+          "stopReason": null,
+          "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "runtime": {
+          "exitCode": 0,
+          "elapsedSeconds": 0.2294125840126071,
+          "sampledPeakProcessTreeRSSBytes": 933888,
+          "stopReason": null,
+          "logSHA256": "ae91c6bc1edae1d4d52ec8f284eaac29db90edafe0e2d66b967801eff8f0b172"
+        }
+      },
+      "postflightDrift": [],
+      "sourcesProductsAndLogsUnchanged": true
+    },
+    "trim-clients-r3/embedded": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/trim-clients-r3/embedded/receipt.json",
+      "receiptSHA256": "d563f69d1ea45d8e44609583c661a03c80ae1020de907a1853a8a3337a7ec568",
+      "originalStatus": "passed",
+      "scope": "all selected checks",
+      "acceptedFunctions": null,
+      "expectedOutputLines": [
+        "PASS crossingLinesRetainTheirNonemptyContact",
+        "PASS trimContactLowerWorkRefusalRetainsItsOriginalClassification",
+        "PASS lowerTrimCallerCancellationRetainsItsOriginalCause"
+      ],
+      "executedTestCases": null,
+      "steps": {
+        "CADKernel": {
+          "exitCode": 0,
+          "elapsedSeconds": 6.717235917007201,
+          "sampledPeakProcessTreeRSSBytes": 863371264,
+          "stopReason": null,
+          "logSHA256": "cf6f92d6e0308016e75013c64dcef80a50cac3716cb05a62323f2f956fe39ab4"
+        },
+        "client-link": {
+          "exitCode": 0,
+          "elapsedSeconds": 43.19640074999188,
+          "sampledPeakProcessTreeRSSBytes": 5380194304,
+          "stopReason": null,
+          "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "runtime": {
+          "exitCode": 0,
+          "elapsedSeconds": 0.23593895901285578,
+          "sampledPeakProcessTreeRSSBytes": 933888,
+          "stopReason": null,
+          "logSHA256": "dcf9960f43ba777fd2ba9ba320a32ddc68942ea6f4a77cd81321503d3f46693b"
+        }
+      },
+      "postflightDrift": [],
+      "sourcesProductsAndLogsUnchanged": true
+    },
+    "uv-finite/asan": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/uv-finite-clients-r8/asan/receipt.json",
+      "receiptSHA256": "8f6db44f5d671b6a91bbbb276cc5469bf81cf7e143e29552eb5bb390cdd9d326",
+      "originalStatus": "passed",
+      "scope": "all selected eight checks",
+      "acceptedFunctions": null,
+      "expectedOutputLines": [
+        "PASS emptyGraphRemainsAGenuineEmptySplit",
+        "PASS lowerWorkRefusalRetainsItsOriginalClassification",
+        "PASS lowerCallerCancellationRetainsItsOriginalCause",
+        "PASS externalProviderRetainsItsEmptyCapabilityFallbackAndCaller",
+        "PASS exactPlanarCutRetainsItsSourceAndUVLaw",
+        "PASS finitePlaneProximityUsesRetainedMaterialAndSource",
+        "PASS finiteBoundsAndOutsideToleranceKeepTheirCompletePath",
+        "PASS primitiveProjectionPreservesCallerWorkAndCancellation"
+      ],
+      "executedTestCases": null,
+      "steps": {
+        "CADModeling": {
+          "exitCode": 0,
+          "elapsedSeconds": 1.8712594999960857,
+          "sampledPeakProcessTreeRSSBytes": 299991040,
+          "stopReason": null,
+          "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "CADKernel": {
+          "exitCode": 0,
+          "elapsedSeconds": 3.4693118750001304,
+          "sampledPeakProcessTreeRSSBytes": 489439232,
+          "stopReason": null,
+          "logSHA256": "7cee401ee5db4d0b12f1028746652475d211dae358ec930cc53e5d4b5920985e"
+        },
+        "client-link": {
+          "exitCode": 0,
+          "elapsedSeconds": 3.0366861669899663,
+          "sampledPeakProcessTreeRSSBytes": 940605440,
+          "stopReason": null,
+          "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "runtime": {
+          "exitCode": 0,
+          "elapsedSeconds": 2.3566797920066165,
+          "sampledPeakProcessTreeRSSBytes": 207929344,
+          "stopReason": null,
+          "logSHA256": "90eb880ae9d44813f6441d63f26969104eaba603afca2c06f24ea242c3dff982"
+        }
+      },
+      "postflightDrift": [],
+      "sourcesProductsAndLogsUnchanged": true
+    },
+    "uv-finite/wasm": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/uv-finite-clients-r8/wasm/receipt.json",
+      "receiptSHA256": "83268e8dd9193718f9e629d6ca257b3df1147c9a9f7bbb07c9297335007be032",
+      "originalStatus": "passed",
+      "scope": "all selected eight checks",
+      "acceptedFunctions": null,
+      "expectedOutputLines": [
+        "PASS emptyGraphRemainsAGenuineEmptySplit",
+        "PASS lowerWorkRefusalRetainsItsOriginalClassification",
+        "PASS lowerCallerCancellationRetainsItsOriginalCause",
+        "PASS externalProviderRetainsItsEmptyCapabilityFallbackAndCaller",
+        "PASS exactPlanarCutRetainsItsSourceAndUVLaw",
+        "PASS finitePlaneProximityUsesRetainedMaterialAndSource",
+        "PASS finiteBoundsAndOutsideToleranceKeepTheirCompletePath",
+        "PASS primitiveProjectionPreservesCallerWorkAndCancellation"
+      ],
+      "executedTestCases": null,
+      "steps": {
+        "CADModeling": {
+          "exitCode": 0,
+          "elapsedSeconds": 1.6200894590001553,
+          "sampledPeakProcessTreeRSSBytes": 335380480,
+          "stopReason": null,
+          "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "CADKernel": {
+          "exitCode": 0,
+          "elapsedSeconds": 3.462935709001613,
+          "sampledPeakProcessTreeRSSBytes": 628817920,
+          "stopReason": null,
+          "logSHA256": "bcb63351f960d1538b151eeeb0c370c78abefb9845b75c3a89c5c6c60a93b766"
+        },
+        "client-link": {
+          "exitCode": 0,
+          "elapsedSeconds": 1.8583839159982745,
+          "sampledPeakProcessTreeRSSBytes": 1037631488,
+          "stopReason": null,
+          "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "runtime": {
+          "exitCode": 0,
+          "elapsedSeconds": 0.7019109579996439,
+          "sampledPeakProcessTreeRSSBytes": 547946496,
+          "stopReason": null,
+          "logSHA256": "53eb6511f9374983362854c691bb19573b0c40369458514939015d994993a2dc"
+        }
+      },
+      "postflightDrift": [],
+      "sourcesProductsAndLogsUnchanged": true
+    },
+    "uv-finite/embedded": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/uv-finite-clients-r7/embedded/receipt.json",
+      "receiptSHA256": "e3d0db50813695150adf00e05fcff7cd9b74e42e817d81119dba3c9699a3dab5",
+      "originalStatus": "passed",
+      "scope": "all selected eight checks",
+      "acceptedFunctions": null,
+      "expectedOutputLines": [
+        "PASS emptyGraphRemainsAGenuineEmptySplit",
+        "PASS lowerWorkRefusalRetainsItsOriginalClassification",
+        "PASS lowerCallerCancellationRetainsItsOriginalCause",
+        "PASS externalProviderRetainsItsEmptyCapabilityFallbackAndCaller",
+        "PASS exactPlanarCutRetainsItsSourceAndUVLaw",
+        "PASS finitePlaneProximityUsesRetainedMaterialAndSource",
+        "PASS finiteBoundsAndOutsideToleranceKeepTheirCompletePath",
+        "PASS primitiveProjectionPreservesCallerWorkAndCancellation"
+      ],
+      "executedTestCases": null,
+      "steps": {
+        "CADKernel": {
+          "exitCode": 0,
+          "elapsedSeconds": 7.735272582998732,
+          "sampledPeakProcessTreeRSSBytes": 979828736,
+          "stopReason": null,
+          "logSHA256": "1837a1051f6d323fd95f0720684bbf8d5f454b891e5ebecc6da5902219cda921"
+        },
+        "client-link": {
+          "exitCode": 0,
+          "elapsedSeconds": 50.53306295799848,
+          "sampledPeakProcessTreeRSSBytes": 4954947584,
+          "stopReason": null,
+          "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "runtime": {
+          "exitCode": 0,
+          "elapsedSeconds": 0.4650228340033209,
+          "sampledPeakProcessTreeRSSBytes": 223592448,
+          "stopReason": null,
+          "logSHA256": "4f71c340bf861e5c737ab9169a7c4d5908726bad78326d7601e5db4fce99cef0"
+        }
+      },
+      "postflightDrift": [],
+      "sourcesProductsAndLogsUnchanged": true
+    },
+    "native-source-metadata-r3": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-source-metadata-r3/receipt.json",
+      "receiptSHA256": "c8d89051b29d72a1e1772b4fd6b39992d3f80aacec5379edc87cac483795c03b",
+      "originalStatus": "failed",
+      "scope": "individual scoped PASS results only",
+      "acceptedFunctions": [
+        "prefixPreservesEveryPublishedFieldAndInnerContext",
+        "rawResourcePublicationRetainsCauseAndFillsOnlyMissingContext",
+        "explicitClassificationOwnerStillControlsItsAggregateDecision",
+        "diagnosticPrefixNeverClassifiesCancellationOrInventsForeignAuthority"
+      ],
+      "expectedOutputLines": null,
+      "executedTestCases": null,
+      "steps": {
+        "compiler-version": {
+          "exitCode": 0,
+          "elapsedSeconds": 0.2286379580036737,
+          "sampledPeakProcessTreeRSSBytes": 262144,
+          "stopReason": null,
+          "logSHA256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c"
+        },
+        "test-build-and-list": {
+          "exitCode": 0,
+          "elapsedSeconds": 11.887222250006744,
+          "sampledPeakProcessTreeRSSBytes": 713146368,
+          "stopReason": null,
+          "logSHA256": "98a13dde00db3d8aa795d65c45a0d6dbc4503f1045a432294528a71634a8c1ab"
+        },
+        "test-runtime": {
+          "exitCode": 1,
+          "elapsedSeconds": 0.6978304579970427,
+          "sampledPeakProcessTreeRSSBytes": 127418368,
+          "stopReason": null,
+          "logSHA256": "d25c9fc87f4ed58829d8402755c1fee9c53b212f645226bf35f353a4067de7e6"
+        }
+      },
+      "postflightDrift": null,
+      "sourcesProductsAndLogsUnchanged": null
+    },
+    "native-callers-r1": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-callers-r1/receipt.json",
+      "receiptSHA256": "199f53df932667c6a3e32b50886dbc491da0c557652cef05b8e0a6702778500d",
+      "originalStatus": "failed",
+      "scope": "individual scoped PASS results only",
+      "acceptedFunctions": [
+        "crossingLinesRetainTheirNonemptyContact",
+        "trimContactLowerWorkRefusalRetainsItsOriginalClassification",
+        "lowerCallerCancellationRetainsItsOriginalCause(splitGraph: false)"
+      ],
+      "expectedOutputLines": null,
+      "executedTestCases": null,
+      "steps": {
+        "compiler-version": {
+          "exitCode": 0,
+          "elapsedSeconds": 0.23703120899153873,
+          "sampledPeakProcessTreeRSSBytes": 245760,
+          "stopReason": null,
+          "logSHA256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c"
+        },
+        "test-build-and-list": {
+          "exitCode": 0,
+          "elapsedSeconds": 13.702244707994396,
+          "sampledPeakProcessTreeRSSBytes": 1027244032,
+          "stopReason": null,
+          "logSHA256": "101a4822aee2d2a0a4a0a37a9972347a4b89743175963498c907cdfd1dbbe959"
+        },
+        "test-runtime": {
+          "exitCode": 1,
+          "elapsedSeconds": 0.7079444580012932,
+          "sampledPeakProcessTreeRSSBytes": 133103616,
+          "stopReason": null,
+          "logSHA256": "2fcbf9e5fd40c303c7ebea2e22881ca980965930879f50dcb2f72ee3337a4daf"
+        }
+      },
+      "postflightDrift": null,
+      "sourcesProductsAndLogsUnchanged": null
+    },
+    "native-uv-capability-r1": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-uv-capability-r1/receipt.json",
+      "receiptSHA256": "3b18c82b96004e9a23577d63b80adb1afa1d727c0f8db63fb61c68d05b802274",
+      "originalStatus": "passed",
+      "scope": "eight selected checks",
+      "acceptedFunctions": null,
+      "expectedOutputLines": null,
+      "executedTestCases": 8,
+      "steps": {
+        "compiler-version": {
+          "exitCode": 0,
+          "elapsedSeconds": 0.2347053749981569,
+          "sampledPeakProcessTreeRSSBytes": 262144,
+          "stopReason": null,
+          "logSHA256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c"
+        },
+        "test-build-and-list": {
+          "exitCode": 0,
+          "elapsedSeconds": 12.157578332989942,
+          "sampledPeakProcessTreeRSSBytes": 1062764544,
+          "stopReason": null,
+          "logSHA256": "5cb01e0565581b835de7c6d9dc7128abde67ba5c8d5283b231f11c36935a839e"
+        },
+        "test-runtime": {
+          "exitCode": 0,
+          "elapsedSeconds": 0.6883057910017669,
+          "sampledPeakProcessTreeRSSBytes": 131956736,
+          "stopReason": null,
+          "logSHA256": "6f542c42a62ab46ce32dc28914eca6ddfe3fd2c223801c7753b5410f25f27b9c"
+        }
+      },
+      "postflightDrift": null,
+      "sourcesProductsAndLogsUnchanged": true
+    }
+  },
+  "files": {
+    "SourceAndFixtures.tar.gz": {
+      "origin": "Exact listed UTF-8 source/log members; deterministic USTAR",
+      "rawSHA256": "6d77f5f1671b2626d7f936ca096ff4eaf2ce83faa3a5b19eace42bc80bf25d1d",
+      "rawBytes": 747520,
+      "gzipSHA256": "eb39f6fe1c48b89e7f4cd2ae5810f2e7004de2b59e0162ee45db5971bbfedb0f",
+      "gzipBytes": 165323
+    },
+    "Receipts/metadata-clients-r1/asan/receipt.json.gz": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/metadata-clients-r1/asan/receipt.json",
+      "rawSHA256": "c1673d2ef07cffdbbb86eda07e5bc6494fafa9a47ff23c48b7d9f2353313b164",
+      "rawBytes": 991070,
+      "gzipSHA256": "a419b5177e67d47c822f10591e3b9639a43ab35623a04689b1f111952941f4dc",
+      "gzipBytes": 225625
+    },
+    "Receipts/metadata-clients-r1/wasm/receipt.json.gz": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/metadata-clients-r1/wasm/receipt.json",
+      "rawSHA256": "c7797ef473b2148e5c9eac49ef8cf7992e2ad6f455640764ffb659e20b927842",
+      "rawBytes": 993129,
+      "gzipSHA256": "44a209b8337df47a3c46f2f93e39c65cf5a015fe5b8f8f268256c12b0d18cf39",
+      "gzipBytes": 225859
+    },
+    "Receipts/metadata-clients-r1/embedded/receipt.json.gz": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/metadata-clients-r1/embedded/receipt.json",
+      "rawSHA256": "93c0e9e4a9c9d57f26e1deb9c2d3711907e753f7b51f92962d2e1c0017934877",
+      "rawBytes": 1000700,
+      "gzipSHA256": "532157a6c6a51e0bb0dfbc6a9dbd39f0c09121610fd8b46ba5735580aabb248c",
+      "gzipBytes": 225829
+    },
+    "Receipts/trim-clients-r3/asan/receipt.json.gz": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/trim-clients-r3/asan/receipt.json",
+      "rawSHA256": "f0f8e7eda080494cb0db642d5fb19dedd258e083fbc0c877ebbf869942bb8e93",
+      "rawBytes": 1787419,
+      "gzipSHA256": "d4887aa904f4f61bc76b04343b46371179a4308641890305e7ab6841ae6c948c",
+      "gzipBytes": 321317
+    },
+    "Receipts/trim-clients-r3/wasm/receipt.json.gz": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/trim-clients-r3/wasm/receipt.json",
+      "rawSHA256": "c1560c4bd9addcc222318f54c24bd93b250e843258f21ac75b9e1e30717334c6",
+      "rawBytes": 1788548,
+      "gzipSHA256": "27c82ba6449fa6bd3fe16d24516fc61619bbe8270aa9e1c94596c0e330f88d3e",
+      "gzipBytes": 321072
+    },
+    "Receipts/trim-clients-r3/embedded/receipt.json.gz": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/trim-clients-r3/embedded/receipt.json",
+      "rawSHA256": "d563f69d1ea45d8e44609583c661a03c80ae1020de907a1853a8a3337a7ec568",
+      "rawBytes": 1796388,
+      "gzipSHA256": "9b8373b22c5afd9576ce45a87c2b9a9bc4a18600bbee8ed545fda23c48662239",
+      "gzipBytes": 320525
+    },
+    "Receipts/uv-finite/asan/receipt.json.gz": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/uv-finite-clients-r8/asan/receipt.json",
+      "rawSHA256": "8f6db44f5d671b6a91bbbb276cc5469bf81cf7e143e29552eb5bb390cdd9d326",
+      "rawBytes": 1665605,
+      "gzipSHA256": "d97e5a1c9e1e119e972f48d1bfc2cc8d988a2a6738c120c7c068e7a890cb889c",
+      "gzipBytes": 288607
+    },
+    "Receipts/uv-finite/wasm/receipt.json.gz": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/uv-finite-clients-r8/wasm/receipt.json",
+      "rawSHA256": "83268e8dd9193718f9e629d6ca257b3df1147c9a9f7bbb07c9297335007be032",
+      "rawBytes": 1666724,
+      "gzipSHA256": "16016e3835f7bbc3e961386a491b37c7f10786cecc3d11e1819f707735aec30b",
+      "gzipBytes": 288400
+    },
+    "Receipts/uv-finite/embedded/receipt.json.gz": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/uv-finite-clients-r7/embedded/receipt.json",
+      "rawSHA256": "e3d0db50813695150adf00e05fcff7cd9b74e42e817d81119dba3c9699a3dab5",
+      "rawBytes": 1713632,
+      "gzipSHA256": "6f3ff14787a6210223897a176ec645d48b068b259e78755829f81fa751a38ec6",
+      "gzipBytes": 290819
+    },
+    "Receipts/native-source-metadata-r3/receipt.json.gz": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-source-metadata-r3/receipt.json",
+      "rawSHA256": "c8d89051b29d72a1e1772b4fd6b39992d3f80aacec5379edc87cac483795c03b",
+      "rawBytes": 369040,
+      "gzipSHA256": "0d3086fd62ac060213ee010a0dad824d31f1a06706e4b8a965116734cb8047c5",
+      "gzipBytes": 112750
+    },
+    "Receipts/native-callers-r1/receipt.json.gz": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-callers-r1/receipt.json",
+      "rawSHA256": "199f53df932667c6a3e32b50886dbc491da0c557652cef05b8e0a6702778500d",
+      "rawBytes": 612078,
+      "gzipSHA256": "41574b3463ef47d8f298b961d54fa4a542bc5a766c9913f90faf9f7cc8c89b20",
+      "gzipBytes": 196834
+    },
+    "Receipts/native-uv-capability-r1/receipt.json.gz": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-uv-capability-r1/receipt.json",
+      "rawSHA256": "3b18c82b96004e9a23577d63b80adb1afa1d727c0f8db63fb61c68d05b802274",
+      "rawBytes": 611372,
+      "gzipSHA256": "18b5c3a33072f70313f317c4abd64039b4ad3cb27f80460c22910d9d9300273b",
+      "gzipBytes": 196781
+    },
+    "Receipts/original-native-red/receipt.json.gz": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-red-20261017/native-source-error-ir-r1/receipt.json",
+      "rawSHA256": "0feb99152e490209aa4d66d5eb281d595b520a691727e7c21d582a9246df1a85",
+      "rawBytes": 608540,
+      "gzipSHA256": "db4378f10a29a2e0089aa6478abe3831d2c43b6f1cf96b2358ed2dbe0acb6452",
+      "gzipBytes": 196035
+    },
+    "Receipts/current-native-authority/receipt.json.gz": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-full-r9/receipt.json",
+      "rawSHA256": "96022991cbe7e96ead20646f1fa8e7c904f330ac62aefd51f7ec22d70a7cf172",
+      "rawBytes": 1402953,
+      "gzipSHA256": "ae613a46391aa25192f9b6591f0d5d3fb4e45c739682b086529dccc269aa1dd1",
+      "gzipBytes": 229138
+    },
+    "Reviews/review-error-kernel-r1.json.gz": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/review-error-kernel-r1.json",
+      "rawSHA256": "d02efca84707298f6076b611e91807188a98cc0ca269c5fd0013df5b3b35d989",
+      "rawBytes": 7604,
+      "gzipSHA256": "c98debdef8c46dac32eac5a087431608c7b181f9176f770bfece7b5c6b333c8a",
+      "gzipBytes": 2859
+    },
+    "Reviews/review-error-finite-plane-finding-r1.json.gz": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/review-error-finite-plane-finding-r1.json",
+      "rawSHA256": "8d9027c0dc9ce5f2f8e60b77cc19da8def1b84d37cfb1cc6479200ac79cacf29",
+      "rawBytes": 4612,
+      "gzipSHA256": "37ed552ead7d92d7d156e57385389e915336af51a3e14967d1281bae81e91a93",
+      "gzipBytes": 2038
+    },
+    "Reviews/review-error-provider-witness-finding-r1.json.gz": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/review-error-provider-witness-finding-r1.json",
+      "rawSHA256": "a7dcec84b86ad7244bb3cf4f4122719b978542f9a28e9f60515d65d7c1a42dc6",
+      "rawBytes": 9288,
+      "gzipSHA256": "7e72db3752e58bd808363490e384a2089923e4dcb164c48b04bc19f5c31fcb7d",
+      "gzipBytes": 3678
+    },
+    "LogsAndDrivers.tar.gz": {
+      "origin": "Exact listed UTF-8 source/log members; deterministic USTAR",
+      "rawSHA256": "868e5659aaba10be91cbc4b597d1fc0ec1aa54611f25aff8b5a7e3a0f368181c",
+      "rawBytes": 481280,
+      "gzipSHA256": "45509a92e852eaecf8f56eef3e5f68ee6217e0fb49f71b0435ee47dd6a6650f6",
+      "gzipBytes": 56322
+    },
+    "Equivalence/uv-finite-final-archive-index.json.gz": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/uv-finite-final-archive-r1/index.json",
+      "rawSHA256": "0d7ef50fccbbf8be73f31acf29a993f39c080629fc517ccbed95cab4dcd28b8f",
+      "rawBytes": 94610,
+      "gzipSHA256": "4f3b9eb831b02c38d6b53ad0ec6cf5227240ef5fc0fb37520deb7c9ecd15d728",
+      "gzipBytes": 18267
+    },
+    "Equivalence/native7-to-native9-field-readers.patch.gz": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/uv-finite-final-archive-r1/Native/native7-to-native9-field-readers.patch.gz",
+      "rawSHA256": "e79d9417e7410063088984e752ffb9482e610a7b6b70bd486965194d6c71a53b",
+      "rawBytes": 2231,
+      "gzipSHA256": "891baf1b317f3b9aa41801f73ba255d671aaef8cd2f1168880c7562ced9256ac",
+      "gzipBytes": 913
+    },
+    "Equivalence/trim-archive-index.json.gz": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/trim-clients-r3/archive/index.json",
+      "rawSHA256": "a731498c609e163e61fa9e8ad0f493f63cda673ec5a9a7d8a728a62806463c53",
+      "rawBytes": 57503,
+      "gzipSHA256": "419affc814ed9b08c844ca52161fa8aca0ccdf3a86da4e0a9f38201b20193a0c",
+      "gzipBytes": 7945
+    },
+    "Equivalence/trim-keypath-finding-only.patch.gz": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/trim-clients-r3/archive/Source/keypath-finding-only.patch.gz",
+      "rawSHA256": "17953b35824e15fa7f83e1f63bdbe23d409aeb73e8c5f0d2aade846e6b32f417",
+      "rawBytes": 5232,
+      "gzipSHA256": "9e4ebffa1681e919218c3b26bc2765baa6925952ea7afcfbfb91982c3be54780",
+      "gzipBytes": 1367
+    }
+  },
+  "nativePremises": {
+    "currentCodeGeneration": "native-full-r9 matches all 15 owned production files; code-generation is not runtime.",
+    "metadata": "Four actual Native metadata checks passed inside an overall failed mixed run. Only those individual PASS results are accepted.",
+    "trim": "Three actual Native Trim checks passed inside overall failed native-callers-r1. Old source is retained with later mechanical KeyPath/import/cancellation equivalence, and current portable executions; no whole mixed-run success.",
+    "uvFinite": "Native capability run passes eight checks before the five-getter/KeyPath-only current bindings; current full Native authority and targeted reviews retain that mechanical equivalence. Fresh Main runtime remains pending."
+  },
+  "portableScope": {
+    "metadata": "4 common checks per ASAN/normal WASM/Embedded",
+    "trim": "3 common actual Kernel checks per lane; Model6/Kernel2 whole files",
+    "uvFinite": "8 common actual Kernel checks per lane; exact whole-file inventories remain in raw receipts"
+  },
+  "changes": "Geometry preserves all lower failure metadata with diagnostic-only prefixes. Six Kernel helpers retain original contexts; explicit aggregate classification remains. Finite plane/material containment and provider capabilities use real witnesses. KeyPath property readers, C math/direct dependency imports and same-position Task guards preserve existing formulas, order, fees and ownership.",
+  "excluded": {
+    "bridge": "BridgeSurfaceFeatureEvaluator.swift, BridgeSurface/DESIGN.md and BridgeSurfaceFailureClassificationTests.swift remain outside this delivery: Native wrong-request evidence alone does not establish portable or critical lower producer completion.",
+    "otherUnits": "SOURCE, IR, Loft and Exchange work retain separate coherent deliveries and proof scopes.",
+    "priorLoopclass": "Completed LOOPCLASS evidence is not rerun or counted again.",
+    "global": "No new source-family, full Kernel portability, whole ERROR/U1 or all-seven acceptance claim."
+  },
+  "mainDelivery": {
+    "status": "pending",
+    "reason": "Root will generate fresh Main Model/Kernel after excluding Bridge, reuse the exact Core-through-IR prefix, execute public interactions and attach a separate integration receipt."
+  },
+  "copiedProducts": false,
+  "bounds": "Retain recorded Swift6.4.0/matching SDK, compile-link1200s/10GiB, runtime120s and maximum2 compiler policy; exact per-run bounds/commands in raw receipts.",
+  "verification": "VERIFICATION.md",
+  "verificationSHA256": "b9cbbec3a39e090e8a7296ae154ca95114331e49912c0d9ade1dddf3534a6654",
+  "manifestSHA256": "d6e2b4c834525f4accb99809460629892c0fe95610e6eee507baf2599996d463",
+  "finalUVFiniteArchive": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/uv-finite-final-archive-r1/index.json",
+    "sha256": "0d7ef50fccbbf8be73f31acf29a993f39c080629fc517ccbed95cab4dcd28b8f",
+    "copiedWholeArchive": false,
+    "selectedEvidence": "Equivalence/"
+  }
+}

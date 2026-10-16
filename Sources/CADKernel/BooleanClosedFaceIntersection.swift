@@ -65,7 +65,7 @@ public struct BooleanClosedFaceIntersection: Hashable, Sendable {
       throw KernelError(
         phase: .topology,
         code: .topologyFailure,
-        residual: samples.map(\.uvPoint.residual).max(),
+        residual: samples.map { $0.uvPoint.residual }.max(),
         tolerance: tolerance,
         message: "Closed face intersection requires verified UV samples."
       )

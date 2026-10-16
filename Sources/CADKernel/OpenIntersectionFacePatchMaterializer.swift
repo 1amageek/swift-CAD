@@ -67,7 +67,7 @@ struct OpenIntersectionFacePatchMaterializer {
             throw contextualized(
                 error,
                 stage: "face-boundary materialization",
-                tolerance: tolerance
+                tolerance: tolerance, context: execution.context
             )
         }
         // Coincident-region ownership removes whole faces; boundaries whose
@@ -121,7 +121,7 @@ struct OpenIntersectionFacePatchMaterializer {
             throw contextualized(
                 error,
                 stage: "unsplit-face materialization",
-                tolerance: tolerance
+                tolerance: tolerance, context: execution.context
             )
         }
         let patches = try mergedCoincidentAncestry(splitPatches + carriedPatches,
@@ -146,7 +146,7 @@ struct OpenIntersectionFacePatchMaterializer {
             throw contextualized(
                 error,
                 stage: "shell partitioning",
-                tolerance: tolerance
+                tolerance: tolerance, context: execution.context
             )
         }
         var bodyParents: [SubshapeID] = []
@@ -362,18 +362,11 @@ struct OpenIntersectionFacePatchMaterializer {
     private func contextualized(
         _ error: any Error,
         stage: String,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        context: OriginalQueryFailureContext
     ) -> any Error {
-        let wrapped = KernelError.wrapping(error, phase: .topology, tolerance: tolerance)
-        let classification = KernelError(
-            phase: wrapped.phase,
-            code: wrapped.code,
-            featureID: wrapped.featureID,
-            subshapeID: wrapped.subshapeID,
-            residual: wrapped.residual,
-            tolerance: wrapped.tolerance ?? tolerance,
-            message: "Open-intersection \(stage) failed: \(wrapped.message)"
-        )
-        return OriginalQueryFailure.contextualizing(error, classification: classification)
+        OriginalQueryFailure.contextualizing(error,
+            diagnosticPrefix: "Open-intersection \(stage) failed: ",
+            context: context, tolerance: tolerance)
     }
 }

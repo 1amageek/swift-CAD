@@ -73,7 +73,7 @@ struct SharedCurveFaceArrangement {
                 throw contextualized(
                     error,
                     stage: "preliminary arrangement of face \(faceID)",
-                    tolerance: tolerance
+                    tolerance: tolerance, context: execution.context
                 )
             }
             var previewEdges: [BRepSewingEdge] = []
@@ -146,7 +146,7 @@ struct SharedCurveFaceArrangement {
                 throw contextualized(
                     error,
                     stage: "arrangement of face \(faceID)",
-                    tolerance: tolerance
+                    tolerance: tolerance, context: execution.context
                 )
             }
             if result.isPartitioned {
@@ -160,18 +160,11 @@ struct SharedCurveFaceArrangement {
     private func contextualized(
         _ error: any Error,
         stage: String,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        context: OriginalQueryFailureContext
     ) -> any Error {
-        let wrapped = KernelError.wrapping(error, phase: .topology, tolerance: tolerance)
-        let classification = KernelError(
-            phase: wrapped.phase,
-            code: wrapped.code,
-            featureID: wrapped.featureID,
-            subshapeID: wrapped.subshapeID,
-            residual: wrapped.residual,
-            tolerance: wrapped.tolerance ?? tolerance,
-            message: "Open-intersection \(stage) failed: \(wrapped.message)"
-        )
-        return OriginalQueryFailure.contextualizing(error, classification: classification)
+        OriginalQueryFailure.contextualizing(error,
+            diagnosticPrefix: "Open-intersection \(stage) failed: ",
+            context: context, tolerance: tolerance)
     }
 }

@@ -2,6 +2,7 @@ import CADCore
 import CADGeometry
 import CADIR
 import CADTopology
+import HashTreeCollections
 
 package struct SourceBRepFacePatchBuilder {
     package struct Result {

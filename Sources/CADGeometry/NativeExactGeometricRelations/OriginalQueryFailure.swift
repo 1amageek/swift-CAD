@@ -20,6 +20,20 @@ public struct OriginalQueryFailure: KernelFailureClassifying {
         tolerance: ModelingTolerance?) -> any Error {
         NativeExactGeometryPublicationFailure.published(error, tolerance: tolerance, context: context)
     }
+    /// Adds diagnostic text without replacing the original failure classification.
+    public static func contextualizing(_ error: any Error, diagnosticPrefix: String,
+        context: OriginalQueryFailureContext, tolerance: ModelingTolerance?) -> any Error {
+        let retained = published(error, context: context, tolerance: tolerance)
+        if retained is CancellationError { return retained }
+        guard let failure = retained as? Self else { return retained }
+        let original = failure.kernelFailure
+        let classification = KernelError(phase: original.phase, code: original.code,
+            featureID: original.featureID, subshapeID: original.subshapeID,
+            residual: original.residual, tolerance: original.tolerance,
+            message: diagnosticPrefix + original.message)
+        return Self(originalError: failure.originalError, kernelFailure: classification,
+            context: failure.context)
+    }
     public static func contextualizing(_ error: any Error, classification: KernelError) -> any Error {
         let retained = NativeExactGeometryPublicationFailure.published(error, tolerance: classification.tolerance)
         if retained is CancellationError { return retained }

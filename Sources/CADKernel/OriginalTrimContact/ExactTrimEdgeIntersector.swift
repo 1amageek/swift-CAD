@@ -2,7 +2,15 @@ import CADCore
 import CADGeometry
 import CADModeling
 import CADTopology
-import Foundation
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("Original trim contact requires the target C math module.")
+#endif
 
 enum ExactTrimEdgeIntersectionResult: Sendable {
   case subdivisionPoints([Point3D])
@@ -46,7 +54,7 @@ struct ExactTrimEdgeIntersector {
       throw contextualized(
         error,
         stage: "whole-span coincidence classification",
-        tolerance: tolerance
+        tolerance: tolerance, context: execution.context
       )
     }
     if equivalent {
@@ -81,7 +89,7 @@ struct ExactTrimEdgeIntersector {
       throw contextualized(
         error,
         stage: "partitioned coincidence classification",
-        tolerance: tolerance
+        tolerance: tolerance, context: execution.context
       )
     }
     if let partitioned {
@@ -277,7 +285,7 @@ struct ExactTrimEdgeIntersector {
       throw contextualized(
         error,
         stage: "shared-surface pcurve intersection",
-        tolerance: tolerance
+        tolerance: tolerance, context: execution.context
       )
     }
     if let lifted {
@@ -309,7 +317,7 @@ struct ExactTrimEdgeIntersector {
       throw contextualized(
         error,
         stage: "rational chart preparation",
-        tolerance: tolerance
+        tolerance: tolerance, context: execution.context
       )
     }
     var attempts: [(source: BRepSewingEdge, ruled: BRepSewingEdge, curve: BSplineCurve3D?)] = []
@@ -406,7 +414,7 @@ struct ExactTrimEdgeIntersector {
       }
     }
 
-    let residual = failures.compactMap(\.classification.residual).min()
+    let residual = failures.compactMap { $0.classification.residual }.min()
     let details = failures.prefix(3).map {
       "\($0.context): \($0.classification.code.rawValue): \($0.classification.message)"
     }.joined(separator: " | ")
@@ -564,7 +572,7 @@ struct ExactTrimEdgeIntersector {
     throw OriginalQueryFailure.contextualizing(failures[0].error, classification: KernelError(
       phase: primary.phase,
       code: primary.code,
-      residual: failures.compactMap(\.classification.residual).min(),
+      residual: failures.compactMap { $0.classification.residual }.min(),
       tolerance: tolerance,
       message: "Every exact certified support-surface reduction failed. \(details)"
     ))
@@ -611,7 +619,7 @@ struct ExactTrimEdgeIntersector {
     using execution: inout OriginalQueryExecution
   ) throws -> ScalarInterval {
     try execution.consumeWork(1)
-    try Task.checkCancellation()
+    guard !Task<Never, Never>.isCancelled else { throw CancellationError() }
     try tolerance.validate()
     return try parameterRange(source, using: &execution)
   }
@@ -848,20 +856,20 @@ struct ExactTrimEdgeIntersector {
       return false
     }
     let uLower = max(
-      firstPoints.map(\.x).min() ?? .infinity,
-      secondPoints.map(\.x).min() ?? .infinity
+      firstPoints.map { $0.x }.min() ?? .infinity,
+      secondPoints.map { $0.x }.min() ?? .infinity
     )
     let uUpper = min(
-      firstPoints.map(\.x).max() ?? -.infinity,
-      secondPoints.map(\.x).max() ?? -.infinity
+      firstPoints.map { $0.x }.max() ?? -.infinity,
+      secondPoints.map { $0.x }.max() ?? -.infinity
     )
     let vLower = max(
-      firstPoints.map(\.y).min() ?? .infinity,
-      secondPoints.map(\.y).min() ?? .infinity
+      firstPoints.map { $0.y }.min() ?? .infinity,
+      secondPoints.map { $0.y }.min() ?? .infinity
     )
     let vUpper = min(
-      firstPoints.map(\.y).max() ?? -.infinity,
-      secondPoints.map(\.y).max() ?? -.infinity
+      firstPoints.map { $0.y }.max() ?? -.infinity,
+      secondPoints.map { $0.y }.max() ?? -.infinity
     )
     if uLower > uUpper || vLower > vUpper {
       return true
@@ -1280,7 +1288,7 @@ struct ExactTrimEdgeIntersector {
         error,
         stage:
           "rational pcurve chart (first: \(pcurveDiagnostic(searchedFirstPcurve)); second: \(pcurveDiagnostic(alignedSecondPcurve)))",
-        tolerance: tolerance
+        tolerance: tolerance, context: execution.context
       )
     }
     var points = structuralContacts
@@ -1568,19 +1576,19 @@ struct ExactTrimEdgeIntersector {
     try execution.retainKernelValues(count: curve.controlPoints.count, stride: MemoryLayout<Point2D>.stride)
     func center(
       of points: [Point2D],
-      keyPath: KeyPath<Point2D, Double>
+      coordinate: (Point2D) -> Double
     ) -> Double {
-      guard let minimum = points.map({ $0[keyPath: keyPath] }).min(),
-        let maximum = points.map({ $0[keyPath: keyPath] }).max()
+      guard let minimum = points.map({ coordinate($0) }).min(),
+        let maximum = points.map({ coordinate($0) }).max()
       else {
         return 0.0
       }
       return minimum + (maximum - minimum) * 0.5
     }
-    let referenceU = center(of: reference.controlPoints, keyPath: \.x)
-    let referenceV = center(of: reference.controlPoints, keyPath: \.y)
-    let curveU = center(of: curve.controlPoints, keyPath: \.x)
-    let curveV = center(of: curve.controlPoints, keyPath: \.y)
+    let referenceU = center(of: reference.controlPoints, coordinate: { $0.x })
+    let referenceV = center(of: reference.controlPoints, coordinate: { $0.y })
+    let curveU = center(of: curve.controlPoints, coordinate: { $0.x })
+    let curveV = center(of: curve.controlPoints, coordinate: { $0.y })
     let uShift =
       period(of: surface.uDomain).map {
         ((referenceU - curveU) / $0).rounded() * $0
@@ -1601,8 +1609,8 @@ struct ExactTrimEdgeIntersector {
   }
 
   private func pcurveDiagnostic(_ curve: BSplineCurve2D) -> String {
-    let u = coordinateBounds(curve.controlPoints, keyPath: \.x)
-    let v = coordinateBounds(curve.controlPoints, keyPath: \.y)
+    let u = coordinateBounds(curve.controlPoints, coordinate: { $0.x })
+    let v = coordinateBounds(curve.controlPoints, coordinate: { $0.y })
     let minimumWeight = curve.weights.min() ?? .nan
     let maximumWeight = curve.weights.max() ?? .nan
     let start = curve.controlPoints.first ?? Point2D(x: .nan, y: .nan)
@@ -1620,10 +1628,10 @@ struct ExactTrimEdgeIntersector {
     surface: Surface3D,
     tolerance: ModelingTolerance
   ) -> Bool {
-    guard let firstU = coordinateBounds(first.controlPoints, keyPath: \.x),
-      let firstV = coordinateBounds(first.controlPoints, keyPath: \.y),
-      let secondU = coordinateBounds(second.controlPoints, keyPath: \.x),
-      let secondV = coordinateBounds(second.controlPoints, keyPath: \.y)
+    guard let firstU = coordinateBounds(first.controlPoints, coordinate: { $0.x }),
+      let firstV = coordinateBounds(first.controlPoints, coordinate: { $0.y }),
+      let secondU = coordinateBounds(second.controlPoints, coordinate: { $0.x }),
+      let secondV = coordinateBounds(second.controlPoints, coordinate: { $0.y })
     else {
       return false
     }
@@ -1643,14 +1651,14 @@ struct ExactTrimEdgeIntersector {
 
   private func coordinateBounds(
     _ points: [Point2D],
-    keyPath: KeyPath<Point2D, Double>
+    coordinate: (Point2D) -> Double
   ) -> (lower: Double, upper: Double)? {
     guard let firstPoint = points.first else { return nil }
-    let first = firstPoint[keyPath: keyPath]
+    let first = coordinate(firstPoint)
     var lower = first
     var upper = first
     for point in points.dropFirst() {
-      let value = point[keyPath: keyPath]
+      let value = coordinate(point)
       lower = min(lower, value)
       upper = max(upper, value)
     }
@@ -1801,7 +1809,7 @@ struct ExactTrimEdgeIntersector {
         stage: ruledCurve == nil
           ? "procedural ruled-surface root certification"
           : "rational ruled-surface root certification",
-        tolerance: tolerance
+        tolerance: tolerance, context: execution.context
       )
     }
     var points: [Point3D] = []
@@ -2043,7 +2051,7 @@ struct ExactTrimEdgeIntersector {
     using execution: inout OriginalQueryExecution
   ) throws -> ScalarInterval {
     try execution.consumeWork(1)
-    try Task.checkCancellation()
+    guard !Task<Never, Never>.isCancelled else { throw CancellationError() }
     try tolerance.validate()
     // A numerical station leaving a chart plane cannot exclude earlier roots.
     return range
@@ -2178,7 +2186,7 @@ struct ExactTrimEdgeIntersector {
       throw contextualized(
         error,
         stage: "analytic plane root certification",
-        tolerance: tolerance
+        tolerance: tolerance, context: execution.context
       )
     }
     var points: [Point3D] = []
@@ -2353,13 +2361,15 @@ struct ExactTrimEdgeIntersector {
     return lhs.z < rhs.z
   }
 
-  private func contextualized(_ error: any Error, stage: String,
-    tolerance: ModelingTolerance) -> any Error {
-    let classification = KernelError.wrapping(error, phase: .geometry, tolerance: tolerance)
-    return OriginalQueryFailure.contextualizing(error, classification: KernelError(
-      phase: classification.phase, code: classification.code, residual: classification.residual,
-      tolerance: classification.tolerance ?? tolerance,
-      message: "Exact trim-edge \(stage) failed: \(classification.message)"))
+  private func contextualized(
+      _ error: any Error,
+      stage: String,
+      tolerance: ModelingTolerance,
+      context: OriginalQueryFailureContext
+  ) -> any Error {
+      OriginalQueryFailure.contextualizing(error,
+          diagnosticPrefix: "Exact trim-edge \(stage) failed: ",
+          context: context, tolerance: tolerance)
   }
 
   private struct SpanPair: Hashable, Sendable {

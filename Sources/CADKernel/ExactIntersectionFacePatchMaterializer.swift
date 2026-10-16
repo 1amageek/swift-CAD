@@ -62,7 +62,7 @@ struct ExactIntersectionFacePatchMaterializer {
                 throw contextualized(
                     error,
                     stage: "coincident face ownership",
-                    tolerance: tolerance
+                    tolerance: tolerance, context: execution.context
                 )
             }
         } else {
@@ -85,7 +85,7 @@ struct ExactIntersectionFacePatchMaterializer {
             throw contextualized(
                 error,
                 stage: "coincident face arrangement",
-                tolerance: tolerance
+                tolerance: tolerance, context: execution.context
             )
         }
         var coincidentFaceActions = coincidenceResolution.forcedActions
@@ -201,18 +201,11 @@ struct ExactIntersectionFacePatchMaterializer {
     private func contextualized(
         _ error: any Error,
         stage: String,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        context: OriginalQueryFailureContext
     ) -> any Error {
-        let wrapped = KernelError.wrapping(error, phase: .topology, tolerance: tolerance)
-        let classification = KernelError(
-            phase: wrapped.phase,
-            code: wrapped.code,
-            featureID: wrapped.featureID,
-            subshapeID: wrapped.subshapeID,
-            residual: wrapped.residual,
-            tolerance: wrapped.tolerance ?? tolerance,
-            message: "Exact Boolean region materialization \(stage) failed: \(wrapped.message)"
-        )
-        return OriginalQueryFailure.contextualizing(error, classification: classification)
+        OriginalQueryFailure.contextualizing(error,
+            diagnosticPrefix: "Exact Boolean region materialization \(stage) failed: ",
+            context: context, tolerance: tolerance)
     }
 }
