@@ -1,0 +1,48 @@
+{
+  "sourceCommit": "1951837a651e1a743dfef8246075a4ef34536b94",
+  "previousMain": "99de549d5c43bc741765a1bc34e91d43a794298a",
+  "integration": "normal-fast-forward",
+  "sourceCount": 2380,
+  "newProductionCompilation": false,
+  "freshFinalNativeTestClient": true,
+  "indexSHA256": "223f97b2a4a54adca90bd4807c13942271345a77962107bbc85c1a32fa5de14e",
+  "runtime": {
+    "passedFunctions": 5,
+    "elapsedSeconds": 1.4634394159947988,
+    "scope": "actual retained moment receipt, ten integrals, resources, cancellation and COW/lifetime"
+  },
+  "retainedRaw": {
+    "integration/main-topology-authority-r1/receipt.json.gz": {
+      "rawSHA256": "0bba77e53161c46c69d3630aff216ba9f59214290b8a69bc2324a830be07fbd8",
+      "gzipSHA256": "f912726ea64e3f1a24278f3585fc0611fd9f81c3077336a51a1f6766f5d3a8bc"
+    },
+    "integration/main-public-replay-r1/receipt.json.gz": {
+      "rawSHA256": "bc9bcd0af782f4f8c31a0b6e7960e64b3c549b4894f7122f8822e02cacc2566d",
+      "gzipSHA256": "61d6062eb73c2896c3a1d64ccf627b72bcfd77c202b65d27eb22c8329fd263f4"
+    },
+    "integration/main-public-replay-r1/compiler-version.log.gz": {
+      "rawSHA256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c",
+      "gzipSHA256": "b2a195fb154058379af9b2e7aa94fdde1ed8d7c2cb9bdae784e34c1c58d64903"
+    },
+    "integration/main-public-replay-r1/test-build-and-list.log.gz": {
+      "rawSHA256": "676ab69877d177bd2ab7ec6f74a3ece946c5e53b94ea5e8a2ec7d1cdd864702b",
+      "gzipSHA256": "8d725789633463b29ddb2aef42471b61d9c86f33582f39d69c83ee37d67dbba9"
+    },
+    "integration/main-public-replay-r1/test-runtime.log.gz": {
+      "rawSHA256": "951366b22ab607ac4b1025b253b49817b34fecc9f2db7f4ccf606bfb61ec9be3",
+      "gzipSHA256": "84f8d2bb9b47b4e86eef3a63dcd4276500498e7ff93c8f3a0d1bf4d19f17177b"
+    },
+    "integration/main-public-replay-r1/results.xml.gz": {
+      "rawSHA256": "99c54b2bfc439c31a77d51bd06b5806d86f75475731253a0c184b04e23f5b4d5",
+      "gzipSHA256": "0b0a6cc6bfdabe85d1670b52ab9e80408aa9e2b0ae8e9ab588966b4066901a3f"
+    },
+    "integration/main-integration-result.json.gz": {
+      "rawSHA256": "a1b915d5a53fb2f93a6b0e1acb2d78d3b1c8ffb70216eb4ffdf8a930ddad627d",
+      "gzipSHA256": "3c31e63c4fbfc5901024be312dcddbea1612509aa255558add4c0f2c3f8fb24f"
+    }
+  },
+  "protected": {
+    "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/pending-public-publisher.patch": "97db4b01b16d6c5a66cdd0bfdfbeda4aa939389f12481b2e0ba8d10d873e8016",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADKernel/BRepDrawing/BRepDrawingSilhouetteProducer.swift": "3686efa109b77c4f33fd59e9b315a1fd751b35ee0608e5e3824ff85866d00f87"
+  }
+}
