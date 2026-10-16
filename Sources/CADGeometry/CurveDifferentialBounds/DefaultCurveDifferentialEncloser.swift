@@ -117,6 +117,13 @@ public struct DefaultCurveDifferentialEncloser: CurveDifferentialEnclosing, Send
         by: image.transform
       )
     }
+    if case .surfaceLift(let lift) = curve,
+      case .plane = lift.surface, case .affine = lift.parameterCurve
+    {
+      return try PreparedCurveDifferentialEncloser(
+        curve: curve, tolerance: tolerance, using: &execution
+      ).thirdOrderIntervalJet(over: parameters, tolerance: tolerance, using: &execution)
+    }
     if let jet = try directJet(
       curve,
       parameters: parameters,
@@ -135,14 +142,10 @@ public struct DefaultCurveDifferentialEncloser: CurveDifferentialEnclosing, Send
         over: parameters,
         bounds: bounds,
         tolerance: tolerance, using: &execution)
-    case .implicit(let implicit):
-      return try ImplicitCurveIntervalJetEncloser(
-        intersection: implicit,
-        tolerance: tolerance, using: &execution
-      ).intervalJet(
-        of: implicit,
-        over: parameters,
-        tolerance: tolerance, using: &execution)
+    case .implicit:
+      return try PreparedCurveDifferentialEncloser(
+        curve: curve, tolerance: tolerance, using: &execution
+      ).thirdOrderIntervalJet(over: parameters, tolerance: tolerance, using: &execution)
     case .surfaceLift(let lift):
       let bounder = SurfaceLiftDifferentialBounder()
       guard

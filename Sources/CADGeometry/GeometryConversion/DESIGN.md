@@ -317,6 +317,11 @@ native endpoints; both public evaluation entries must return bitwise-identical
 interval receipts. The existing `preparedEvaluationIsExactlyEquivalentToOneShotEvaluation`
 regression remains required in the merged behavioral proof.
 
+Implicit and affine bare-plane lift third-order queries use the same
+[original prepared composition authority](../DESIGN.md#original-closed-curve-span-differential-authority).
+Conversion consumes that receipt without a second source preparation or a
+separate interval composition; unrelated periodic producers keep their ports.
+
 ### Native Position-Only Surface Publication (PAR.G6POS1)
 
 A separate GeometrySurfacePositionCertifying requirement owns certification of an immutable nonperiodic native B-spline source and actual B-spline candidate over one caller-specified SurfaceParameterBox strictly contained in both original supports, on the identical native UV chart. CertifiedNativeSurfacePositionCertifier accepts a finite positive maximumPositionError and caller-owned NativeSurfacePositionCertificationLimits (boxes, cumulative scalar slots and work units) and returns a producer-created NativeSurfacePositionCertificate reporting the covered rectangle, admitted Euclidean position bound and charged conservative cumulative reservations. It does not manufacture tangent/curvature fields or require nonzero speed/normal. Position-continuous piecewise native spans retain both knot sides; unsupported periodic, discontinuous, outside-domain or foreign-chart input fails explicitly. No clipping, replacement Cartesian source, natural continuation, sample acceptance or tolerance relaxation authorizes success.

@@ -1297,6 +1297,17 @@ The unreferenced `PlaneBSplineIsoparametricIntersector` numerical reduction was 
 
 `PreparedCurveDifferentialEncloser` retains immutable original homogeneous coefficients for closed native-span queries. A C0 knot is queried on each owning original span; higher derivatives are never presented as a globally smooth jet. The one-shot B-spline differential route delegates to the same prepared authority, with identical normalized endpoints, original budgets, and cancellation. `PreparedCurveClosedNativeJetTests` and `CurveDifferentialEncloserTests` verify owning sides, finite/resource failures, and prepared/one-shot equality. A native span's values over a parameter interval intersect the interval de Casteljau evaluation with the hull of the Bernstein coefficients restricted to that interval, which shrinks with the interval's square (the spatial Revolve's orbit separation, `RevolveSheetConstructionTests.nonmonotoneSpatialGeneratorProducesExactRegularSheet`). [GeometryConversion](GeometryConversion/DESIGN.md) composes this lower contract without widening original correspondence admission.
 
+For original implicit curves and bare-plane lifts of affine parameter curves,
+the one-shot third-order query also composes through this existing prepared
+owner. Both entries therefore use the same original UV Taylor and support-jet
+composition order and return bitwise-identical endpoints. The dispatcher
+prepares once with the incoming execution, then queries that retained owner;
+the prepared branch never calls back into the dispatcher. Original support,
+every owning implicit cell, guards, cancellation and cumulative work/storage
+remain authoritative. Closed implicit endpoint validation does not create an
+extended periodic curve domain. Rigid/affine outer transforms and other
+analytic or periodic lift paths keep their existing dispatch contracts.
+
 ### Polynomial B-spline surface derivatives
 
 Where the weights a B-spline surface evaluation reaches are all equal, the surface is polynomial
