@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="TestResults" errors="0" tests="4" failures="0" skipped="0" time="0.111024166">
+    <testcase classname="FocusedTests.SelectionPointDirectExecutionTests" name="admittedDistanceRetainsControlAndSketchFallbackSemantics()" time="0.006646667" />
+    <testcase classname="FocusedTests.FeatureValidationAlgebraAdmissionTests" name="selectedConveniencesKeepIndependentCoefficientWorkBytesSourceAndCancellationLimits()" time="0.110605709" />
+    <testcase classname="FocusedTests.FeatureValidationAlgebraAdmissionTests" name="ordinarySelectionDoesNotReplaceExplicitNilOrAuthorizeInvalidSource()" time="0.026427167" />
+    <testcase classname="FocusedTests.PlanarSewingAdmissionTests" name="finiteWorkPublishesTheOriginalPlanarSheetGraph()" time="0.026109042" />
+  </testsuite>
+</testsuites>

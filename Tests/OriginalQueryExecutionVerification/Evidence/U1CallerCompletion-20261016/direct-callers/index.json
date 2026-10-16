@@ -882,7 +882,7 @@
       "meaning": "Exact private verification driver/prefix; not production or a replacement harness."
     },
     "VERIFICATION.md": {
-      "sha256": "66f9cd5679cd88d47f30a4c8df9dd144191d3f7c2c91222028599fdbab0debeb"
+      "sha256": "56276b6071c199c6f6f11386abc28685a433ac2dd9a7bf8281c5473ea2133a3d"
     },
     "origins/final-native-r4-source-receipt.json.gz": {
       "sha256": "775f1aae3cbb407f7a63cbcbdeddab618254cad50344a17fd2a6612f16846dd5",
@@ -1069,6 +1069,19 @@
     "native-final-callers-r6-binding/results.xml": {
       "sha256": "f30eb39c9d2de3cb5f9bec37efb00351f7fe1707a79eea74723cd23588aec017",
       "original": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-callers-20261016/native-final-callers-r6-binding/results.xml"
+    },
+    "main-delivery/integration.json": {
+      "sha256": "aeab162c9f3f120a9b780dcda014ab0292955a7428df83e1e33ca4f7575fc61e"
+    },
+    "main-delivery/receipt.json.gz": {
+      "sha256": "7a739ae9e5fe73e3afac0dc4a3bbc07c9733755de2d4b89aeca7e1327973ef50",
+      "rawSHA256": "eb90c60cf40e6021963c73f06c1905f188d892679de00d03fcecbb2d9d3aa777"
+    },
+    "main-delivery/results.xml": {
+      "sha256": "fafb9813c756e4eb60b991f5b5e2cffc9a1e916ad79f51311946743f259ee397"
+    },
+    "main-delivery/test-runtime.log": {
+      "sha256": "fd41ec37d9c85008a863a083cd8a7393f3d44421a6ae280dcd1283cb17d9a343"
     }
   },
   "openFrontiers": {
@@ -1130,5 +1143,11 @@
     "KernelSelectionAndLoopFailureClassification": "Native only; no portable Kernel caller success inferred",
     "NativeFinal": "36 declarations, 38 expanded inputs, one complete public planar sewer graph; no double counting origin runs"
   },
-  "packaging": "Finalized from accepted immutable receipts only. No new compile, runtime, production edit or review."
+  "packaging": "Finalized from accepted immutable receipts only. No new compile, runtime, production edit or review.",
+  "mainIntegration": {
+    "record": "main-delivery/integration.json",
+    "implementationCommit": "09b7955e227628fbacfffac0b448f4e929eda8b2",
+    "executedFunctions": 4,
+    "sourceInputsMatched": 4183
+  }
 }

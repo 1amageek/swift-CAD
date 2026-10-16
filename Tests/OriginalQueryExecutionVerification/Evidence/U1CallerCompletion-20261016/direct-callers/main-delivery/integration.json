@@ -1,0 +1,24 @@
+{
+  "status": "passed",
+  "implementationCommit": "09b7955e227628fbacfffac0b448f4e929eda8b2",
+  "mainRoot": "/Users/1amageek/Desktop/3D/swift-CAD",
+  "mainBranch": "main",
+  "merge": "fast-forward from 01262cc80600c6508c8e330f8bc4c05ac96f7565",
+  "sourceAuthoritySHA256": "b52c5261adaad8d9af79dacf9d729d5c48b82b1685eba1f6f7a15b6951287af7",
+  "productionParity": {
+    "inputCount": 4183,
+    "changedInputs": [],
+    "packageMatches": true
+  },
+  "runtime": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-callers-20261016/main-delivery-r1/runtime/receipt.json",
+    "rawReceiptSHA256": "eb90c60cf40e6021963c73f06c1905f188d892679de00d03fcecbb2d9d3aa777",
+    "executedFunctions": 4,
+    "compilerBuildReused": true,
+    "scope": "Actual planar sewer, control-to-sketch distance and feature validation cap/failure callers; same verified binary after main source parity. No module or test recompilation.",
+    "compiledSourceRoot": "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD",
+    "mainSourceEqualityChecked": true
+  },
+  "upstreamPolicy": "Normal configured-upstream push of task-only commits; remote-head equality is checked after the push.",
+  "scope": "Finite direct-callers integration only; whole U1-U4, whole G01 and seven-requirement completion are unchanged."
+}
