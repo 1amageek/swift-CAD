@@ -84,6 +84,15 @@ and [portable client](../../../Tests/OriginalQueryExecutionVerification/VolumeMo
 own the actual six-face/24-polyline cube counterexample, complete ten original
 moment intervals, independent limits, cancellation and retained receipt lifetime.
 
+The [raw-entry checks](../../../Tests/CADTopologyTests/RawVolumeMomentAdmissionTests.swift)
+and [portable client](../../../Tests/OriginalQueryExecutionVerification/RawVolumeMomentAdmissionPortable.swift)
+reuse that immutable cube and ten-moment oracle through both ordinary and direct
+raw-model requirements. They verify cumulative caller work across validation and
+integration, explicit work/storage refusal, missing-body refusal, and entry and
+in-progress cancellation. The existing missing-body error classification is
+preserved by this finite admission check; general moment domains and the Kernel
+mass/tensor consumer retain their own completion gates.
+
 ### Portable module wiring
 
 This component consumes the unchanged current-task cancellation and direct
