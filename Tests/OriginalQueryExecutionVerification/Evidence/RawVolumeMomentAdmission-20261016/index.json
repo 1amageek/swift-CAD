@@ -130,9 +130,54 @@
       "encoding": "gzip"
     },
     "VERIFICATION.md": {
-      "sha256": "85dc56a706dd0f8472409152539f06673754dc6925699ebb30b714ad7aea6a7b",
+      "sha256": "45fbdcc4ed7dccee3da59b4577e5e1899f8e1fbf2be11dc06c32e659091f7325",
       "encoding": "utf-8",
-      "bytes": 3259
+      "bytes": 3974
+    },
+    "integration/main-public-replay-r1/receipt.json.gz": {
+      "sha256": "0b6509eaf38e8dd5e899c1b4c2b87925cc9288c50f9a5a775fc83a11a86ea872",
+      "rawSHA256": "0844a102b40d10d2a9f5e0ed8316e02709dc463afd08309068816e2dd14f8be5",
+      "bytes": 119663,
+      "rawBytes": 386301,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-raw-moment-20261016/main-public-replay-r1/receipt.json",
+      "encoding": "gzip"
+    },
+    "integration/main-public-replay-r1/results.xml.gz": {
+      "sha256": "2a60252c1812d9c1b2b91f5b50412040f00f4ca467adaa36f9c909e0152b0bc1",
+      "rawSHA256": "75dd75ef04a259448e5751959a9041489d7dd83f562ca762dc09363f231c6efc",
+      "bytes": 239,
+      "rawBytes": 324,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-raw-moment-20261016/main-public-replay-r1/results.xml",
+      "encoding": "gzip"
+    },
+    "integration/main-public-replay-r1/compiler-version.log.gz": {
+      "sha256": "b6524373dc005cdb1fe16a933bd67e4fa44458a0c3b9f6e40aeee5efc52681f9",
+      "rawSHA256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c",
+      "bytes": 91,
+      "rawBytes": 77,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-raw-moment-20261016/main-public-replay-r1/compiler-version.log",
+      "encoding": "gzip"
+    },
+    "integration/main-public-replay-r1/test-build-and-list.log.gz": {
+      "sha256": "84cc3cee5ee6fcdde8939e6b46c9ba6254134d4877857b772d84826063a7e4e0",
+      "rawSHA256": "1ee6c8548ca64773f5d5238e7be2b183b9f7080a40bf90fbb24b45b963a26ea1",
+      "bytes": 4394,
+      "rawBytes": 43722,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-raw-moment-20261016/main-public-replay-r1/test-build-and-list.log",
+      "encoding": "gzip"
+    },
+    "integration/main-public-replay-r1/test-runtime.log.gz": {
+      "sha256": "438360cd2514e9b883143d6d0cb150321728beb188b0ebf6bf582f043b187674",
+      "rawSHA256": "3f79835eeddf1c7f942a5676cb66372dbbe89f0a6dbacbd8a53884ef6005491c",
+      "bytes": 393,
+      "rawBytes": 793,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-raw-moment-20261016/main-public-replay-r1/test-runtime.log",
+      "encoding": "gzip"
+    },
+    "integration.json": {
+      "sha256": "41b9d9af04c8788a0f925a4ac6c735a42e486a9c355ed3ffce1e402ebf6b31e2",
+      "bytes": 2195,
+      "encoding": "utf-8"
     }
   },
   "runs": {
@@ -318,5 +363,13 @@
     "authority": "Root single comprehensive source/fixture/same-state review: no finding; runtime acceptance closed after all four targets passed.",
     "additionalReviewOrRuntime": false
   },
-  "reviewAndIntegration": "Review and runtime acceptance are closed. Root owns coherent commit and later Main integration; this package records candidate fixture behavior only."
+  "reviewAndIntegration": "Root comprehensive review/runtime acceptance closed; exact committed Main source/product and one actual ordinary/direct raw public replay passed.",
+  "mainIntegration": {
+    "status": "passed",
+    "commit": "8278a84b42463b3b2c5cbca339c767d269de1c12",
+    "path": "integration.json",
+    "sha256": "41b9d9af04c8788a0f925a4ac6c735a42e486a9c355ed3ffce1e402ebf6b31e2",
+    "productionModuleCompilerInvocations": 0,
+    "passedFunctions": 1
+  }
 }

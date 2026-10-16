@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "status": "passed",
+  "commit": "8278a84b42463b3b2c5cbca339c767d269de1c12",
+  "sourceRoot": "/Users/1amageek/Desktop/3D/swift-CAD",
+  "testRoot": "/Users/1amageek/Desktop/3D/swift-CAD",
+  "sourceCount": {
+    "CADCore": 67,
+    "CADGeometry": 2171,
+    "CADTopology": 142
+  },
+  "productionSourceInputs": 2380,
+  "productionModuleCompilerInvocations": 0,
+  "nativeAuthority": {
+    "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-repair-direct-20261016/main-topology-authority-r1/receipt.json",
+    "sha256": "e7acc01e8859ee9c66788b24932f3805c3fe8b900130da97548672024410c4d0"
+  },
+  "fixturesMainCandidateByteEqual": true,
+  "rawReceipt": "integration/main-public-replay-r1/receipt.json.gz",
+  "rawReceiptSHA256": "0844a102b40d10d2a9f5e0ed8316e02709dc463afd08309068816e2dd14f8be5",
+  "logs": {
+    "compiler-version": "integration/main-public-replay-r1/compiler-version.log.gz",
+    "test-build-and-list": "integration/main-public-replay-r1/test-build-and-list.log.gz",
+    "test-runtime": "integration/main-public-replay-r1/test-runtime.log.gz"
+  },
+  "results": "integration/main-public-replay-r1/results.xml.gz",
+  "executedFunctions": [
+    "RawVolumeMomentAdmissionTests/ordinaryAndDirectRawCubePublishAllTenMoments"
+  ],
+  "passedFunctions": 1,
+  "clientBuild": "fresh Main fixture copies, production products strict reused",
+  "clientBuildSeconds": 11.861376417000429,
+  "runtimeSeconds": 0.9241164160048356,
+  "measuredMetrics": {
+    "ordinaryQueryWork": 162533,
+    "directQueryWork": 162533,
+    "directCumulativeWork": 162546,
+    "directStorageBytes": 1376016
+  },
+  "fixedTraceCostOracle": false,
+  "sourceFixtureProductPostflight": true,
+  "testExecutable": {
+    "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-raw-moment-20261016/main-public-replay-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests",
+    "sha256": "947b5ffc8e106ef1979b1e72267b76b34024b41025a1aa6984b028d0744a22b1"
+  },
+  "evidenceIndexBeforeIntegrationSHA256": "79425ef73604c120d3aba1e5fb17c48ebfe20e7945e27d882862acf97db1b7ff",
+  "rootReviewMatrixPreserved": true,
+  "priorNative4AndPortable4CountsUnchanged": true
+}

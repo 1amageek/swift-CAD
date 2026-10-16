@@ -51,3 +51,7 @@ production storage or isolation contract changes.
 
 Cancellation throws after the lock returns. The immutable stop value and
 `Sendable` conformance are identical on every target; no shutdown resource exists.
+
+## Main Integration
+
+Main source commit `8278a84b42463b3b2c5cbca339c767d269de1c12` passed strict equality for all 2380 production inputs, the three frozen fixtures and retained Core/Geometry/Topology products. Production module compilation was zero. A fresh Main client ran only `ordinaryAndDirectRawCubePublishAllTenMoments`, which actually enters both the ordinary raw and same-caller direct paths and validates all ten analytic moment enclosures. The actual trace values are retained in `integration.json` and the raw receipt; they are observations, not a new fixed-cost oracle. Prior Native four-function and each portable four-oracle acceptance and the Root-authored shared-state review matrix are unchanged.
