@@ -1,0 +1,699 @@
+{
+  "schemaVersion": 1,
+  "files": {
+    "native-red-r1/receipt.json.gz": {
+      "sha256": "b138538290053464c170040860a01e849ccfe8146dbb246dc32d06a2769e044a",
+      "rawSHA256": "7a9018129228b0a4122bbf3950e12e53f2e14e2c6172a827417920c1662d7263",
+      "rawBytes": 877691,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/native-red-r1/receipt.json"
+    },
+    "native-red-r1/CADCore.log.gz": {
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "rawBytes": 0,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-callers-20261016/native-r1/CADCore.log"
+    },
+    "native-red-r1/CADGeometry.log.gz": {
+      "sha256": "370c40345e79bdf2eb08ef129d4ba28270c79f34f31a8829a42ecbec86a177ab",
+      "rawSHA256": "adea1e919fc28b91a43824963d2952d44bf8a725ea7d528a0c3fce2ee5951186",
+      "rawBytes": 82457,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-prepared-jet-parity-20261016/native-geometry-r1/CADGeometry.log"
+    },
+    "native-red-r1/CADTopology.log.gz": {
+      "sha256": "bac63182bae9b54d89ea8aae39787049902926a2f2db93c61e9bea251b88bc0c",
+      "rawSHA256": "2ccfa1e7ecb84abbddb7494de0a0c1b5c41628f389827bb26d00be92d674fee0",
+      "rawBytes": 5251,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/native-red-r1/CADTopology.log"
+    },
+    "native-green-r2/receipt.json.gz": {
+      "sha256": "0d5caf4364e6874e8fbb8373d846a3eb11d52ee1e40a895d973052aeb7bedb5a",
+      "rawSHA256": "695ef563bb9f7db9b3aa3cab179615a862b5fef55a3955c20462e6b56d1a2d84",
+      "rawBytes": 877981,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/native-green-r2/receipt.json"
+    },
+    "native-green-r2/CADCore.log.gz": {
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "rawBytes": 0,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-callers-20261016/native-r1/CADCore.log"
+    },
+    "native-green-r2/CADGeometry.log.gz": {
+      "sha256": "370c40345e79bdf2eb08ef129d4ba28270c79f34f31a8829a42ecbec86a177ab",
+      "rawSHA256": "adea1e919fc28b91a43824963d2952d44bf8a725ea7d528a0c3fce2ee5951186",
+      "rawBytes": 82457,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-prepared-jet-parity-20261016/native-geometry-r1/CADGeometry.log"
+    },
+    "native-green-r2/CADTopology.log.gz": {
+      "sha256": "f75ecd647082d3534eb0c80d859fd8bd9f24af480015bfe03f1e5d2ec044b5e2",
+      "rawSHA256": "f67175d82ee751e316c4654b18f69f0a649514de96f951c9654a69caaa93abc0",
+      "rawBytes": 5265,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/native-green-r2/CADTopology.log"
+    },
+    "native-red-test-r1/receipt.json.gz": {
+      "sha256": "ef6bdd84aa7a563add723dd19a10329d9b7f3d5c1bee07fec2af02dc25687181",
+      "rawSHA256": "2557488ecf15e72fa2da0a13d436be38ef550dc61488c229375a8289fc52290a",
+      "rawBytes": 385809,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/native-red-test-r1/receipt.json"
+    },
+    "native-red-test-r1/compiler-version.log.gz": {
+      "sha256": "b2a195fb154058379af9b2e7aa94fdde1ed8d7c2cb9bdae784e34c1c58d64903",
+      "rawSHA256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c",
+      "rawBytes": 77,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/native-red-test-r1/compiler-version.log"
+    },
+    "native-red-test-r1/test-build-and-list.log.gz": {
+      "sha256": "f0f394f917ab1aee9ab267d43cf9afb87bf8ab6726b0a86115ce76082b9149a2",
+      "rawSHA256": "6769d3f4f9e4cf2979aeb8db0c284dcea47fe32a2ef7a63ce70aefc27450ef70",
+      "rawBytes": 42472,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/native-red-test-r1/test-build-and-list.log"
+    },
+    "native-red-test-r1/test-runtime.log.gz": {
+      "sha256": "fdffdee8861e8df28ccb648765506d9833b37e23f485d6d1123b148ca5505620",
+      "rawSHA256": "f134b78eb5541418fe072154a75e97376139b84573d6c020e8a916179e326d84",
+      "rawBytes": 1086,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/native-red-test-r1/test-runtime.log"
+    },
+    "native-red-test-r1/results.xml.gz": {
+      "sha256": "89b39f8ec37fb93ba4b001193e1682f01a695be03d527d4b05cd606c4637b603",
+      "rawSHA256": "8d8bd63f9d36d5419e6c0c8365cea0fd2807bc2a816cb1fe3eb08273894146a9",
+      "rawBytes": 464,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/native-red-test-r1/results.xml"
+    },
+    "native-positive-green-r1/receipt.json.gz": {
+      "sha256": "8894c060617fc02d9cb6ae4ba7a65e9d33fd5d8a3c678a6d63d3e37ebd03feb3",
+      "rawSHA256": "3a1a74365a4c2ce57232ec402772a4fd4f27b2110eab3dd383f0a669fc36d640",
+      "rawBytes": 385902,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/native-positive-green-r1/receipt.json"
+    },
+    "native-positive-green-r1/compiler-version.log.gz": {
+      "sha256": "b2a195fb154058379af9b2e7aa94fdde1ed8d7c2cb9bdae784e34c1c58d64903",
+      "rawSHA256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c",
+      "rawBytes": 77,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/native-positive-green-r1/compiler-version.log"
+    },
+    "native-positive-green-r1/test-build-and-list.log.gz": {
+      "sha256": "55beee1794593a1a58c2749cc969169f99387bea7b957b231527547ea961a1d5",
+      "rawSHA256": "c57a09d4376ae25f26f7a40cf3f67e8a6da578ece60fe680d85b6fdfa250a467",
+      "rawBytes": 43417,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/native-positive-green-r1/test-build-and-list.log"
+    },
+    "native-positive-green-r1/test-runtime.log.gz": {
+      "sha256": "b52a602baf3d5e3040dd568e75341f400a69410687d94fd3a1faae1ceee4c5f7",
+      "rawSHA256": "2cda13f6538c4f795f8bc908485d5726e03219bea792d65d060357354e043d04",
+      "rawBytes": 810,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/native-positive-green-r1/test-runtime.log"
+    },
+    "native-positive-green-r1/results.xml.gz": {
+      "sha256": "e2642c074d506621370b7a0ac73fb3285cd56db0045e9a39774e6629132a6ee0",
+      "rawSHA256": "bde44e2c7c054c0eee51908a59e668e8f7cc73ce42aacf9077436b91f35a07fb",
+      "rawBytes": 330,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/native-positive-green-r1/results.xml"
+    },
+    "native-final-green-r1/receipt.json.gz": {
+      "sha256": "673299441d43c1d8d66ccf626939fc691d470ff46fd71f884ffb5b26d33063bd",
+      "rawSHA256": "6c1e975134b0710d1d358c37a81847094720a2c222e3543604243da7d8bca22e",
+      "rawBytes": 383935,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/native-final-green-r1/receipt.json"
+    },
+    "native-final-green-r1/compiler-version.log.gz": {
+      "sha256": "b2a195fb154058379af9b2e7aa94fdde1ed8d7c2cb9bdae784e34c1c58d64903",
+      "rawSHA256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c",
+      "rawBytes": 77,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/native-final-green-r1/compiler-version.log"
+    },
+    "native-final-green-r1/test-build-and-list.log.gz": {
+      "sha256": "4b74e56133530b82766ac7764f349bffe96748853e34c87650ac9fca3a56ef98",
+      "rawSHA256": "c8fa76b837672db849f310faa9c91e85b5cbcdf1eb252776314e8c6660805ec8",
+      "rawBytes": 31970,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/native-final-green-r1/test-build-and-list.log"
+    },
+    "native-final-green-r2/receipt.json.gz": {
+      "sha256": "329680ecbc261a1bb46837f98d75b44bd2ac17adb55b997d23fe162dfc951857",
+      "rawSHA256": "7c688803232f43d31db5474afae4306011b833b6c1ec3de9e36194c353fa6d47",
+      "rawBytes": 385734,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/native-final-green-r2/receipt.json"
+    },
+    "native-final-green-r2/compiler-version.log.gz": {
+      "sha256": "b2a195fb154058379af9b2e7aa94fdde1ed8d7c2cb9bdae784e34c1c58d64903",
+      "rawSHA256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c",
+      "rawBytes": 77,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/native-final-green-r2/compiler-version.log"
+    },
+    "native-final-green-r2/test-build-and-list.log.gz": {
+      "sha256": "3d0fc208ddddfce22500a48ae227271d2e6a429561d4be73cb7a06332d089baa",
+      "rawSHA256": "8b7692f88d956b70b734c7fcf40b31c3a1f1625d454576b772e132617b0429d6",
+      "rawBytes": 43540,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/native-final-green-r2/test-build-and-list.log"
+    },
+    "native-final-green-r2/test-runtime.log.gz": {
+      "sha256": "43a44dbee00e9bf3561c262c248bdbcfdd8779051f6df977a3588b608f4163fe",
+      "rawSHA256": "402c870959c30d442fac2d8f47377472f58f607275eedb5ed68a2b0eca8391ec",
+      "rawBytes": 2093,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/native-final-green-r2/test-runtime.log"
+    },
+    "native-final-green-r2/results.xml.gz": {
+      "sha256": "5186552400bbd625b1bc9d5cf7b0791bcb3f8926044653e1de2f0924c4b608df",
+      "rawSHA256": "637d2de8f211d14ceb6aaee4ef233a96b96ad6208d397ed2e7e8718a6680e3ca",
+      "rawBytes": 942,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/native-final-green-r2/results.xml"
+    },
+    "portable-r1/asan/receipt.json.gz": {
+      "sha256": "f2258760c8d44063b524e50e8d4e4688b592fd2351ea7103b95c381b1a88d280",
+      "rawSHA256": "e98d1902abea994f69cf3e176ceccdec30832d93cac10de3561a3aea86b39cad",
+      "rawBytes": 1895769,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/portable-r1/asan/receipt.json"
+    },
+    "portable-r1/asan/topology-compile.log.gz": {
+      "sha256": "a5962f03a63bb656a9d8c4706a1db261799ec886f8dc5578749c319d41d7494b",
+      "rawSHA256": "123dc64815939b44d97915d49abc7c9dc505b9a457443ee6bd644d0b90a31cfd",
+      "rawBytes": 5272,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/portable-r1/asan/topology-compile.log"
+    },
+    "portable-r1/asan/client-link.log.gz": {
+      "sha256": "f93d579a88f035755366530f87b71427f2b6f0db0f650e737299fc3a759c071c",
+      "rawSHA256": "a51af9a8ebb73ee4e8c9cc081a703d10cc4975828218ecedd2e97172f88ad9c6",
+      "rawBytes": 2180,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/portable-r1/asan/client-link.log"
+    },
+    "portable-r2/embedded/receipt.json.gz": {
+      "sha256": "dd1452289619b782a020caee74318f9d415168e6e69cc70fe82b657b6032d7d3",
+      "rawSHA256": "fd86d990c9a2543b3ddae153674f44acfd547d316f233ac5fcc43b91f6dd9433",
+      "rawBytes": 1293954,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/portable-r2/embedded/receipt.json"
+    },
+    "portable-r2/embedded/topology-compile.log.gz": {
+      "sha256": "0150389b8317f42fd145788d45aa2207e823729158586fafb5c8f44473901577",
+      "rawSHA256": "dc1ed7dcdf871e1038f32cc42eb388e3d6481419e023a3c21b4534516e544ea8",
+      "rawBytes": 5300,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/portable-r2/embedded/topology-compile.log"
+    },
+    "portable-r2/embedded/client-link.log.gz": {
+      "sha256": "28f5aedaf43611fb22c6759d571ff4e7d11db2ebf9e4c3775ab3110dacfd6680",
+      "rawSHA256": "6a93cf50a2aeffa57cd744a1c1bc52297ddda6d9994e1579ddc641f6b53007fb",
+      "rawBytes": 20319,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/portable-r2/embedded/client-link.log"
+    },
+    "portable-r2/asan/receipt.json.gz": {
+      "sha256": "470d6bc81a9f76be062f14a84b7a605e5594b233f6c504c3f665777b55292a22",
+      "rawSHA256": "3838b8d28f0dd2033e021c95a305ed250487bb2d81db4dc1b7b0948fa8f73808",
+      "rawBytes": 1933298,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/portable-r2/asan/receipt.json"
+    },
+    "portable-r2/asan/topology-compile.log.gz": {
+      "sha256": "a5962f03a63bb656a9d8c4706a1db261799ec886f8dc5578749c319d41d7494b",
+      "rawSHA256": "123dc64815939b44d97915d49abc7c9dc505b9a457443ee6bd644d0b90a31cfd",
+      "rawBytes": 5272,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/portable-r1/asan/topology-compile.log"
+    },
+    "portable-r2/asan/client-link.log.gz": {
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "rawBytes": 0,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/portable-r2/asan/client-link.log"
+    },
+    "portable-r2/asan/runtime.log.gz": {
+      "sha256": "91404727208c0ee372e06cdd50198fe7f92fb149af593050cc797e07715dde7f",
+      "rawSHA256": "804de3a9eec83d52899db3c40d140644ec07129f1781f6e1e205a8c696e4895c",
+      "rawBytes": 1058,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/portable-r2/asan/runtime.log"
+    },
+    "portable-r2/wasm/receipt.json.gz": {
+      "sha256": "22838cbfa28e2959620d3610c47e74b75d6b5623a89835580c56ae2388c1c3f3",
+      "rawSHA256": "ca3a08f4e44a5affdd6a7383e2d4b68fdf3115a250dbab523999b2bb35c70182",
+      "rawBytes": 1288072,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/portable-r2/wasm/receipt.json"
+    },
+    "portable-r2/wasm/topology-compile.log.gz": {
+      "sha256": "16be33c73e43aaef3c1126273ba8fa4a35e4165b7965341fdcd73f2308adca3d",
+      "rawSHA256": "f3d651b3fabccd4ad858f6a42d0637ba4fb8aa9666c980854c89896ab8ba7959",
+      "rawBytes": 5272,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/portable-r2/wasm/topology-compile.log"
+    },
+    "portable-r2/wasm/client-link.log.gz": {
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "rawBytes": 0,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/portable-r2/wasm/client-link.log"
+    },
+    "portable-r2/wasm/runtime.log.gz": {
+      "sha256": "ff5f23ebfefeff3490812103e0320d61e2c72b03cbbd284e63e9bb2ef2e301a5",
+      "rawSHA256": "f29e6014ea8dc27227f18e9f92e4273099258174905a2b083a594b3d9c57f3e2",
+      "rawBytes": 1225,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/portable-r2/wasm/runtime.log"
+    },
+    "portable-r3/embedded/receipt.json.gz": {
+      "sha256": "0cc8a84a0c9e24993e52ad03f3ae47295c6db15fdbc9030f738ff0358189ef43",
+      "rawSHA256": "e734c71d21bdc5ce9e397a931825e56f2cab535eba820293e17f2770372492a4",
+      "rawBytes": 1332335,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/portable-r3/embedded/receipt.json"
+    },
+    "portable-r3/embedded/topology-compile.log.gz": {
+      "sha256": "0150389b8317f42fd145788d45aa2207e823729158586fafb5c8f44473901577",
+      "rawSHA256": "dc1ed7dcdf871e1038f32cc42eb388e3d6481419e023a3c21b4534516e544ea8",
+      "rawBytes": 5300,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/portable-r2/embedded/topology-compile.log"
+    },
+    "portable-r3/embedded/client-link.log.gz": {
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "rawBytes": 0,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/portable-r3/embedded/client-link.log"
+    },
+    "portable-r3/embedded/runtime.log.gz": {
+      "sha256": "95add945f07c7c0d694fbabc869f050eb692c745f0eaeefbca5199177ef697a5",
+      "rawSHA256": "7ab142a793bbe5c51b53db51259b82bec01ac072f07de25e6340ed50d4246867",
+      "rawBytes": 1225,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/portable-r3/embedded/runtime.log"
+    },
+    "native-final-observations.json.gz": {
+      "sha256": "61b823cd91c55b4ddebe9bd8c958e61dc52813e928bf652e5286b0c3fea3de37",
+      "rawSHA256": "e389805d9e2476889c084aa0c00657d999d3a0363da5eb53f382f20d50c0dfb0",
+      "rawBytes": 844,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/native-final-observations.json"
+    },
+    "native-main-replay-plan.json.gz": {
+      "sha256": "5fc1393f91bf96c03e0740ef97b71d874b1fb833db347fda6ae1bf0d8c0991df",
+      "rawSHA256": "1ebbff3301cdb7bb7d19a2218d757ccf4e9089d4655a251b649694c508bdf93f",
+      "rawBytes": 4007,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/native-main-replay-plan.json"
+    },
+    "import-only-equivalence.json.gz": {
+      "sha256": "823c33c3071a32d38ee3843c81a70486d5e884f6122ab34308338bf0df08b845",
+      "rawSHA256": "4b8335dff473a152f969ca3ce43639d0d9f0c7f2f2723cf0fa29a46b2130ef5c",
+      "rawBytes": 903,
+      "encoding": "gzip",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/import-only-equivalence.json"
+    }
+  },
+  "runs": {
+    "native-red-r1": {
+      "receipt": "native-red-r1/receipt.json.gz",
+      "rawSHA256": "7a9018129228b0a4122bbf3950e12e53f2e14e2c6172a827417920c1662d7263",
+      "status": null,
+      "accepted": false,
+      "steps": {
+        "CADCore": {
+          "exitCode": 0,
+          "elapsedSeconds": 2.1802386670024134,
+          "stopReason": null,
+          "reusedFrom": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-callers-20261016/native-r1/receipt.json",
+          "log": "native-red-r1/CADCore.log.gz"
+        },
+        "CADGeometry": {
+          "exitCode": 0,
+          "elapsedSeconds": 94.44773383399297,
+          "stopReason": null,
+          "reusedFrom": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-prepared-jet-parity-20261016/native-geometry-r1/receipt.json",
+          "log": "native-red-r1/CADGeometry.log.gz"
+        },
+        "CADTopology": {
+          "exitCode": 0,
+          "elapsedSeconds": 11.714979333002702,
+          "stopReason": null,
+          "reusedFrom": null,
+          "log": "native-red-r1/CADTopology.log.gz"
+        }
+      }
+    },
+    "native-green-r2": {
+      "receipt": "native-green-r2/receipt.json.gz",
+      "rawSHA256": "695ef563bb9f7db9b3aa3cab179615a862b5fef55a3955c20462e6b56d1a2d84",
+      "status": null,
+      "accepted": true,
+      "steps": {
+        "CADCore": {
+          "exitCode": 0,
+          "elapsedSeconds": 2.1802386670024134,
+          "stopReason": null,
+          "reusedFrom": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-callers-20261016/native-r1/receipt.json",
+          "log": "native-green-r2/CADCore.log.gz"
+        },
+        "CADGeometry": {
+          "exitCode": 0,
+          "elapsedSeconds": 94.44773383399297,
+          "stopReason": null,
+          "reusedFrom": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-prepared-jet-parity-20261016/native-geometry-r1/receipt.json",
+          "log": "native-green-r2/CADGeometry.log.gz"
+        },
+        "CADTopology": {
+          "exitCode": 0,
+          "elapsedSeconds": 12.243493707996095,
+          "stopReason": null,
+          "reusedFrom": null,
+          "log": "native-green-r2/CADTopology.log.gz"
+        }
+      }
+    },
+    "native-red-test-r1": {
+      "receipt": "native-red-test-r1/receipt.json.gz",
+      "rawSHA256": "2557488ecf15e72fa2da0a13d436be38ef550dc61488c229375a8289fc52290a",
+      "status": "failed",
+      "accepted": false,
+      "steps": {
+        "compiler-version": {
+          "exitCode": 0,
+          "elapsedSeconds": 0.26454916699731257,
+          "stopReason": null,
+          "reusedFrom": null,
+          "log": "native-red-test-r1/compiler-version.log.gz"
+        },
+        "test-build-and-list": {
+          "exitCode": 0,
+          "elapsedSeconds": 11.564147666998906,
+          "stopReason": null,
+          "reusedFrom": null,
+          "log": "native-red-test-r1/test-build-and-list.log.gz"
+        },
+        "test-runtime": {
+          "exitCode": 1,
+          "elapsedSeconds": 1.3026774580066558,
+          "stopReason": null,
+          "reusedFrom": null,
+          "log": "native-red-test-r1/test-runtime.log.gz"
+        }
+      }
+    },
+    "native-positive-green-r1": {
+      "receipt": "native-positive-green-r1/receipt.json.gz",
+      "rawSHA256": "3a1a74365a4c2ce57232ec402772a4fd4f27b2110eab3dd383f0a669fc36d640",
+      "status": "passed",
+      "accepted": true,
+      "steps": {
+        "compiler-version": {
+          "exitCode": 0,
+          "elapsedSeconds": 0.46345812499930616,
+          "stopReason": null,
+          "reusedFrom": null,
+          "log": "native-positive-green-r1/compiler-version.log.gz"
+        },
+        "test-build-and-list": {
+          "exitCode": 0,
+          "elapsedSeconds": 11.322613457989064,
+          "stopReason": null,
+          "reusedFrom": null,
+          "log": "native-positive-green-r1/test-build-and-list.log.gz"
+        },
+        "test-runtime": {
+          "exitCode": 0,
+          "elapsedSeconds": 0.949588000003132,
+          "stopReason": null,
+          "reusedFrom": null,
+          "log": "native-positive-green-r1/test-runtime.log.gz"
+        }
+      }
+    },
+    "native-final-green-r1": {
+      "receipt": "native-final-green-r1/receipt.json.gz",
+      "rawSHA256": "6c1e975134b0710d1d358c37a81847094720a2c222e3543604243da7d8bca22e",
+      "status": "failed",
+      "accepted": false,
+      "steps": {
+        "compiler-version": {
+          "exitCode": 0,
+          "elapsedSeconds": 0.4672326250001788,
+          "stopReason": null,
+          "reusedFrom": null,
+          "log": "native-final-green-r1/compiler-version.log.gz"
+        },
+        "test-build-and-list": {
+          "exitCode": 1,
+          "elapsedSeconds": 10.323679958994035,
+          "stopReason": null,
+          "reusedFrom": null,
+          "log": "native-final-green-r1/test-build-and-list.log.gz"
+        }
+      }
+    },
+    "native-final-green-r2": {
+      "receipt": "native-final-green-r2/receipt.json.gz",
+      "rawSHA256": "7c688803232f43d31db5474afae4306011b833b6c1ec3de9e36194c353fa6d47",
+      "status": "passed",
+      "accepted": true,
+      "steps": {
+        "compiler-version": {
+          "exitCode": 0,
+          "elapsedSeconds": 0.2533227919921046,
+          "stopReason": null,
+          "reusedFrom": null,
+          "log": "native-final-green-r2/compiler-version.log.gz"
+        },
+        "test-build-and-list": {
+          "exitCode": 0,
+          "elapsedSeconds": 16.477775332998135,
+          "stopReason": null,
+          "reusedFrom": null,
+          "log": "native-final-green-r2/test-build-and-list.log.gz"
+        },
+        "test-runtime": {
+          "exitCode": 0,
+          "elapsedSeconds": 1.425968625000678,
+          "stopReason": null,
+          "reusedFrom": null,
+          "log": "native-final-green-r2/test-runtime.log.gz"
+        }
+      }
+    },
+    "portable-r1/asan": {
+      "receipt": "portable-r1/asan/receipt.json.gz",
+      "rawSHA256": "e98d1902abea994f69cf3e176ceccdec30832d93cac10de3561a3aea86b39cad",
+      "status": "failed",
+      "accepted": false,
+      "steps": {
+        "topology-compile": {
+          "exitCode": 0,
+          "elapsedSeconds": 18.12685437500477,
+          "stopReason": null,
+          "reusedFrom": null,
+          "log": "portable-r1/asan/topology-compile.log.gz"
+        },
+        "client-link": {
+          "exitCode": 1,
+          "elapsedSeconds": 0.5344575000053737,
+          "stopReason": null,
+          "reusedFrom": null,
+          "log": "portable-r1/asan/client-link.log.gz"
+        }
+      }
+    },
+    "portable-r2/embedded": {
+      "receipt": "portable-r2/embedded/receipt.json.gz",
+      "rawSHA256": "fd86d990c9a2543b3ddae153674f44acfd547d316f233ac5fcc43b91f6dd9433",
+      "status": "failed",
+      "accepted": false,
+      "steps": {
+        "topology-compile": {
+          "exitCode": 0,
+          "elapsedSeconds": 26.82380708299752,
+          "stopReason": null,
+          "reusedFrom": null,
+          "log": "portable-r2/embedded/topology-compile.log.gz"
+        },
+        "client-link": {
+          "exitCode": 1,
+          "elapsedSeconds": 0.47087283300061245,
+          "stopReason": null,
+          "reusedFrom": null,
+          "log": "portable-r2/embedded/client-link.log.gz"
+        }
+      }
+    },
+    "portable-r2/asan": {
+      "receipt": "portable-r2/asan/receipt.json.gz",
+      "rawSHA256": "3838b8d28f0dd2033e021c95a305ed250487bb2d81db4dc1b7b0948fa8f73808",
+      "status": "passed",
+      "accepted": true,
+      "steps": {
+        "topology-compile": {
+          "exitCode": 0,
+          "elapsedSeconds": 18.12685437500477,
+          "stopReason": null,
+          "reusedFrom": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/portable-r1/asan/receipt.json",
+          "log": "portable-r2/asan/topology-compile.log.gz"
+        },
+        "client-link": {
+          "exitCode": 0,
+          "elapsedSeconds": 76.89327841698832,
+          "stopReason": null,
+          "reusedFrom": null,
+          "log": "portable-r2/asan/client-link.log.gz"
+        },
+        "runtime": {
+          "exitCode": 0,
+          "elapsedSeconds": 28.385606333002215,
+          "stopReason": null,
+          "reusedFrom": null,
+          "log": "portable-r2/asan/runtime.log.gz"
+        }
+      },
+      "oracles": [
+        "PASS retainedCubeReceiptAdmitsAllTenIndependentMoments",
+        "PASS queryUsesExactCumulativeWorkAndStorageBoundaries",
+        "PASS queryPreservesIndependentIncomingAlgebraAxes",
+        "PASS queryRefusesEntryInProgressAndLastCheckpointCancellation",
+        "PASS receiptSurvivesAuthoredSourceMutationAndResultOutlivesQuery"
+      ],
+      "topologyModuleRegenerated": false
+    },
+    "portable-r2/wasm": {
+      "receipt": "portable-r2/wasm/receipt.json.gz",
+      "rawSHA256": "ca3a08f4e44a5affdd6a7383e2d4b68fdf3115a250dbab523999b2bb35c70182",
+      "status": "passed",
+      "accepted": true,
+      "steps": {
+        "topology-compile": {
+          "exitCode": 0,
+          "elapsedSeconds": 40.42862824999611,
+          "stopReason": null,
+          "reusedFrom": null,
+          "log": "portable-r2/wasm/topology-compile.log.gz"
+        },
+        "client-link": {
+          "exitCode": 0,
+          "elapsedSeconds": 3.6583687079983065,
+          "stopReason": null,
+          "reusedFrom": null,
+          "log": "portable-r2/wasm/client-link.log.gz"
+        },
+        "runtime": {
+          "exitCode": 0,
+          "elapsedSeconds": 3.2087158749927767,
+          "stopReason": null,
+          "reusedFrom": null,
+          "log": "portable-r2/wasm/runtime.log.gz"
+        }
+      },
+      "oracles": [
+        "PASS retainedCubeReceiptAdmitsAllTenIndependentMoments",
+        "PASS queryUsesExactCumulativeWorkAndStorageBoundaries",
+        "PASS queryPreservesIndependentIncomingAlgebraAxes",
+        "PASS queryRefusesEntryInProgressAndLastCheckpointCancellation",
+        "PASS receiptSurvivesAuthoredSourceMutationAndResultOutlivesQuery"
+      ],
+      "topologyModuleRegenerated": true
+    },
+    "portable-r3/embedded": {
+      "receipt": "portable-r3/embedded/receipt.json.gz",
+      "rawSHA256": "e734c71d21bdc5ce9e397a931825e56f2cab535eba820293e17f2770372492a4",
+      "status": "passed",
+      "accepted": true,
+      "steps": {
+        "topology-compile": {
+          "exitCode": 0,
+          "elapsedSeconds": 26.82380708299752,
+          "stopReason": null,
+          "reusedFrom": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-moment-loopcap-20261016/portable-r2/embedded/receipt.json",
+          "log": "portable-r3/embedded/topology-compile.log.gz"
+        },
+        "client-link": {
+          "exitCode": 0,
+          "elapsedSeconds": 58.324642875013524,
+          "stopReason": null,
+          "reusedFrom": null,
+          "log": "portable-r3/embedded/client-link.log.gz"
+        },
+        "runtime": {
+          "exitCode": 0,
+          "elapsedSeconds": 0.9316685420053545,
+          "stopReason": null,
+          "reusedFrom": null,
+          "log": "portable-r3/embedded/runtime.log.gz"
+        }
+      },
+      "oracles": [
+        "PASS retainedCubeReceiptAdmitsAllTenIndependentMoments",
+        "PASS queryUsesExactCumulativeWorkAndStorageBoundaries",
+        "PASS queryPreservesIndependentIncomingAlgebraAxes",
+        "PASS queryRefusesEntryInProgressAndLastCheckpointCancellation",
+        "PASS receiptSurvivesAuthoredSourceMutationAndResultOutlivesQuery"
+      ],
+      "topologyModuleRegenerated": false
+    }
+  },
+  "scope": "The six-plane/24-polyline retained exact-receipt moment consumer. One selected algebra-policy forwarding correction; no raw Mass, general curved moment, whole NUMERIC or U1-U4 completion claim.",
+  "nativeResult": {
+    "passedFunctions": 5,
+    "queryWork": 73665,
+    "queryStorageBytes": 421904,
+    "cumulativeWorkIncludingPrefix": 73678,
+    "cancellationCheckpoints": [
+      1,
+      98555,
+      197110
+    ]
+  },
+  "fixtureEquivalence": {
+    "previousSHA256": "cb42683853869d2dbd2e854830f3384459feb705c892be955a2bfcbfdad20012",
+    "finalSHA256": "88e32377739550032c63d740f799579542d1828ac45a185bfc10188b7e81d022",
+    "exactDelta": "One direct import HashTreeCollections line; all test bodies identical.",
+    "finalNativeClient": "Fresh compile/runtime at main integration; old build is not resumed."
+  },
+  "production": {
+    "sourceCount": 2380,
+    "moduleCounts": {
+      "CADCore": 67,
+      "CADGeometry": 2171,
+      "CADTopology": 142
+    },
+    "changedSource": "Sources/CADTopology/VolumeMoments/DefaultBRepVolumeMomentMeasurer.swift",
+    "changedSHA256": "6d308be68d83ef68271ae6d04e858c9d85f627e5daff4df7eb0f426ee815e224",
+    "CoreGeometryCollectionsRegenerated": false,
+    "topologyFresh": true
+  },
+  "unchangedDependencyEvidence": {
+    "path": "../PreparedJetParity-20261016/index.json",
+    "sha256": "7a0a58f5f364a36ad89a68b81dbde661d3459a8995bee172d11a7deb7297dc01",
+    "scope": "Unchanged current Core/Geometry products and prior proof only."
+  },
+  "diagnostics": {
+    "nativeFinalR1": "Two PersistentMap authoring-fixture API errors; runtime not started.",
+    "asanR1": "Same two fixture API errors; successful Topology compiler phase retained, runtime not started.",
+    "embeddedR2": "Missing direct HashTreeCollections import in shared fixture; successful Topology compiler phase retained, runtime not started.",
+    "nativePositive": "Initial unchanged RED fixture with rounded-third oracle; accepted final five use exact-third dyadic bracketing."
+  }
+}

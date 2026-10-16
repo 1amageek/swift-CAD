@@ -111,7 +111,8 @@ public struct DefaultBRepVolumeMomentMeasurer: BRepVolumeMomentMeasuring {
                     }
                     let unwrapped = try SurfaceParameterLoopUnwrapper().unwrap(curves, on: surface,
                         tolerance: tolerance, context: "Volume moments",
-                        maximumSubdivisionDepth: options.maximumSubdivisionDepth, remainingSourceDepth: 16, using: &execution)
+                        maximumSubdivisionDepth: options.maximumSubdivisionDepth, remainingSourceDepth: 16,
+                        maximumAlgebraicDepth: 32, using: &execution)
                     let lifted = try OriginalParameterQueryStorage.map(unwrapped, using: &execution) { item, execution in item.translatedCurve }
                     try OriginalParameterQueryStorage.append((loop.role, try CertifiedSurfaceParameterLoopPredicate(curves: lifted,
                         on: surface, tolerance: tolerance, maximumSubdivisionDepth: options.maximumSubdivisionDepth,
