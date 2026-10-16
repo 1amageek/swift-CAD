@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="TestResults" errors="0" tests="3" failures="0" skipped="0" time="3.226573875">
+    <testcase classname="FocusedTests.DocumentDrawingCanonicalAdmissionTests" name="planarWholeExclusionUsesTheRealDrawingWitnesses()" time="1.128379666" />
+    <testcase classname="FocusedTests.DocumentDrawingCanonicalAdmissionTests" name="drawingWitnessesPreserveTheCallerCancellationCause()" time="1.02225025" />
+    <testcase classname="FocusedTests.DocumentDrawingCanonicalAdmissionTests" name="originalArchAndProjectedEndpointContactsShareExactResourceBoundaries()" time="3.226066167" />
+  </testsuite>
+</testsuites>
