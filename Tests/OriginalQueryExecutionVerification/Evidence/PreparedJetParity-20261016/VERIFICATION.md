@@ -90,4 +90,15 @@ The source review and one finding-only fixture confirmation have no remaining
 concrete blocker. This unit establishes only its original composition and
 actual Ruled caller boundary. General source/family migration, M4–M8, whole
 U1–U4 and whole G01–G22 remain open. Whole requirements remain 1/7.
-Main integration and upstream delivery are separate final gates.
+Main integration is verified below; a metadata-only delivery commit closes the
+normal upstream shipment.
+
+## Main Integration
+
+Source `34809c26` normally fast-forwards main from `eb572d08`. Existing strict
+product reuse checks all2,238 Core/Geometry current sources and accepted
+module/object pairs, with zero compilation. The existing actual test binary
+then passes independent original laws/reverse and the public Ruled consumer
+again in 1.653 seconds. Both Main test files are byte-identical to their
+accepted Candidate origins. [integration.json](integration.json) binds raw
+authority, actual runtime and unchanged protected drafts.

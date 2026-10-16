@@ -1,0 +1,31 @@
+{
+  "sourceCommit": "34809c26b09c3e6623cebff083d94dd69e94be68",
+  "previousMain": "eb572d0862dc1c98ba4ac08f9f42a0dcfd2e4c09",
+  "integration": "normal-fast-forward",
+  "sourceCount": 2238,
+  "newCompilation": false,
+  "indexSHA256": "7a0a58f5f364a36ad89a68b81dbde661d3459a8995bee172d11a7deb7297dc01",
+  "runtime": {
+    "passedFunctions": 2,
+    "elapsedSeconds": 1.6529557920002844,
+    "scope": "independent original laws/reverse and actual public Ruled consumer"
+  },
+  "retainedRaw": {
+    "integration/main-geometry-authority-r1/receipt.json.gz": {
+      "rawSHA256": "b47ec627381e3661fbd2a46b851bf68db9c4be208c9cdb304622d3f919add7aa",
+      "gzipSHA256": "f8ed4e5a372635945dd51ba6779085745e32acba8cf6c1fcb473ca39ef681d05"
+    },
+    "integration/main-public-replay-r1/receipt.json.gz": {
+      "rawSHA256": "8c88daf80324483bec5e2a583a9ece1b865ce321f1f4f21cf0460eab62d38814",
+      "gzipSHA256": "abd9a3497f91af918763a09c51373c1b19db4216e73755ec0ad1105f7fd690ec"
+    },
+    "integration/main-public-replay-r1/test-runtime.log.gz": {
+      "rawSHA256": "3254ab94e514c218089da0001b1f7071dd506030a2b7dac9df5d3dfb9cdd6770",
+      "gzipSHA256": "b3c6a7859625acd6a44275b0f7d752d5771715a8b1140ef84194d0096adb8037"
+    }
+  },
+  "protected": {
+    "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/pending-public-publisher.patch": "97db4b01b16d6c5a66cdd0bfdfbeda4aa939389f12481b2e0ba8d10d873e8016",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADKernel/BRepDrawing/BRepDrawingSilhouetteProducer.swift": "3686efa109b77c4f33fd59e9b315a1fd751b35ee0608e5e3824ff85866d00f87"
+  }
+}
