@@ -1,0 +1,1161 @@
+{
+  "schemaVersion": 1,
+  "scope": "Finite public volume/volumetric validation same-caller unit; no whole U1/NUMERIC/Topology or general Native/curved source-family acceptance. Main integration is pending.",
+  "sourceProvenance": "source-provenance/manifest.json.gz",
+  "frozenSHA256": {
+    "Sources/CADTopology/OriginalSourceValidation/OriginalBRepValidationInvocation.swift": "d28b65a2a1ff2f337c2f32bc733e28166acfbb13424dc00a543aba0444484a69",
+    "Sources/CADTopology/OriginalSourceValidation/DESIGN.md": "db34ffaa6591c55ea52be12d7f123afde8a3b399f9fb81fd2665be8bcdc9dd77",
+    "Tests/CADTopologyTests/VolumeCallerAdmissionChecks.swift": "5b898f1bab2a3523513defb72304988130ea6b4c94fcb1115c2b1e48ce17f3de",
+    "Tests/CADTopologyTests/VolumeCallerAdmissionTests.swift": "1edd4ddfba166dd378242d5132e83b63efb08fa824a34728ad733a614b0b798c",
+    "Tests/OriginalQueryExecutionVerification/VolumeCallerAdmissionPortable.swift": "25f0848d1fe76ffd0a9dc914dd6f3b6c156e6cb2e32679f902d8f70808d4a2b3",
+    "Tests/CADTopologyTests/VolumeMomentLoopAdmissionTests.swift": "88e32377739550032c63d740f799579542d1828ac45a185bfc10188b7e81d022"
+  },
+  "nativeProductionAuthority": {
+    "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-native-green-r1/receipt.json",
+    "sha256": "cd44ab3641d5b687d75833590176fc7266d33e1067bc7ea69a9229041aac849d",
+    "sourceCount": 2380,
+    "freshTopologyCount": 142,
+    "reusedCoreGeometryCount": 2238
+  },
+  "targets": {
+    "native": {
+      "receipt": "native-client/receipt.json.gz",
+      "rawReceiptSHA256": "13a91f8d393331cb5196aee0839f4e6138994b804a0e03176f7a7a99526a60da",
+      "cases": 4,
+      "sourcesAndProductsUnchanged": true,
+      "steps": {
+        "compiler-version": {
+          "command": [
+            "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+            "--version"
+          ],
+          "exitCode": 0,
+          "elapsedSeconds": 0.23541716698673554,
+          "sampledPeakProcessTreeRSSBytes": 245760,
+          "stopReason": null,
+          "rssAccounting": "tracked PPID descendants including separate process groups",
+          "maximumObservedProcessCount": 1,
+          "wallLimitSeconds": 30,
+          "logSHA256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c"
+        },
+        "test-build-and-list": {
+          "command": [
+            "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+            "test",
+            "--package-path",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-native-client-r1/swift-cad",
+            "--scratch-path",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-native-client-r1/build",
+            "--jobs",
+            "1",
+            "--triple",
+            "arm64-apple-macosx27.0",
+            "--sdk",
+            "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+            "-Xswiftc",
+            "-I",
+            "-Xswiftc",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-native-client-r1/accepted/modules",
+            "--enable-swift-testing",
+            "--disable-xctest",
+            "--disable-index-store",
+            "--verbose",
+            "list"
+          ],
+          "exitCode": 0,
+          "elapsedSeconds": 12.058180250023725,
+          "sampledPeakProcessTreeRSSBytes": 565182464,
+          "stopReason": null,
+          "rssAccounting": "tracked PPID descendants including separate process groups",
+          "maximumObservedProcessCount": 3,
+          "wallLimitSeconds": 1198.1820611250005,
+          "logSHA256": "dc7db7add46f9ae7e8335b08c8f8def65725b56944ef465088ba4836a71a6cfb"
+        },
+        "test-runtime": {
+          "command": [
+            "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+            "test",
+            "--package-path",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-native-client-r1/swift-cad",
+            "--scratch-path",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-native-client-r1/build",
+            "--jobs",
+            "1",
+            "--triple",
+            "arm64-apple-macosx27.0",
+            "--sdk",
+            "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+            "-Xswiftc",
+            "-I",
+            "-Xswiftc",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-native-client-r1/accepted/modules",
+            "--enable-swift-testing",
+            "--disable-xctest",
+            "--disable-index-store",
+            "--verbose",
+            "--skip-build",
+            "--xunit-output",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-native-client-r1/results.xml",
+            "--filter",
+            "VolumeCallerAdmissionTests"
+          ],
+          "exitCode": 0,
+          "elapsedSeconds": 1.6347661660111044,
+          "sampledPeakProcessTreeRSSBytes": 129122304,
+          "stopReason": null,
+          "rssAccounting": "tracked PPID descendants including separate process groups",
+          "maximumObservedProcessCount": 2,
+          "wallLimitSeconds": 120,
+          "logSHA256": "407cb610d57d01dd05de80d4144c4dfc80b7949e1fedfd1a0fcf7935ca2d0f13"
+        }
+      }
+    },
+    "asan": {
+      "receipt": "portable/asan/receipt.json.gz",
+      "rawReceiptSHA256": "44459af3b764f93470f9e6a0b7e690c89baabe179b7a282c65a899ab47ff78d3",
+      "groups": 4,
+      "actualPASS": [
+        "PASS publicVolumesRetainTheirValuesAndMandatoryLowerCost",
+        "PASS exactCumulativeWorkAndStorageRefuseShortBudgets",
+        "PASS entryInProgressAndLastCheckpointCancellationPropagate",
+        "PASS missingReferencesAndSourceLifetimeRemainExplicit"
+      ],
+      "postflightDrift": [],
+      "steps": {
+        "CADTopology": {
+          "command": [
+            "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+            "-I",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/asan/modules",
+            "-parse-as-library",
+            "-Onone",
+            "-g",
+            "-swift-version",
+            "6",
+            "-package-name",
+            "swift_cad",
+            "-DSWIFT_PACKAGE",
+            "-DDEBUG",
+            "-DNativeExchange",
+            "-whole-module-optimization",
+            "-num-threads",
+            "0",
+            "-j1",
+            "-enable-testing",
+            "-I",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/asan/asan",
+            "-I",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/asan/asan/dependencies",
+            "-sanitize=address",
+            "-sdk",
+            "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+            "-target",
+            "arm64-apple-macos27.0",
+            "-tools-directory",
+            "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin",
+            "-Xclang-linker",
+            "-fuse-ld=/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld",
+            "-module-name",
+            "CADTopology",
+            "-emit-module",
+            "-emit-module-path",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/asan/modules/CADTopology.swiftmodule",
+            "-emit-object",
+            "-o",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/asan/modules/CADTopology.code.o",
+            "@/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/asan/CADTopologySources.rsp"
+          ],
+          "exitCode": 0,
+          "elapsedSeconds": 14.234096667001722,
+          "sampledPeakProcessTreeRSSBytes": 1499447296,
+          "stopReason": null,
+          "rssAccounting": "tracked PPID descendants including separate process groups",
+          "maximumObservedProcessCount": 2,
+          "wallLimitSeconds": 1199.9999964169983,
+          "logSHA256": "bf1170cc71f22d920fc05f2004527b92face3ad018948ad952db90d6c7a94e4a"
+        },
+        "client-link": {
+          "command": [
+            "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+            "-I",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/asan/modules",
+            "-D",
+            "VOLUME_MOMENT_PORTABLE",
+            "-parse-as-library",
+            "-Onone",
+            "-g",
+            "-swift-version",
+            "6",
+            "-package-name",
+            "swift_cad",
+            "-DSWIFT_PACKAGE",
+            "-DDEBUG",
+            "-DNativeExchange",
+            "-whole-module-optimization",
+            "-num-threads",
+            "0",
+            "-j1",
+            "-enable-testing",
+            "-I",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/asan/asan",
+            "-I",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/asan/asan/dependencies",
+            "-sanitize=address",
+            "-sdk",
+            "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+            "-target",
+            "arm64-apple-macos27.0",
+            "-tools-directory",
+            "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin",
+            "-Xclang-linker",
+            "-fuse-ld=/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/asan/snapshot/Tests/CADTopologyTests/VolumeMomentLoopAdmissionTests.swift",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/asan/snapshot/Tests/CADTopologyTests/VolumeCallerAdmissionChecks.swift",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/asan/snapshot/Tests/OriginalQueryExecutionVerification/VolumeCallerAdmissionPortable.swift",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/asan/asan/CADGeometry.code.o",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/asan/asan/dependencies/CADCore.code.o",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/asan/asan/dependencies/InternalCollectionsUtilities.o",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/asan/asan/dependencies/HashTreeCollections.o",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/asan/modules/CADTopology.code.o",
+            "-o",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/asan/VolumeCallerAdmission"
+          ],
+          "exitCode": 0,
+          "elapsedSeconds": 3.03397266700631,
+          "sampledPeakProcessTreeRSSBytes": 835354624,
+          "stopReason": null,
+          "rssAccounting": "tracked PPID descendants including separate process groups",
+          "maximumObservedProcessCount": 3,
+          "wallLimitSeconds": 1185.7509530420066,
+          "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "runtime": {
+          "command": [
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/asan/VolumeCallerAdmission"
+          ],
+          "exitCode": 0,
+          "elapsedSeconds": 7.2490757500054315,
+          "sampledPeakProcessTreeRSSBytes": 486506496,
+          "stopReason": null,
+          "rssAccounting": "tracked PPID descendants including separate process groups",
+          "maximumObservedProcessCount": 1,
+          "wallLimitSeconds": 119.99999891599873,
+          "logSHA256": "d5de6276d96544cb52a6c9e7333438e1777d3f40714eeca44a1ac7bb1ce3a478"
+        }
+      }
+    },
+    "wasm": {
+      "receipt": "portable/wasm/receipt.json.gz",
+      "rawReceiptSHA256": "8a29af4c481f32e045376999a36e9135438ce0d85e26c1b2345d8eb457ebb502",
+      "groups": 4,
+      "actualPASS": [
+        "PASS publicVolumesRetainTheirValuesAndMandatoryLowerCost",
+        "PASS exactCumulativeWorkAndStorageRefuseShortBudgets",
+        "PASS entryInProgressAndLastCheckpointCancellationPropagate",
+        "PASS missingReferencesAndSourceLifetimeRemainExplicit"
+      ],
+      "postflightDrift": [],
+      "steps": {
+        "CADTopology": {
+          "command": [
+            "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+            "-I",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/wasm/modules",
+            "-parse-as-library",
+            "-Onone",
+            "-g",
+            "-swift-version",
+            "6",
+            "-package-name",
+            "swift_cad",
+            "-DSWIFT_PACKAGE",
+            "-DDEBUG",
+            "-DNativeExchange",
+            "-whole-module-optimization",
+            "-num-threads",
+            "0",
+            "-j1",
+            "-enable-testing",
+            "-I",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/wasm/wasm",
+            "-I",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/wasm/wasm/dependencies",
+            "-target",
+            "wasm32-unknown-wasip1",
+            "-sdk",
+            "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk",
+            "-resource-dir",
+            "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static",
+            "-static-stdlib",
+            "-tools-directory",
+            "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin",
+            "-Xclang-linker",
+            "-resource-dir",
+            "-Xclang-linker",
+            "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/clang",
+            "-module-name",
+            "CADTopology",
+            "-emit-module",
+            "-emit-module-path",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/wasm/modules/CADTopology.swiftmodule",
+            "-emit-object",
+            "-o",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/wasm/modules/CADTopology.code.o",
+            "@/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/wasm/CADTopologySources.rsp"
+          ],
+          "exitCode": 0,
+          "elapsedSeconds": 13.456293541996274,
+          "sampledPeakProcessTreeRSSBytes": 1934950400,
+          "stopReason": null,
+          "rssAccounting": "tracked PPID descendants including separate process groups",
+          "maximumObservedProcessCount": 2,
+          "wallLimitSeconds": 1199.9999971250072,
+          "logSHA256": "da618b8930081eb87a61443025e0a48c3f34de7ed9e60a5588a264ecff08cf8e"
+        },
+        "client-link": {
+          "command": [
+            "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+            "-I",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/wasm/modules",
+            "-D",
+            "VOLUME_MOMENT_PORTABLE",
+            "-parse-as-library",
+            "-Onone",
+            "-g",
+            "-swift-version",
+            "6",
+            "-package-name",
+            "swift_cad",
+            "-DSWIFT_PACKAGE",
+            "-DDEBUG",
+            "-DNativeExchange",
+            "-whole-module-optimization",
+            "-num-threads",
+            "0",
+            "-j1",
+            "-enable-testing",
+            "-I",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/wasm/wasm",
+            "-I",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/wasm/wasm/dependencies",
+            "-target",
+            "wasm32-unknown-wasip1",
+            "-sdk",
+            "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk",
+            "-resource-dir",
+            "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static",
+            "-static-stdlib",
+            "-tools-directory",
+            "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin",
+            "-Xclang-linker",
+            "-resource-dir",
+            "-Xclang-linker",
+            "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/clang",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/wasm/snapshot/Tests/CADTopologyTests/VolumeMomentLoopAdmissionTests.swift",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/wasm/snapshot/Tests/CADTopologyTests/VolumeCallerAdmissionChecks.swift",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/wasm/snapshot/Tests/OriginalQueryExecutionVerification/VolumeCallerAdmissionPortable.swift",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/wasm/wasm/CADGeometry.code.o",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/wasm/wasm/dependencies/CADCore.code.o",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/wasm/wasm/dependencies/InternalCollectionsUtilities.o",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/wasm/wasm/dependencies/HashTreeCollections.o",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/wasm/modules/CADTopology.code.o",
+            "-o",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/wasm/VolumeCallerAdmission.wasm",
+            "-Xlinker",
+            "-z",
+            "-Xlinker",
+            "stack-size=67108864"
+          ],
+          "exitCode": 0,
+          "elapsedSeconds": 1.628899833012838,
+          "sampledPeakProcessTreeRSSBytes": 923385856,
+          "stopReason": null,
+          "rssAccounting": "tracked PPID descendants including separate process groups",
+          "maximumObservedProcessCount": 3,
+          "wallLimitSeconds": 1186.530159750022,
+          "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "runtime": {
+          "command": [
+            "/usr/local/bin/node",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/wasm/snapshot/Tests/OriginalPublicAcceptanceVerification/RunWASI.mjs",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/wasm/VolumeCallerAdmission.wasm"
+          ],
+          "exitCode": 0,
+          "elapsedSeconds": 3.7240987500117626,
+          "sampledPeakProcessTreeRSSBytes": 485294080,
+          "stopReason": null,
+          "rssAccounting": "tracked PPID descendants including separate process groups",
+          "maximumObservedProcessCount": 1,
+          "wallLimitSeconds": 119.99999854201451,
+          "logSHA256": "35ba9a0419a9c3d22038e640a5080e3324766bb91aa78bf9fa9170e7ce54de2f"
+        }
+      }
+    },
+    "embedded": {
+      "receipt": "portable/embedded/receipt.json.gz",
+      "rawReceiptSHA256": "9ab7e37f87e36ac230b3a5fb9910ff2d928497dd3fd8814bdca49c9d68d42ac4",
+      "groups": 4,
+      "actualPASS": [
+        "PASS publicVolumesRetainTheirValuesAndMandatoryLowerCost",
+        "PASS exactCumulativeWorkAndStorageRefuseShortBudgets",
+        "PASS entryInProgressAndLastCheckpointCancellationPropagate",
+        "PASS missingReferencesAndSourceLifetimeRemainExplicit"
+      ],
+      "postflightDrift": [],
+      "steps": {
+        "CADTopology": {
+          "command": [
+            "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+            "-I",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/embedded/modules",
+            "-parse-as-library",
+            "-Onone",
+            "-g",
+            "-swift-version",
+            "6",
+            "-package-name",
+            "swift_cad",
+            "-DSWIFT_PACKAGE",
+            "-DDEBUG",
+            "-DNativeExchange",
+            "-whole-module-optimization",
+            "-num-threads",
+            "0",
+            "-j1",
+            "-enable-testing",
+            "-I",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/embedded/embedded",
+            "-I",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/embedded/embedded/dependencies",
+            "-target",
+            "wasm32-unknown-wasip1",
+            "-sdk",
+            "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk",
+            "-resource-dir",
+            "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift",
+            "-static-stdlib",
+            "-tools-directory",
+            "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin",
+            "-Xclang-linker",
+            "-resource-dir",
+            "-Xclang-linker",
+            "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/clang",
+            "-enable-experimental-feature",
+            "Embedded",
+            "-module-name",
+            "CADTopology",
+            "-emit-module",
+            "-emit-module-path",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/embedded/modules/CADTopology.swiftmodule",
+            "@/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/embedded/CADTopologySources.rsp"
+          ],
+          "exitCode": 0,
+          "elapsedSeconds": 15.073808207991533,
+          "sampledPeakProcessTreeRSSBytes": 1521844224,
+          "stopReason": null,
+          "rssAccounting": "tracked PPID descendants including separate process groups",
+          "maximumObservedProcessCount": 1,
+          "wallLimitSeconds": 1199.9999965410098,
+          "logSHA256": "b26c0ace14101d807e5e666c92b08f6548092469f743cbe78721461826977782"
+        },
+        "client-link": {
+          "command": [
+            "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+            "-I",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/embedded/modules",
+            "-D",
+            "VOLUME_MOMENT_PORTABLE",
+            "-parse-as-library",
+            "-Onone",
+            "-g",
+            "-swift-version",
+            "6",
+            "-package-name",
+            "swift_cad",
+            "-DSWIFT_PACKAGE",
+            "-DDEBUG",
+            "-DNativeExchange",
+            "-whole-module-optimization",
+            "-num-threads",
+            "0",
+            "-j1",
+            "-enable-testing",
+            "-I",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/embedded/embedded",
+            "-I",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/embedded/embedded/dependencies",
+            "-target",
+            "wasm32-unknown-wasip1",
+            "-sdk",
+            "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk",
+            "-resource-dir",
+            "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift",
+            "-static-stdlib",
+            "-tools-directory",
+            "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin",
+            "-Xclang-linker",
+            "-resource-dir",
+            "-Xclang-linker",
+            "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/clang",
+            "-enable-experimental-feature",
+            "Embedded",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/embedded/snapshot/Tests/CADTopologyTests/VolumeMomentLoopAdmissionTests.swift",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/embedded/snapshot/Tests/CADTopologyTests/VolumeCallerAdmissionChecks.swift",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/embedded/snapshot/Tests/OriginalQueryExecutionVerification/VolumeCallerAdmissionPortable.swift",
+            "-o",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/embedded/VolumeCallerAdmission.wasm",
+            "-Xlinker",
+            "-z",
+            "-Xlinker",
+            "stack-size=67108864",
+            "-Xlinker",
+            "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/embedded/wasm32-unknown-wasip1/libswiftUnicodeDataTables.a",
+            "-Xlinker",
+            "-lc++",
+            "-Xlinker",
+            "-lc++abi",
+            "-Xlinker",
+            "-lswift_Concurrency"
+          ],
+          "exitCode": 0,
+          "elapsedSeconds": 54.0769017500279,
+          "sampledPeakProcessTreeRSSBytes": 6104678400,
+          "stopReason": null,
+          "rssAccounting": "tracked PPID descendants including separate process groups",
+          "maximumObservedProcessCount": 3,
+          "wallLimitSeconds": 1184.896780666022,
+          "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "runtime": {
+          "command": [
+            "/usr/local/bin/node",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/embedded/snapshot/Tests/OriginalPublicAcceptanceVerification/RunWASI.mjs",
+            "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/embedded/VolumeCallerAdmission.wasm"
+          ],
+          "exitCode": 0,
+          "elapsedSeconds": 1.1615794169774745,
+          "sampledPeakProcessTreeRSSBytes": 239124480,
+          "stopReason": null,
+          "rssAccounting": "tracked PPID descendants including separate process groups",
+          "maximumObservedProcessCount": 1,
+          "wallLimitSeconds": 119.99999870898318,
+          "logSHA256": "b30deb4141d11c149b382edc404b2a28dcc4add9f3e943c83780b6fcf70de2d9"
+        }
+      }
+    }
+  },
+  "independentComposition": {
+    "P": 87116,
+    "L": 78,
+    "O": 48,
+    "incidence": 48,
+    "signedVolume": 87290,
+    "priorCallerWork": 13,
+    "LBreakdown": {
+      "reference": 36,
+      "exactPlanes": 42
+    },
+    "PIncludesFirstLowerTraversal": true,
+    "LIsMandatorySecondLowerTraversal": true,
+    "mutantsActuallyExecuted": false
+  },
+  "resources": {
+    "workNIncludingPrefix": {
+      "body": 87306,
+      "volumetric": 87416
+    },
+    "byteN": {
+      "native": {
+        "body": 932416,
+        "volumetric": 932432
+      },
+      "asan": {
+        "body": 934224,
+        "volumetric": 934240
+      },
+      "wasm": {
+        "body": 709224,
+        "volumetric": 709240
+      },
+      "embedded": {
+        "body": 709296,
+        "volumetric": 709312
+      }
+    },
+    "boundary": "Each backend measures its own same-retained-input N; exact N succeeds and each work/storage N-1 fails typed on that resource. No hardcoded cross-backend byte equality."
+  },
+  "review": {
+    "path": "review/review.json.gz",
+    "rawSHA256": "292c8132276f160ee70abb6b063aa930ee0a99364d368e6f4d8efbab0509add9",
+    "findings": 0
+  },
+  "unacceptedProbe": {
+    "timeoutRawReceiptSHA256": "4e213d5de50c2924e59c16accb70906e159059928fb6e394ca9d70b34189e47b",
+    "diagnosticRawReceiptSHA256": "b4b553832db53d10d7b0d19a0172aeaa307d6852425b147332bccd00d80ded90",
+    "phase": "Plain cube volume one passed; Native33x2 P stopped in whole pcurve correspondence Taylor work; L/V not reached. This is not accepted Red/coverage."
+  },
+  "mainBindingPlan": {
+    "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/main-volume-caller-binding-r1/bind.py",
+    "sha256": "2349ddc0bde25b3516781b6450de10ebf63ec976ea39bf48ce4dcaecb5b2aca3",
+    "executed": false,
+    "compiledHere": false
+  },
+  "files": {
+    "source-provenance/final/Sources/CADTopology/OriginalSourceValidation/OriginalBRepValidationInvocation.swift.gz": {
+      "sha256": "a7ec4850311aaca00af663d8e10c5136e1b82b2bdc555dd74137b5f8af293e01",
+      "uncompressedSHA256": "d28b65a2a1ff2f337c2f32bc733e28166acfbb13424dc00a543aba0444484a69",
+      "uncompressedBytes": 100349,
+      "bytes": 16523,
+      "origin": "/Users/1amageek/.codex/worktrees/u1-parameter-table-20261017/swift-CAD/Sources/CADTopology/OriginalSourceValidation/OriginalBRepValidationInvocation.swift",
+      "role": "Final frozen source/design/fixture; shared cube helper is unchanged input"
+    },
+    "source-provenance/final/Sources/CADTopology/OriginalSourceValidation/DESIGN.md.gz": {
+      "sha256": "a7be7ac3f6837bde0cb12d00d27c0b784ef6f6b0d003f3524bc9a40339e1adbf",
+      "uncompressedSHA256": "db34ffaa6591c55ea52be12d7f123afde8a3b399f9fb81fd2665be8bcdc9dd77",
+      "uncompressedBytes": 18079,
+      "bytes": 6532,
+      "origin": "/Users/1amageek/.codex/worktrees/u1-parameter-table-20261017/swift-CAD/Sources/CADTopology/OriginalSourceValidation/DESIGN.md",
+      "role": "Final frozen source/design/fixture; shared cube helper is unchanged input"
+    },
+    "source-provenance/final/Tests/CADTopologyTests/VolumeCallerAdmissionChecks.swift.gz": {
+      "sha256": "c898782ba5ba12fd135f106028889e7b6d224a721f738a4f38b5755e8fb11939",
+      "uncompressedSHA256": "5b898f1bab2a3523513defb72304988130ea6b4c94fcb1115c2b1e48ce17f3de",
+      "uncompressedBytes": 13517,
+      "bytes": 3588,
+      "origin": "/Users/1amageek/.codex/worktrees/u1-parameter-table-20261017/swift-CAD/Tests/CADTopologyTests/VolumeCallerAdmissionChecks.swift",
+      "role": "Final frozen source/design/fixture; shared cube helper is unchanged input"
+    },
+    "source-provenance/final/Tests/CADTopologyTests/VolumeCallerAdmissionTests.swift.gz": {
+      "sha256": "d610f1cccc36ee52df79ff91fc25235f38542963300b4ff841e6a07213b7ebee",
+      "uncompressedSHA256": "1edd4ddfba166dd378242d5132e83b63efb08fa824a34728ad733a614b0b798c",
+      "uncompressedBytes": 822,
+      "bytes": 309,
+      "origin": "/Users/1amageek/.codex/worktrees/u1-parameter-table-20261017/swift-CAD/Tests/CADTopologyTests/VolumeCallerAdmissionTests.swift",
+      "role": "Final frozen source/design/fixture; shared cube helper is unchanged input"
+    },
+    "source-provenance/final/Tests/OriginalQueryExecutionVerification/VolumeCallerAdmissionPortable.swift.gz": {
+      "sha256": "37d0ca668441cb4eb737889c9174cf9dfbb2dce78352f7b165fedcae47a7bcdc",
+      "uncompressedSHA256": "25f0848d1fe76ffd0a9dc914dd6f3b6c156e6cb2e32679f902d8f70808d4a2b3",
+      "uncompressedBytes": 957,
+      "bytes": 409,
+      "origin": "/Users/1amageek/.codex/worktrees/u1-parameter-table-20261017/swift-CAD/Tests/OriginalQueryExecutionVerification/VolumeCallerAdmissionPortable.swift",
+      "role": "Final frozen source/design/fixture; shared cube helper is unchanged input"
+    },
+    "source-provenance/final/Tests/CADTopologyTests/VolumeMomentLoopAdmissionTests.swift.gz": {
+      "sha256": "b969fabb1d4c1a5b6c8d9986912c289757a3c5c5f16bc83fd097acfa5bee6ff2",
+      "uncompressedSHA256": "88e32377739550032c63d740f799579542d1828ac45a185bfc10188b7e81d022",
+      "uncompressedBytes": 15791,
+      "bytes": 4160,
+      "origin": "/Users/1amageek/.codex/worktrees/u1-parameter-table-20261017/swift-CAD/Tests/CADTopologyTests/VolumeMomentLoopAdmissionTests.swift",
+      "role": "Final frozen source/design/fixture; shared cube helper is unchanged input"
+    },
+    "source-provenance/Package.swift.gz": {
+      "sha256": "abacc62436e06ed66029a72586bdd144ccce8871746c53dae2b394fee482933e",
+      "uncompressedSHA256": "7a5207dc1fdc8c93fd74d1579ba8378213cb36c8ca5e8c53bcd016c7922b845e",
+      "uncompressedBytes": 8874,
+      "bytes": 1257,
+      "origin": "/Users/1amageek/.codex/worktrees/u1-parameter-table-20261017/swift-CAD/Package.swift",
+      "role": "Pinned package manifest, unchanged by the unit"
+    },
+    "source-provenance/before/Sources/CADTopology/OriginalSourceValidation/OriginalBRepValidationInvocation.swift.gz": {
+      "sha256": "c8b87a7c195978ceacacf4ec2533aa846e09aee220e5e2dfc4ca568f2b663d33",
+      "uncompressedSHA256": "f1e6bf5350a46831f2ae4aedae81f111d43ae86f74c1ca20de6ec6effd06c1b3",
+      "uncompressedBytes": 100311,
+      "bytes": 16523,
+      "origin": "HEAD:Sources/CADTopology/OriginalSourceValidation/OriginalBRepValidationInvocation.swift",
+      "role": "Pre-change implementation; inverse of exactly the two using arguments"
+    },
+    "source-provenance/source.diff.gz": {
+      "sha256": "6f72efbda150b454bb11bfb251090c5708d851a6b9c85c1a74e03b830090b865",
+      "uncompressedSHA256": "7c505b712b22499363fa93dff726aff90f80ab3e0b1856e2b6d6ec29bd3b8742",
+      "uncompressedBytes": 3399,
+      "bytes": 1440,
+      "origin": "Working tree against HEAD",
+      "role": "Only two production call arguments plus owning design"
+    },
+    "source-provenance/manifest.json.gz": {
+      "sha256": "af4bf3242e29e4c41c337a347bcf328b74524a8526cef81b88b5609caf14a6ad",
+      "uncompressedSHA256": "a4f44c2eb8495c6d9d248a230d54af14d67c16a1babcc5a694e452bb1c916154",
+      "uncompressedBytes": 1899,
+      "bytes": 1063,
+      "origin": "Generated from the pinned raw records",
+      "role": "Source inverse, exact freeze and ownership/isolation record"
+    },
+    "native-production/receipt.json.gz": {
+      "sha256": "2d5e204f492619a62e5e2fa2d114ab5ddd079890d4295091749f7846b59ec82d",
+      "uncompressedSHA256": "cd44ab3641d5b687d75833590176fc7266d33e1067bc7ea69a9229041aac849d",
+      "uncompressedBytes": 894062,
+      "bytes": 139120,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-native-green-r1/receipt.json",
+      "role": "Accepted actual Native Topology142 compiler with exact reused Core67/Geometry2171"
+    },
+    "native-production/CADTopology.log.gz": {
+      "sha256": "76e1834c0ef5924ee79840b1166d3af8075d9d05dbc660073cfbbe8da9557b5b",
+      "uncompressedSHA256": "985fd2e0e2fe768bb03e81e3b03c6e76e22a34c7080dfb17c7a9064b4f28792e",
+      "uncompressedBytes": 5384,
+      "bytes": 1202,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-native-green-r1/CADTopology.log",
+      "role": "Actual fresh whole-module compiler log"
+    },
+    "origins/native-CADCore/receipt.json.gz": {
+      "sha256": "ba3c0ecf3eb54c69b4a6bf021f47dac8ab7f16b7ffd4dec1ec57b5ab9a81d473",
+      "uncompressedSHA256": "899f5626c9fa4f595ea1be6d52ed137b40cd515d961dc114538e5a83c1d24952",
+      "uncompressedBytes": 23986,
+      "bytes": 5250,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-core-r1/receipt.json",
+      "role": "Actual fresh lower compiler origin, unchanged source/tool/SDK/flags/products"
+    },
+    "origins/native-CADCore/CADCore.log.gz": {
+      "sha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "uncompressedSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressedBytes": 0,
+      "bytes": 20,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-core-r1/CADCore.log",
+      "role": "Actual origin compiler log"
+    },
+    "origins/native-CADGeometry/receipt.json.gz": {
+      "sha256": "25759c9395a64f83b457862bbca7926f06b8d1894221d684a8436bf8b4b42477",
+      "uncompressedSHA256": "e204846e7c7cab172f79257ef812847d774ffcc6c6369c86639da1a613a8d4d8",
+      "uncompressedBytes": 845304,
+      "bytes": 129406,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-current-geometry-r2/receipt.json",
+      "role": "Actual fresh lower compiler origin, unchanged source/tool/SDK/flags/products"
+    },
+    "origins/native-CADGeometry/CADGeometry.log.gz": {
+      "sha256": "4b49d7a6840e38adf19bc82add8d28e43f33d43eac76433e327b6b3818dfa592",
+      "uncompressedSHA256": "bcd5feb1ed0af63d28f4b52759999cf60a73748c204f7ed56e4642198a97c671",
+      "uncompressedBytes": 83123,
+      "bytes": 9790,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-current-geometry-r2/CADGeometry.log",
+      "role": "Actual origin compiler log"
+    },
+    "origins/collections/products.json.gz": {
+      "sha256": "fa03ddf8a80edcc5ce0565ea801fabdaa1a5352650ac83e38a280a19cb5d9b5d",
+      "uncompressedSHA256": "64cda615899460520018a303fe15b3d1b91468d4a61763e8199f233fe6354112",
+      "uncompressedBytes": 929,
+      "bytes": 357,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/dependencies/collections-native-r1/products.json",
+      "role": "Actual dependency product binding"
+    },
+    "origins/collections/receipt.json.gz": {
+      "sha256": "8620705ac9df8174df0921744395b42799286b1bba4eb416244bfbf05f5f25eb",
+      "uncompressedSHA256": "c362948203a3a7c69895b142c1f7176cc6ef5fec06e4f43f555f4fb5f467f723",
+      "uncompressedBytes": 120844,
+      "bytes": 42513,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/dependencies/collections-native-r1/receipt.json",
+      "role": "Actual dependency compiler origin"
+    },
+    "native-client/receipt.json.gz": {
+      "sha256": "3da6059be02c2fc5f49bb00198cfdab741649358edfe3ac362a74c9c52b1e1ef",
+      "uncompressedSHA256": "13a91f8d393331cb5196aee0839f4e6138994b804a0e03176f7a7a99526a60da",
+      "uncompressedBytes": 386970,
+      "bytes": 119681,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-native-client-r1/receipt.json",
+      "role": "Accepted Native four-group actual client build/list/runtime and results"
+    },
+    "native-client/compiler-version.log.gz": {
+      "sha256": "b6524373dc005cdb1fe16a933bd67e4fa44458a0c3b9f6e40aeee5efc52681f9",
+      "uncompressedSHA256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c",
+      "uncompressedBytes": 77,
+      "bytes": 91,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-native-client-r1/compiler-version.log",
+      "role": "Accepted Native four-group actual client build/list/runtime and results"
+    },
+    "native-client/test-build-and-list.log.gz": {
+      "sha256": "a5b13a8aaa50e5a4ed1e74a8a2c4511fb475a4113cc18f93354f1148e1e542c2",
+      "uncompressedSHA256": "dc7db7add46f9ae7e8335b08c8f8def65725b56944ef465088ba4836a71a6cfb",
+      "uncompressedBytes": 46761,
+      "bytes": 4472,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-native-client-r1/test-build-and-list.log",
+      "role": "Accepted Native four-group actual client build/list/runtime and results"
+    },
+    "native-client/test-runtime.log.gz": {
+      "sha256": "5306d220da1255cd3e82e71878eaf54240ab88ae58141c04ecd07206d4391bbc",
+      "uncompressedSHA256": "407cb610d57d01dd05de80d4144c4dfc80b7949e1fedfd1a0fcf7935ca2d0f13",
+      "uncompressedBytes": 1950,
+      "bytes": 679,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-native-client-r1/test-runtime.log",
+      "role": "Accepted Native four-group actual client build/list/runtime and results"
+    },
+    "native-client/results.xml.gz": {
+      "sha256": "192394e8232270403eb3c64f738be7ab4362ff82c9810fcce0ba4fa22213d14d",
+      "uncompressedSHA256": "3ce52fe924e76319127adfa8b6db91486b7e6f1e9367ee850b497745b699c2b8",
+      "uncompressedBytes": 767,
+      "bytes": 378,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-native-client-r1/results.xml",
+      "role": "Accepted Native four-group actual client build/list/runtime and results"
+    },
+    "portable/asan/receipt.json.gz": {
+      "sha256": "277db9f2a7ea7e8c77c76341e47f047d6cbe28b5b2521b70d6d4205973eb0f5a",
+      "uncompressedSHA256": "44459af3b764f93470f9e6a0b7e690c89baabe179b7a282c65a899ab47ff78d3",
+      "uncompressedBytes": 2672517,
+      "bytes": 377822,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/asan/receipt.json",
+      "role": "Accepted actual asan four-group evidence; products are hashes only"
+    },
+    "portable/asan/CADTopology.log.gz": {
+      "sha256": "291014eaf660b56bc14a7b4d61e29a48203567159a890bedb71ef288bfb06be2",
+      "uncompressedSHA256": "bf1170cc71f22d920fc05f2004527b92face3ad018948ad952db90d6c7a94e4a",
+      "uncompressedBytes": 5391,
+      "bytes": 1205,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/asan/CADTopology.log",
+      "role": "Accepted actual asan four-group evidence; products are hashes only"
+    },
+    "portable/asan/CADTopologySources.rsp.gz": {
+      "sha256": "7911696adc7c8ac35630890c43bace2f5a97645af95e05d514c33682b7cf5272",
+      "uncompressedSHA256": "04451c8d94436a082383a64c052146f7bb512712215e735638fc97ec4efdf0ac",
+      "uncompressedBytes": 26629,
+      "bytes": 1599,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/asan/CADTopologySources.rsp",
+      "role": "Accepted actual asan four-group evidence; products are hashes only"
+    },
+    "portable/asan/client-link.log.gz": {
+      "sha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "uncompressedSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressedBytes": 0,
+      "bytes": 20,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/asan/client-link.log",
+      "role": "Accepted actual asan four-group evidence; products are hashes only"
+    },
+    "portable/asan/runtime.log.gz": {
+      "sha256": "e93714b39b20be0b7127ac97fd599d4e9958e8a296dffe3f5090065a4cf36373",
+      "uncompressedSHA256": "d5de6276d96544cb52a6c9e7333438e1777d3f40714eeca44a1ac7bb1ce3a478",
+      "uncompressedBytes": 1035,
+      "bytes": 407,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/asan/runtime.log",
+      "role": "Accepted actual asan four-group evidence; products are hashes only"
+    },
+    "origins/asan/receipt.json.gz": {
+      "sha256": "1aec03faa577fcbf586639d5af0f94a9fd531b1f8b3d3d58b752fba32759c1b8",
+      "uncompressedSHA256": "c7aa43ec09e43d41f2651ddbc54db27a0c5debf60cff2cd7a4faa77294c5b6d1",
+      "uncompressedBytes": 1913877,
+      "bytes": 361664,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/asan/receipt.json",
+      "role": "Actual Core67/Geometry2171 strict reuse compiler authority"
+    },
+    "origins/asan/asan-core-compile.log.gz": {
+      "sha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "uncompressedSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressedBytes": 0,
+      "bytes": 20,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/asan/asan-core-compile.log",
+      "role": "Actual lower compiler log"
+    },
+    "origins/asan/asan-compile.log.gz": {
+      "sha256": "2de4ced4ebf9be360a796412496d0fa37b0f7ea10fd59a4e594a7dbdadf7e20b",
+      "uncompressedSHA256": "9c682beedf8967bd268eeef78cc91d8ea1941d5b98d78ad60a0c8ecd6576a690",
+      "uncompressedBytes": 82568,
+      "bytes": 9778,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/asan/asan-compile.log",
+      "role": "Actual lower compiler log"
+    },
+    "origins/asan/CoreSources.rsp.gz": {
+      "sha256": "8540693a7429dab6e1d4831bd3eaaf01b7c71a714d7c79869935697fdbca8120",
+      "uncompressedSHA256": "63aa751a43269bd1ca7d50d9e22f8458b0fd95c23706bd92748718a9c49d07f5",
+      "uncompressedBytes": 11693,
+      "bytes": 748,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/asan/asan/CoreSources.rsp",
+      "role": "Actual complete lower source response inventory"
+    },
+    "origins/asan/GeometrySources.rsp.gz": {
+      "sha256": "d129b74ecdc2a7f2a138e6d04c1af51edc93b3ac5286270be91336fb605ce99e",
+      "uncompressedSHA256": "a02e1ddf28721aabf8ea2fcee7050bb09b73589d8d6ca89823f5c9f0e3e67667",
+      "uncompressedBytes": 442131,
+      "bytes": 17036,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/asan/asan/GeometrySources.rsp",
+      "role": "Actual complete lower source response inventory"
+    },
+    "portable/wasm/receipt.json.gz": {
+      "sha256": "4be810ae109de9e0c94b5964548fa44b457a676cf656c2cafda28c3dec9a5932",
+      "uncompressedSHA256": "8a29af4c481f32e045376999a36e9135438ce0d85e26c1b2345d8eb457ebb502",
+      "uncompressedBytes": 2675458,
+      "bytes": 378094,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/wasm/receipt.json",
+      "role": "Accepted actual wasm four-group evidence; products are hashes only"
+    },
+    "portable/wasm/CADTopology.log.gz": {
+      "sha256": "7c2337e10e84f6e2f7fae91d8be38564f9f6cb60d5085ff1b82e421f51bed6b8",
+      "uncompressedSHA256": "da618b8930081eb87a61443025e0a48c3f34de7ed9e60a5588a264ecff08cf8e",
+      "uncompressedBytes": 5391,
+      "bytes": 1206,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/wasm/CADTopology.log",
+      "role": "Accepted actual wasm four-group evidence; products are hashes only"
+    },
+    "portable/wasm/CADTopologySources.rsp.gz": {
+      "sha256": "18f2c6568d8f610991d4227fd01278b7b32d988d7b0900361132d0c4cb21cec9",
+      "uncompressedSHA256": "d8d4fe489f4c24e06f0ef53dfba835c98fda1c6108aeb257aad59b258851dffd",
+      "uncompressedBytes": 26629,
+      "bytes": 1599,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/wasm/CADTopologySources.rsp",
+      "role": "Accepted actual wasm four-group evidence; products are hashes only"
+    },
+    "portable/wasm/client-link.log.gz": {
+      "sha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "uncompressedSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressedBytes": 0,
+      "bytes": 20,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/wasm/client-link.log",
+      "role": "Accepted actual wasm four-group evidence; products are hashes only"
+    },
+    "portable/wasm/runtime.log.gz": {
+      "sha256": "2f5d5c41192bb35a9bd5331e3992f6744c0d9af871b30e40e4e5926a0841bba5",
+      "uncompressedSHA256": "35ba9a0419a9c3d22038e640a5080e3324766bb91aa78bf9fa9170e7ce54de2f",
+      "uncompressedBytes": 1202,
+      "bytes": 517,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/wasm/runtime.log",
+      "role": "Accepted actual wasm four-group evidence; products are hashes only"
+    },
+    "origins/wasm/receipt.json.gz": {
+      "sha256": "8e5e1da2edb8478749aeb553767b63488f45ad50a2bdac0c5b5211af22e67631",
+      "uncompressedSHA256": "d04b079040028b1956331f40bfdffe579827efc844c392977736851c95dc7667",
+      "uncompressedBytes": 1916476,
+      "bytes": 361761,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/wasm/receipt.json",
+      "role": "Actual Core67/Geometry2171 strict reuse compiler authority"
+    },
+    "origins/wasm/wasm-core-compile.log.gz": {
+      "sha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "uncompressedSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressedBytes": 0,
+      "bytes": 20,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/wasm/wasm-core-compile.log",
+      "role": "Actual lower compiler log"
+    },
+    "origins/wasm/wasm-compile.log.gz": {
+      "sha256": "982ff2c3c338c7f53be09a6f0dca521cffb76c7ece1214cf96c9686faa050bbf",
+      "uncompressedSHA256": "5240c63e77e42e852cb9802ff6a9e36c88ef5af82cce0931528e5ba8a6c98de5",
+      "uncompressedBytes": 82568,
+      "bytes": 9779,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/wasm/wasm-compile.log",
+      "role": "Actual lower compiler log"
+    },
+    "origins/wasm/CoreSources.rsp.gz": {
+      "sha256": "72043e5df6a5673030c0a19bbaac749c193bf69409a612314a9c74635bda02a1",
+      "uncompressedSHA256": "e64426c82c8d95ce54326500e993b5a6b716b3b8909e502a9e6e50881d85bf99",
+      "uncompressedBytes": 11693,
+      "bytes": 749,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/wasm/wasm/CoreSources.rsp",
+      "role": "Actual complete lower source response inventory"
+    },
+    "origins/wasm/GeometrySources.rsp.gz": {
+      "sha256": "2d886c06cad6ee77863452ea59b23962cbdfbb8e7b923d004276ea366c27d2b7",
+      "uncompressedSHA256": "956dfd8746bf14153a57b64bbc3bb236e4e1d58e0fec648d5a22f5234c4be0ff",
+      "uncompressedBytes": 442131,
+      "bytes": 17037,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/wasm/wasm/GeometrySources.rsp",
+      "role": "Actual complete lower source response inventory"
+    },
+    "portable/embedded/receipt.json.gz": {
+      "sha256": "4663113e1377c437c68a686644f83b5894f8190c75d7e83e1865121b1f21525f",
+      "uncompressedSHA256": "9ab7e37f87e36ac230b3a5fb9910ff2d928497dd3fd8814bdca49c9d68d42ac4",
+      "uncompressedBytes": 2682515,
+      "bytes": 377984,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/embedded/receipt.json",
+      "role": "Accepted actual embedded four-group evidence; products are hashes only"
+    },
+    "portable/embedded/CADTopology.log.gz": {
+      "sha256": "135d4119244a1a9f62ff05fcb5dc4409a922b05e2e5653cfccbff428da4c73fc",
+      "uncompressedSHA256": "b26c0ace14101d807e5e666c92b08f6548092469f743cbe78721461826977782",
+      "uncompressedBytes": 5419,
+      "bytes": 1208,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/embedded/CADTopology.log",
+      "role": "Accepted actual embedded four-group evidence; products are hashes only"
+    },
+    "portable/embedded/CADTopologySources.rsp.gz": {
+      "sha256": "563f977163bacb82c737247af3cf7d92d3b6387d6803c72ccda487e104c2f8f9",
+      "uncompressedSHA256": "a1969a95ac35255123ca5a454fe07c768382b39f6d35f937d03d22d324bc5109",
+      "uncompressedBytes": 27197,
+      "bytes": 1603,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/embedded/CADTopologySources.rsp",
+      "role": "Accepted actual embedded four-group evidence; products are hashes only"
+    },
+    "portable/embedded/client-link.log.gz": {
+      "sha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "uncompressedSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressedBytes": 0,
+      "bytes": 20,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/embedded/client-link.log",
+      "role": "Accepted actual embedded four-group evidence; products are hashes only"
+    },
+    "portable/embedded/runtime.log.gz": {
+      "sha256": "4c82dc6efd9f410277326f30c337141ff6ef69bb322c3920ca0531c799548fe7",
+      "uncompressedSHA256": "b30deb4141d11c149b382edc404b2a28dcc4add9f3e943c83780b6fcf70de2d9",
+      "uncompressedBytes": 1202,
+      "bytes": 518,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/embedded/runtime.log",
+      "role": "Accepted actual embedded four-group evidence; products are hashes only"
+    },
+    "origins/embedded/receipt.json.gz": {
+      "sha256": "7bf9c9b92aae0bce448f6efa215c2808240fe01d24046f6346afbbf48c7d0275",
+      "uncompressedSHA256": "68aa17d0f6da4e4b41a7869fb85e0acb5f01148e4ebf0184edbfc0590287d671",
+      "uncompressedBytes": 1923683,
+      "bytes": 361689,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/embedded/receipt.json",
+      "role": "Actual Core67/Geometry2171 strict reuse compiler authority"
+    },
+    "origins/embedded/embedded-core-compile.log.gz": {
+      "sha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "uncompressedSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressedBytes": 0,
+      "bytes": 20,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/embedded/embedded-core-compile.log",
+      "role": "Actual lower compiler log"
+    },
+    "origins/embedded/embedded-compile.log.gz": {
+      "sha256": "989f72f2804308655a59aa904a2c64a9445be540d445b6ed6af81fa7fb01147d",
+      "uncompressedSHA256": "91e830fabc2849197edabd01fcb53540e00bdf70d83234da27dd2dd8c6611213",
+      "uncompressedBytes": 82124,
+      "bytes": 9771,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/embedded/embedded-compile.log",
+      "role": "Actual lower compiler log"
+    },
+    "origins/embedded/CoreSources.rsp.gz": {
+      "sha256": "551867367d4948c7b54cef758386fd622cb4c598d0b4a53881c45f325d585b2b",
+      "uncompressedSHA256": "958d6c96d68ae5f476b39429a8ed2c3ef8fbf31fe5c6af663d5c877a5732550c",
+      "uncompressedBytes": 11961,
+      "bytes": 753,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/embedded/embedded/CoreSources.rsp",
+      "role": "Actual complete lower source response inventory"
+    },
+    "origins/embedded/GeometrySources.rsp.gz": {
+      "sha256": "ba39f4667fc1a6158a6545698d26a3857aafea8035899686332a6c5a4528cd4e",
+      "uncompressedSHA256": "9e4d33375dfa1ddd781a57256303c762ee7a42bdcf264c8c883dc1c44fd129ed",
+      "uncompressedBytes": 450815,
+      "bytes": 17026,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/embedded/embedded/GeometrySources.rsp",
+      "role": "Actual complete lower source response inventory"
+    },
+    "origins/current-geometry-products.json.gz": {
+      "sha256": "65b73c1d926418595bbf4527dfc2ab027b3fda595b4aaefc1fba0061f79eb870",
+      "uncompressedSHA256": "d09b7659aca7757e57f16805d1a1a637d5327b023d99b688a70133c5fc93b0d8",
+      "uncompressedBytes": 12265,
+      "bytes": 2266,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/products.json",
+      "role": "Actual portable source/tool/SDK/product map"
+    },
+    "source-provenance/runners/typecheck.py.gz": {
+      "sha256": "200fb1ab1d92568710a62e257e8e0bc74db6bea9fb165477c0ce4dc828c3ae0e",
+      "uncompressedSHA256": "9a290a4391c71a3308753fbefb116d6fb8ed73ba6af679e1ec5d6822cbeab3c6",
+      "uncompressedBytes": 27037,
+      "bytes": 6932,
+      "origin": "/Users/1amageek/Desktop/3D/swift-CAD/Tests/OriginalQueryExecutionVerification/typecheck.py",
+      "role": "Unmodified canonical runner used by actual commands"
+    },
+    "source-provenance/runners/native_tests.py.gz": {
+      "sha256": "d43672e65d4878ac7217b7451c2b3ec88e0bc18b3656ece5f11615c1f34f8a06",
+      "uncompressedSHA256": "6110e954b49e99a4720a0d6c8b5cbfde96eaaa8492b5bc27ad0a8e6bd0a0f1ed",
+      "uncompressedBytes": 38585,
+      "bytes": 9055,
+      "origin": "/Users/1amageek/Desktop/3D/swift-CAD/Tests/OriginalQueryExecutionVerification/native_tests.py",
+      "role": "Unmodified canonical runner used by actual commands"
+    },
+    "source-provenance/portable-run.py.gz": {
+      "sha256": "10fc9c7b71751d24d4f35813b09e3a77dc37ad05c0182cb6e595596950ff595d",
+      "uncompressedSHA256": "59f5bd3c80c78e9c818b5c194dc0a9836a928817e2e33231d257ae8856b9c000",
+      "uncompressedBytes": 16654,
+      "bytes": 5018,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/run.py",
+      "role": "Task-local strict reuse and bounded compile/link/runtime wrapper"
+    },
+    "source-provenance/main-binding-plan.py.gz": {
+      "sha256": "17a1a4a22afe4c42328cf54c65329cd43e341ec71250f7e01a1f02bb9cb1a921",
+      "uncompressedSHA256": "2349ddc0bde25b3516781b6450de10ebf63ec976ea39bf48ce4dcaecb5b2aca3",
+      "uncompressedBytes": 6620,
+      "bytes": 2425,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/main-volume-caller-binding-r1/bind.py",
+      "role": "Prepared, NOT executed source-equivalent Main binding; compiledHere=false"
+    },
+    "unaccepted-native-probe/receipt.json.gz": {
+      "sha256": "81b6f61b0e6580c8b4e33ac13d06826bb0d3da48b29c983f0bc8741c7be04641",
+      "uncompressedSHA256": "4e213d5de50c2924e59c16accb70906e159059928fb6e394ca9d70b34189e47b",
+      "uncompressedBytes": 386943,
+      "bytes": 119678,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-native-red-r1/receipt.json",
+      "role": "Unaccepted 60-second cost-probe timeout before P completed; not a Red cost assertion"
+    },
+    "unaccepted-native-probe/test-runtime.log.gz": {
+      "sha256": "0eb57e5438b4cffab500a3af76055d9b37e6d167dc278980e444e6ab10b19d7c",
+      "uncompressedSHA256": "c8ace8323c47d7ffef25162e5b6a63f2cf67d4b9283b9dd32593d9483883800d",
+      "uncompressedBytes": 904,
+      "bytes": 400,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-native-red-r1/test-runtime.log",
+      "role": "Unaccepted 60-second cost-probe timeout before P completed; not a Red cost assertion"
+    },
+    "unaccepted-native-probe/results.xml.gz": {
+      "sha256": "fcd8321a7560a1a7bcbed9d5f18e7f5a49b3931247b2161b57d885ae24dd5f6e",
+      "uncompressedSHA256": "581d159405378c0b0d2d91a3a0983351c26e73ed97223f42216cc2f7295c98b2",
+      "uncompressedBytes": 413,
+      "bytes": 280,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-native-red-r1/results.xml",
+      "role": "Unaccepted 60-second cost-probe timeout before P completed; not a Red cost assertion"
+    },
+    "unaccepted-native-probe/diagnostic/receipt.json.gz": {
+      "sha256": "972e49062105774416e31847f55fc189c99f090bca7f399b55c9f1cc293cf2bb",
+      "uncompressedSHA256": "b4b553832db53d10d7b0d19a0172aeaa307d6852425b147332bccd00d80ded90",
+      "uncompressedBytes": 9720,
+      "bytes": 2233,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-native-diagnostic-r1/receipt.json",
+      "role": "One retained-binary diagnostic; stopped at Native P correspondence, no accepted L/V comparison"
+    },
+    "unaccepted-native-probe/diagnostic/hot-stack.json.gz": {
+      "sha256": "befd834d131dc635fa4e8d3fb2fb0463a0147938494601b2d7d3eec3165865dc",
+      "uncompressedSHA256": "b0e33410eabb28b4459865c6662cf701def10d7c20a11a01e780cc8882378859",
+      "uncompressedBytes": 19287,
+      "bytes": 2584,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-native-diagnostic-r1/hot-stack.json",
+      "role": "One retained-binary diagnostic; stopped at Native P correspondence, no accepted L/V comparison"
+    },
+    "unaccepted-native-probe/diagnostic/debugger.log.gz": {
+      "sha256": "c7791dd87dca4172a62dd788040d9daf6357a7de4d0d996c0eb16c5e191be161",
+      "uncompressedSHA256": "7dda2813e32828f893c7b2e59b1dbdcf71442e480b3358c9f7a25ee3741ccdfc",
+      "uncompressedBytes": 3251,
+      "bytes": 1129,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-native-diagnostic-r1/debugger.log",
+      "role": "One retained-binary diagnostic; stopped at Native P correspondence, no accepted L/V comparison"
+    },
+    "unaccepted-native-probe/diagnostic/unaccepted-native-composition-fixture.swift.gz": {
+      "sha256": "2724328e3defb4b4ce25f74a8d9c1f300690baeb649fe0cfe0c50b7aacf0867d",
+      "uncompressedSHA256": "88e837af6b23b074d92c37f2d91f611d44120b240e1a0ffc816eabd621f25958",
+      "uncompressedBytes": 5255,
+      "bytes": 1913,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-native-diagnostic-r1/unaccepted-native-composition-fixture.swift",
+      "role": "One retained-binary diagnostic; stopped at Native P correspondence, no accepted L/V comparison"
+    },
+    "unaccepted-native-probe/diagnostic/capture_once.py.gz": {
+      "sha256": "efacb0831b7aca52a2ede0d3abdfb42443a4691a7df5f56b62463879497c8c18",
+      "uncompressedSHA256": "d848b1dcaf3f212b0da7dfcae0a6984dbb3e86248315556d496a7f67e043f296",
+      "uncompressedBytes": 1406,
+      "bytes": 696,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-native-diagnostic-r1/capture_once.py",
+      "role": "One retained-binary diagnostic; stopped at Native P correspondence, no accepted L/V comparison"
+    },
+    "unaccepted-native-probe/diagnostic/run_once.py.gz": {
+      "sha256": "ac3b4e2ab91de33e8d1653c4c47896206314d9b99bc522371b8090071833b28e",
+      "uncompressedSHA256": "f003a205de1d8388e0fece27bbc54ce57d5c8e1f53c2f2ead3d5fbd00e40782f",
+      "uncompressedBytes": 2861,
+      "bytes": 1417,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-native-diagnostic-r1/run_once.py",
+      "role": "One retained-binary diagnostic; stopped at Native P correspondence, no accepted L/V comparison"
+    },
+    "review/review.json.gz": {
+      "sha256": "cc7044decad6983f6fef2f20cc72cde6ba1bd0640edfebf188707a884dda72b3",
+      "uncompressedSHA256": "292c8132276f160ee70abb6b063aa930ee0a99364d368e6f4d8efbab0509add9",
+      "uncompressedBytes": 15642,
+      "bytes": 4766,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-review-r1/review.json",
+      "role": "One comprehensive read-only review; no blocker in reviewed scope"
+    }
+  },
+  "verification": {
+    "path": "VERIFICATION.md",
+    "sha256": "c5e6af1e9b00b4c3324de03fbbfa0dc42dbcfa667c533582bfafe4d6194042a3"
+  },
+  "archiveVerification": {
+    "gzipMembers": 68,
+    "compressedBytes": 2977228,
+    "allMembersDecompressedAndHashed": true,
+    "binaryObjectOrModuleFiles": 0,
+    "sourceFixtureChangesAfterFreeze": 0
+  }
+}

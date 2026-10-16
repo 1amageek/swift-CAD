@@ -670,7 +670,7 @@ struct OriginalBRepValidationInvocation: Sendable {
     try BRepShellReferencePointResolver().referencePoint(
       for: shell,
       in: model,
-      context: "Line-only shell volume"
+      context: "Line-only shell volume", using: &execution
     )
   }
 
@@ -712,7 +712,7 @@ struct OriginalBRepValidationInvocation: Sendable {
     guard
       let plane = try DefaultPlanarSurfaceResolver().exactPlane(
         for: surface,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
     else {
       return nil

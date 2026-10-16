@@ -81,6 +81,28 @@ adapters and edge classifiers may retain that borrowed callback only inside
 Typed callback failures propagate unchanged through validation and publication.
 Regression owner: [Native dependency contracts](../../../Tests/CADTopologyTests/NativeDependencyContractTests.swift).
 
+### Public volume lower-owner admission
+
+Public whole-model/body volume, signed shell volume and volumetric validation
+compose their existing base validation and shell flux algorithms on the caller's
+single `OriginalQueryExecution`. Both line-only shell reference selection and
+exact support-plane resolution forward that execution to the existing Geometry
+and Topology producers, including their repeated use during base validation and
+subsequent volume integration. These lower calls cannot create independent roots.
+The source planes, directed loops, divergence formula, visit order, local policies,
+tolerance guards and fallback selection remain unchanged. Ordinary public APIs
+still create their established root once before delegating to this same body.
+
+[Public volume admission checks](../../../Tests/CADTopologyTests/VolumeCallerAdmissionChecks.swift)
+use the authored unit cube and independent volume one. The signed-shell trace
+composes actual base validation, actual lower reference/plane producers and
+public ordered-point queries with the fixed cube incidence visits; a lower reset
+therefore fails independently of a self-measured resource boundary. The same
+retained input also exercises cumulative exact work/storage refusal, cancellation,
+missing-source failures and persistent-source COW/lifetime. The earlier 33-by-2
+Native-plane cost probe stopped inside base correspondence preparation and is
+not accepted as a completed cost comparison or as volume-family coverage.
+
 ## Failure, Concurrency, and Constraints
 Admission contains only an immutable callback and invocation-local value state. It preserves Sendable across all targets. Cancellation and caller resource failures propagate. A bounded validation receipt must cover every lower source and correspondence visit; an opaque phase debit is insufficient.
 
