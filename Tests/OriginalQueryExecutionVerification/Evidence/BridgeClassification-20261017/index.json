@@ -1,0 +1,1076 @@
+{
+  "schemaVersion": 1,
+  "status": "native-five-and-portable-three-lanes-four-oracles-passed",
+  "scope": "ERROR Bridge failure classification only: actual nonempty ruled Bridge publication, work/storage original cause and feature context, same caller cancellation. Whole-feature accounting, constrained/wall branches, other Modeling and Kernel/whole-U1 portability are not completed by this evidence.",
+  "sourceCounts": {
+    "CADCore": 67,
+    "CADGeometry": 2171,
+    "CADTopology": 142,
+    "CADIR": 818,
+    "CADModelingWholeFiles": 35
+  },
+  "baselineNative14": {
+    "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-full-r14/receipt.json",
+    "sha256": "bed585f663ab6a9a04ef0d9e7055b2409f486d9bde91fa54ebe3b7b3cb69d3c3",
+    "scope": "Pre-getter Native metadata baseline; new current source has separately verified exact getter-only inverse. No final Native runtime claim."
+  },
+  "lanes": {
+    "asan": {
+      "receipt": {
+        "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/asan/receipt.json",
+        "sha256": "6f11b404ec734e16880dc7921f7b752ad3c82933fd52e252b6fdb6f93693c802",
+        "archive": "Final/asan/receipt.json.gz"
+      },
+      "oracles": [
+        "PASS actualRuledBuilderPublishesANonemptyBridge",
+        "PASS actualRuledBuilderWorkRefusalKeepsItsCauseAndFeatureContext",
+        "PASS actualRuledBuilderStorageRefusalKeepsItsCauseAndFeatureContext",
+        "PASS actualRuledBuilderCancellationKeepsItsCause"
+      ],
+      "steps": {
+        "CADModeling": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 2.769641499995487
+        },
+        "client-link": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 3.003994833008619
+        },
+        "runtime": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 1.6618492499983404
+        }
+      },
+      "inputAndProductPinCount": 4363,
+      "postflightDrift": [],
+      "moduleRegeneration": {
+        "CADCore": 0,
+        "CADGeometry": 0,
+        "CADTopology": 0,
+        "CADIR": 0,
+        "CADModelingWholeFileSubset": 35
+      },
+      "previousCompileLinkSeconds": 170.14257029199507,
+      "currentSourceSHA256": {
+        "Sources/CADModeling/BRepSewingBodyTopology.swift": "bf62df41fbaf630fab2804648ae3d89c0f322e3a2c9630b2ee7770d3c8e3d7c9",
+        "Sources/CADModeling/BRepSewingEdge.swift": "ca569c702b97b780b66acf9cb46164017f0367772ed88bfacd476bf60e7853e4",
+        "Sources/CADModeling/BRepSewingFacePatch.swift": "a0d959706a746989c9ebbd476cf797e859ee85b59d16063843c0386830dd933f",
+        "Sources/CADModeling/BRepSewingLoop.swift": "02e563a759a026906beda0efe3f0d6f406576685de13c7922d563f0da958b8d3",
+        "Sources/CADModeling/BRepSewingRequest.swift": "dff5375ee4476c00fbe4f3ad24d85ff177c31f96ea778b2cd42f28bd0c9c61bf",
+        "Sources/CADModeling/BRepSewingShell.swift": "6464b0122ef26823e97151dcd11266040710d4775d64414de54647921ddb815d",
+        "Sources/CADModeling/BRepSewingSolidComponent.swift": "53b8e5266e4ddde456a36becd6667c5e78d8585334fc7bb13a1d25aba1efcb25",
+        "Sources/CADModeling/BRepSewingTopologyNamespace.swift": "db27d91fc4733a0199af3b6bc953be866f862bf67a80e1df846b8e9f89e28426",
+        "Sources/CADModeling/BSplineSurfaceFeatureEvaluator.swift": "e8089856e29efd6cc9361dcd2a8a2a38bae6201cc2364dd0ca860417cdfa1a26",
+        "Sources/CADModeling/BoundedSewingValidation/OriginalSewingPatchValidator.swift": "532001933cedbf52e22ec119ac83c8d3d69007749253210e1a2907d5fbc065a7",
+        "Sources/CADModeling/BridgeSurface/BridgeSurfaceFeatureEvaluator.swift": "84b54fbc6771b8eba83b835f0c65b9378a4b3a2a91f937239f533c30eede1725",
+        "Sources/CADModeling/BridgeSurface/BridgeSurfaceWallTrimming.swift": "0f3753b427b3e2e6b1e2eceaef22d8a4b57c74fcfd587e1c3273e36e70d84b25",
+        "Sources/CADModeling/BridgeSurface/ConstrainedBridgeSurfaceBuilder.swift": "2fc9ef8ac6b89ce549fb38b2a4843706bd50e87c86f8a06a62257d795ad8618f",
+        "Sources/CADModeling/BridgeSurface/OriginalBridgeWallSamples.swift": "a5d7c1b0bea6540b4deeeb50fef4830a5a6075c64ce548da43c8447ba1e1ad9d",
+        "Sources/CADModeling/DraftedSection/OriginalDraftDirectionInputs.swift": "67148caee9a5c3cbae1a5819a4ba920aa5883d8092fb3c51dbd1a74a2c08965f",
+        "Sources/CADModeling/EvaluatedCurve.swift": "1d0d8521a27720cfaea4cdc97bdfa3a1de6b56dff0dca43a21e11ac9b90266b7",
+        "Sources/CADModeling/EvaluatedCurveKind.swift": "64877bb34db7610b534fe3b1c3126963026c007aaadc9191598660b6b5f18d71",
+        "Sources/CADModeling/EvaluatedCurveSource.swift": "8c5c6cd226af6ae2303e28b8157dc8ae0e452d7d13fdc5744fa20bf56cd1dc46",
+        "Sources/CADModeling/EvaluationContext+SubshapeLookup.swift": "c7fae99b958184d86f80af425ad7804148e039ed951f2dc3a6fdaac2f66940a7",
+        "Sources/CADModeling/EvaluationContext.swift": "c8f51dcb91926161ab83975f1f954f90d2e098aff5b8c29fd244ba0cb5f5d42e",
+        "Sources/CADModeling/EvaluationResult.swift": "b1d12dfd690de8d5c1b658c937f2f3be41f3d53b1368bafd0b847327b830b2df",
+        "Sources/CADModeling/ExactBoundaryCurveResolver.swift": "228007096386d8a7d7154718c34b8c5a9858d746ffcf354dd98ad7265ca0d122",
+        "Sources/CADModeling/ExactFacePcurve/ExactFacePcurveBuilder.swift": "734166a982b9ecdaa5ec001ff95ea50e2fa25bae4bd5c3768b47b85258193d34",
+        "Sources/CADModeling/FeatureEvaluating.swift": "d1e6c6e486fa5c954f1831fbb3e33241b43089c959622c70ba13104937e4879f",
+        "Sources/CADModeling/FeatureEvaluationBoundary.swift": "f97e750362a492c5cd6095733e4befc58a021aa23011aaa1d63afb299f86e36c",
+        "Sources/CADModeling/FeatureTopologyIDAllocator.swift": "f8b0b672f8208709ef16a1142d56a263546436716e99dcddea14bdcbe2f5b19e",
+        "Sources/CADModeling/FeatureTopologyLineageValidator.swift": "41a6e1522e70316cfd3fbd12091a83d150c2a7a649083be8b3adacf2ddfcf0bb",
+        "Sources/CADModeling/GeneratedTopologyLineageBuilder.swift": "ad246d2ca43944aa328b4579a66fa9c290e22d061b8588b1597e0cf27088e763",
+        "Sources/CADModeling/SewingProvenance/AdmittedSewingProvenance.swift": "d2672ad5638fe0a40cf9609218995e1c9c91cc953a8d7ed523e2ee05f72982c7",
+        "Sources/CADModeling/StableTopologyReference/StableSubshapeResolver+Bounded.swift": "feed18524af78a62ad92d1f6ccc60d416733931e23654c2a9f9ecdb0ba81d86c",
+        "Sources/CADModeling/StableTopologyReference/StableSubshapeResolver.swift": "6cdce67393926dc8d14c5abd84d0a351eb6966fe1864d53edbdf6c113ddf7c81",
+        "Sources/CADModeling/StableTopologyReference/StableSubshapeResolving.swift": "2eb9824c66b83971fd533dc2287b4e44dabcc6202455890a72c6106aa1b1750b",
+        "Sources/CADModeling/SubshapeGeometrySignatureBuilder.swift": "e94068535ae8c7a01de8bcad73787266e4e78cb63b77649277420ffdfa1f7cd5",
+        "Sources/CADModeling/ValidatedFeatureEvaluating.swift": "340fecf16e02a37d3be66d55c03691500e32f87e60e0c15439243b6ef51cd5da",
+        "Sources/CADModeling/ValidatedFeatureEvaluation.swift": "06b91a9ebf55713faed9c4346478e4f22e5d09f001bddcff56526495ea0a8f32"
+      }
+    },
+    "wasm": {
+      "receipt": {
+        "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/wasm/receipt.json",
+        "sha256": "2eff1bb1fc0dbe1c49947b0903bec947ae1158404717abce697e2119589875b7",
+        "archive": "Final/wasm/receipt.json.gz"
+      },
+      "oracles": [
+        "PASS actualRuledBuilderPublishesANonemptyBridge",
+        "PASS actualRuledBuilderWorkRefusalKeepsItsCauseAndFeatureContext",
+        "PASS actualRuledBuilderStorageRefusalKeepsItsCauseAndFeatureContext",
+        "PASS actualRuledBuilderCancellationKeepsItsCause"
+      ],
+      "steps": {
+        "CADModeling": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 2.795496874998207
+        },
+        "client-link": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 2.0780682079930557
+        },
+        "runtime": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 0.46876483400410507
+        }
+      },
+      "inputAndProductPinCount": 4330,
+      "postflightDrift": [],
+      "moduleRegeneration": {
+        "CADCore": 0,
+        "CADGeometry": 0,
+        "CADTopology": 0,
+        "CADIR": 0,
+        "CADModelingWholeFileSubset": 35
+      },
+      "previousCompileLinkSeconds": 155.54512095701648,
+      "currentSourceSHA256": {
+        "Sources/CADModeling/BRepSewingBodyTopology.swift": "bf62df41fbaf630fab2804648ae3d89c0f322e3a2c9630b2ee7770d3c8e3d7c9",
+        "Sources/CADModeling/BRepSewingEdge.swift": "ca569c702b97b780b66acf9cb46164017f0367772ed88bfacd476bf60e7853e4",
+        "Sources/CADModeling/BRepSewingFacePatch.swift": "a0d959706a746989c9ebbd476cf797e859ee85b59d16063843c0386830dd933f",
+        "Sources/CADModeling/BRepSewingLoop.swift": "02e563a759a026906beda0efe3f0d6f406576685de13c7922d563f0da958b8d3",
+        "Sources/CADModeling/BRepSewingRequest.swift": "dff5375ee4476c00fbe4f3ad24d85ff177c31f96ea778b2cd42f28bd0c9c61bf",
+        "Sources/CADModeling/BRepSewingShell.swift": "6464b0122ef26823e97151dcd11266040710d4775d64414de54647921ddb815d",
+        "Sources/CADModeling/BRepSewingSolidComponent.swift": "53b8e5266e4ddde456a36becd6667c5e78d8585334fc7bb13a1d25aba1efcb25",
+        "Sources/CADModeling/BRepSewingTopologyNamespace.swift": "db27d91fc4733a0199af3b6bc953be866f862bf67a80e1df846b8e9f89e28426",
+        "Sources/CADModeling/BSplineSurfaceFeatureEvaluator.swift": "e8089856e29efd6cc9361dcd2a8a2a38bae6201cc2364dd0ca860417cdfa1a26",
+        "Sources/CADModeling/BoundedSewingValidation/OriginalSewingPatchValidator.swift": "532001933cedbf52e22ec119ac83c8d3d69007749253210e1a2907d5fbc065a7",
+        "Sources/CADModeling/BridgeSurface/BridgeSurfaceFeatureEvaluator.swift": "84b54fbc6771b8eba83b835f0c65b9378a4b3a2a91f937239f533c30eede1725",
+        "Sources/CADModeling/BridgeSurface/BridgeSurfaceWallTrimming.swift": "0f3753b427b3e2e6b1e2eceaef22d8a4b57c74fcfd587e1c3273e36e70d84b25",
+        "Sources/CADModeling/BridgeSurface/ConstrainedBridgeSurfaceBuilder.swift": "2fc9ef8ac6b89ce549fb38b2a4843706bd50e87c86f8a06a62257d795ad8618f",
+        "Sources/CADModeling/BridgeSurface/OriginalBridgeWallSamples.swift": "a5d7c1b0bea6540b4deeeb50fef4830a5a6075c64ce548da43c8447ba1e1ad9d",
+        "Sources/CADModeling/DraftedSection/OriginalDraftDirectionInputs.swift": "67148caee9a5c3cbae1a5819a4ba920aa5883d8092fb3c51dbd1a74a2c08965f",
+        "Sources/CADModeling/EvaluatedCurve.swift": "1d0d8521a27720cfaea4cdc97bdfa3a1de6b56dff0dca43a21e11ac9b90266b7",
+        "Sources/CADModeling/EvaluatedCurveKind.swift": "64877bb34db7610b534fe3b1c3126963026c007aaadc9191598660b6b5f18d71",
+        "Sources/CADModeling/EvaluatedCurveSource.swift": "8c5c6cd226af6ae2303e28b8157dc8ae0e452d7d13fdc5744fa20bf56cd1dc46",
+        "Sources/CADModeling/EvaluationContext+SubshapeLookup.swift": "c7fae99b958184d86f80af425ad7804148e039ed951f2dc3a6fdaac2f66940a7",
+        "Sources/CADModeling/EvaluationContext.swift": "c8f51dcb91926161ab83975f1f954f90d2e098aff5b8c29fd244ba0cb5f5d42e",
+        "Sources/CADModeling/EvaluationResult.swift": "b1d12dfd690de8d5c1b658c937f2f3be41f3d53b1368bafd0b847327b830b2df",
+        "Sources/CADModeling/ExactBoundaryCurveResolver.swift": "228007096386d8a7d7154718c34b8c5a9858d746ffcf354dd98ad7265ca0d122",
+        "Sources/CADModeling/ExactFacePcurve/ExactFacePcurveBuilder.swift": "734166a982b9ecdaa5ec001ff95ea50e2fa25bae4bd5c3768b47b85258193d34",
+        "Sources/CADModeling/FeatureEvaluating.swift": "d1e6c6e486fa5c954f1831fbb3e33241b43089c959622c70ba13104937e4879f",
+        "Sources/CADModeling/FeatureEvaluationBoundary.swift": "f97e750362a492c5cd6095733e4befc58a021aa23011aaa1d63afb299f86e36c",
+        "Sources/CADModeling/FeatureTopologyIDAllocator.swift": "f8b0b672f8208709ef16a1142d56a263546436716e99dcddea14bdcbe2f5b19e",
+        "Sources/CADModeling/FeatureTopologyLineageValidator.swift": "41a6e1522e70316cfd3fbd12091a83d150c2a7a649083be8b3adacf2ddfcf0bb",
+        "Sources/CADModeling/GeneratedTopologyLineageBuilder.swift": "ad246d2ca43944aa328b4579a66fa9c290e22d061b8588b1597e0cf27088e763",
+        "Sources/CADModeling/SewingProvenance/AdmittedSewingProvenance.swift": "d2672ad5638fe0a40cf9609218995e1c9c91cc953a8d7ed523e2ee05f72982c7",
+        "Sources/CADModeling/StableTopologyReference/StableSubshapeResolver+Bounded.swift": "feed18524af78a62ad92d1f6ccc60d416733931e23654c2a9f9ecdb0ba81d86c",
+        "Sources/CADModeling/StableTopologyReference/StableSubshapeResolver.swift": "6cdce67393926dc8d14c5abd84d0a351eb6966fe1864d53edbdf6c113ddf7c81",
+        "Sources/CADModeling/StableTopologyReference/StableSubshapeResolving.swift": "2eb9824c66b83971fd533dc2287b4e44dabcc6202455890a72c6106aa1b1750b",
+        "Sources/CADModeling/SubshapeGeometrySignatureBuilder.swift": "e94068535ae8c7a01de8bcad73787266e4e78cb63b77649277420ffdfa1f7cd5",
+        "Sources/CADModeling/ValidatedFeatureEvaluating.swift": "340fecf16e02a37d3be66d55c03691500e32f87e60e0c15439243b6ef51cd5da",
+        "Sources/CADModeling/ValidatedFeatureEvaluation.swift": "06b91a9ebf55713faed9c4346478e4f22e5d09f001bddcff56526495ea0a8f32"
+      }
+    },
+    "embedded": {
+      "receipt": {
+        "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/receipt.json",
+        "sha256": "357e641075143872180d0636512d06b7d4d02de8188207fadf36b539097a860e",
+        "archive": "Final/embedded/receipt.json.gz"
+      },
+      "oracles": [
+        "PASS actualRuledBuilderPublishesANonemptyBridge",
+        "PASS actualRuledBuilderWorkRefusalKeepsItsCauseAndFeatureContext",
+        "PASS actualRuledBuilderStorageRefusalKeepsItsCauseAndFeatureContext",
+        "PASS actualRuledBuilderCancellationKeepsItsCause"
+      ],
+      "steps": {
+        "CADModeling": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 8.513685457990505
+        },
+        "client-link": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 55.40149141699658
+        },
+        "runtime": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 0.23442849999992177
+        }
+      },
+      "inputAndProductPinCount": 4359,
+      "postflightDrift": [],
+      "moduleRegeneration": {
+        "CADCore": 0,
+        "CADGeometry": 0,
+        "CADTopology": 0,
+        "CADIR": 0,
+        "CADModelingWholeFileSubset": 35
+      },
+      "previousCompileLinkSeconds": 100.83902487596788,
+      "currentSourceSHA256": {
+        "Sources/CADModeling/BRepSewingBodyTopology.swift": "bf62df41fbaf630fab2804648ae3d89c0f322e3a2c9630b2ee7770d3c8e3d7c9",
+        "Sources/CADModeling/BRepSewingEdge.swift": "ca569c702b97b780b66acf9cb46164017f0367772ed88bfacd476bf60e7853e4",
+        "Sources/CADModeling/BRepSewingFacePatch.swift": "a0d959706a746989c9ebbd476cf797e859ee85b59d16063843c0386830dd933f",
+        "Sources/CADModeling/BRepSewingLoop.swift": "02e563a759a026906beda0efe3f0d6f406576685de13c7922d563f0da958b8d3",
+        "Sources/CADModeling/BRepSewingRequest.swift": "dff5375ee4476c00fbe4f3ad24d85ff177c31f96ea778b2cd42f28bd0c9c61bf",
+        "Sources/CADModeling/BRepSewingShell.swift": "6464b0122ef26823e97151dcd11266040710d4775d64414de54647921ddb815d",
+        "Sources/CADModeling/BRepSewingSolidComponent.swift": "53b8e5266e4ddde456a36becd6667c5e78d8585334fc7bb13a1d25aba1efcb25",
+        "Sources/CADModeling/BRepSewingTopologyNamespace.swift": "db27d91fc4733a0199af3b6bc953be866f862bf67a80e1df846b8e9f89e28426",
+        "Sources/CADModeling/BSplineSurfaceFeatureEvaluator.swift": "e8089856e29efd6cc9361dcd2a8a2a38bae6201cc2364dd0ca860417cdfa1a26",
+        "Sources/CADModeling/BoundedSewingValidation/OriginalSewingPatchValidator.swift": "532001933cedbf52e22ec119ac83c8d3d69007749253210e1a2907d5fbc065a7",
+        "Sources/CADModeling/BridgeSurface/BridgeSurfaceFeatureEvaluator.swift": "84b54fbc6771b8eba83b835f0c65b9378a4b3a2a91f937239f533c30eede1725",
+        "Sources/CADModeling/BridgeSurface/BridgeSurfaceWallTrimming.swift": "0f3753b427b3e2e6b1e2eceaef22d8a4b57c74fcfd587e1c3273e36e70d84b25",
+        "Sources/CADModeling/BridgeSurface/ConstrainedBridgeSurfaceBuilder.swift": "2fc9ef8ac6b89ce549fb38b2a4843706bd50e87c86f8a06a62257d795ad8618f",
+        "Sources/CADModeling/BridgeSurface/OriginalBridgeWallSamples.swift": "a5d7c1b0bea6540b4deeeb50fef4830a5a6075c64ce548da43c8447ba1e1ad9d",
+        "Sources/CADModeling/DraftedSection/OriginalDraftDirectionInputs.swift": "67148caee9a5c3cbae1a5819a4ba920aa5883d8092fb3c51dbd1a74a2c08965f",
+        "Sources/CADModeling/EvaluatedCurve.swift": "1d0d8521a27720cfaea4cdc97bdfa3a1de6b56dff0dca43a21e11ac9b90266b7",
+        "Sources/CADModeling/EvaluatedCurveKind.swift": "64877bb34db7610b534fe3b1c3126963026c007aaadc9191598660b6b5f18d71",
+        "Sources/CADModeling/EvaluatedCurveSource.swift": "8c5c6cd226af6ae2303e28b8157dc8ae0e452d7d13fdc5744fa20bf56cd1dc46",
+        "Sources/CADModeling/EvaluationContext+SubshapeLookup.swift": "c7fae99b958184d86f80af425ad7804148e039ed951f2dc3a6fdaac2f66940a7",
+        "Sources/CADModeling/EvaluationContext.swift": "c8f51dcb91926161ab83975f1f954f90d2e098aff5b8c29fd244ba0cb5f5d42e",
+        "Sources/CADModeling/EvaluationResult.swift": "b1d12dfd690de8d5c1b658c937f2f3be41f3d53b1368bafd0b847327b830b2df",
+        "Sources/CADModeling/ExactBoundaryCurveResolver.swift": "228007096386d8a7d7154718c34b8c5a9858d746ffcf354dd98ad7265ca0d122",
+        "Sources/CADModeling/ExactFacePcurve/ExactFacePcurveBuilder.swift": "734166a982b9ecdaa5ec001ff95ea50e2fa25bae4bd5c3768b47b85258193d34",
+        "Sources/CADModeling/FeatureEvaluating.swift": "d1e6c6e486fa5c954f1831fbb3e33241b43089c959622c70ba13104937e4879f",
+        "Sources/CADModeling/FeatureEvaluationBoundary.swift": "f97e750362a492c5cd6095733e4befc58a021aa23011aaa1d63afb299f86e36c",
+        "Sources/CADModeling/FeatureTopologyIDAllocator.swift": "f8b0b672f8208709ef16a1142d56a263546436716e99dcddea14bdcbe2f5b19e",
+        "Sources/CADModeling/FeatureTopologyLineageValidator.swift": "41a6e1522e70316cfd3fbd12091a83d150c2a7a649083be8b3adacf2ddfcf0bb",
+        "Sources/CADModeling/GeneratedTopologyLineageBuilder.swift": "ad246d2ca43944aa328b4579a66fa9c290e22d061b8588b1597e0cf27088e763",
+        "Sources/CADModeling/SewingProvenance/AdmittedSewingProvenance.swift": "d2672ad5638fe0a40cf9609218995e1c9c91cc953a8d7ed523e2ee05f72982c7",
+        "Sources/CADModeling/StableTopologyReference/StableSubshapeResolver+Bounded.swift": "feed18524af78a62ad92d1f6ccc60d416733931e23654c2a9f9ecdb0ba81d86c",
+        "Sources/CADModeling/StableTopologyReference/StableSubshapeResolver.swift": "6cdce67393926dc8d14c5abd84d0a351eb6966fe1864d53edbdf6c113ddf7c81",
+        "Sources/CADModeling/StableTopologyReference/StableSubshapeResolving.swift": "2eb9824c66b83971fd533dc2287b4e44dabcc6202455890a72c6106aa1b1750b",
+        "Sources/CADModeling/SubshapeGeometrySignatureBuilder.swift": "e94068535ae8c7a01de8bcad73787266e4e78cb63b77649277420ffdfa1f7cd5",
+        "Sources/CADModeling/ValidatedFeatureEvaluating.swift": "340fecf16e02a37d3be66d55c03691500e32f87e60e0c15439243b6ef51cd5da",
+        "Sources/CADModeling/ValidatedFeatureEvaluation.swift": "06b91a9ebf55713faed9c4346478e4f22e5d09f001bddcff56526495ea0a8f32"
+      }
+    }
+  },
+  "fixtureSHA256": {
+    "Tests/CADModelingTests/BridgeSurfaceFailureClassificationChecks.swift": "3cf36b8a0e4e9d39ca573fcdb5a3fe6d8b1f242006204e52fc85da745023c916",
+    "Tests/OriginalQueryExecutionVerification/BridgeSurfaceFailureClassificationPortable.swift": "833e57da72af879acd4b361a8089f66fae9bab6ca80aa0b80603e331caa20ebd"
+  },
+  "sourceCompatibility": {
+    "getter": {
+      "freeze": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-keypath-binding-source-r1/source-freeze.json",
+      "sha256": "31fc60f3b88301f8eef644e3a33073b6f5e3332d3a204c5564f388ada8dc97ec",
+      "source": "Sources/CADModeling/BridgeSurface/BridgeSurfaceFeatureEvaluator.swift",
+      "beforeSHA256": "7fef7bdb89033f4f4086663bcbe5974a3393faa5b4298052a07cceaa7567666d",
+      "afterSHA256": "84b54fbc6771b8eba83b835f0c65b9378a4b3a2a91f937239f533c30eede1725",
+      "wholeFileExactInverse": true
+    },
+    "importAndEarlierBodies": {
+      "importFreeze": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-import-binding-source-r1/source-freeze.json",
+      "sha256": "de8a20453872467548154231c24e7d1d4bfc803ea97b92a81586db6ada9a1755",
+      "priorReceipt": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r3/embedded/receipt.json",
+      "priorSHA256": "ff22d4a7a97d05b718eac40d7daa18c7fa140eee425fd606497bdc59df67ecc6",
+      "retiredLiveSourcePins": {
+        "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD/Sources/CADModeling/BridgeSurface/BridgeSurfaceFeatureEvaluator.swift": "7fef7bdb89033f4f4086663bcbe5974a3393faa5b4298052a07cceaa7567666d"
+      },
+      "changedSources": [
+        "Sources/CADModeling/BridgeSurface/BridgeSurfaceFeatureEvaluator.swift"
+      ],
+      "wholeBodyInverseVerified": true,
+      "oldReceiptsUnmodified": true
+    }
+  },
+  "historicalFailures": [
+    {
+      "receipt": "Origins/bridge-portable-r1/asan/receipt.json.gz",
+      "cause": "Initial Model27 missing existing sewingAppend declaration; Topology/IR phases passed only."
+    },
+    {
+      "receipt": "Origins/bridge-portable-r2/embedded/receipt.json.gz",
+      "cause": "Two actual whole-file direct HashTreeCollections imports missing; no client/runtime."
+    },
+    {
+      "receipt": "Origins/bridge-portable-r3/embedded/receipt.json.gz",
+      "cause": "One actual stored role KeyPath unsupported; no client/runtime."
+    }
+  ],
+  "retention": "Original modules, source snapshots, scripts, raw receipts and logs remain unchanged. Archive contains no binary products or giant lower source copies. No cleanup executed.",
+  "files": {
+    "Final/asan/receipt.json.gz": {
+      "sha256": "bd8e0b07e06a1a4a6244a86b80d986cca80fc4b4904f06c8da4d8eeaf29231be",
+      "bytes": 332538,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/asan/receipt.json",
+      "sourceSHA256": "6f11b404ec734e16880dc7921f7b752ad3c82933fd52e252b6fdb6f93693c802",
+      "sourceBytes": 1641827
+    },
+    "Final/asan/CADModeling.log.gz": {
+      "sha256": "c43f35c16bd36026620e88d9f6cbfd9526589c0bf65b4d19cdee821220babced",
+      "bytes": 992,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/asan/CADModeling.log",
+      "sourceSHA256": "5fa1a94c496d8ac30806f108916ce986d07f73db41e672d83681933ca8a07edc",
+      "sourceBytes": 3687
+    },
+    "Final/asan/client-link.log.gz": {
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "bytes": 20,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/asan/client-link.log",
+      "sourceSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0
+    },
+    "Final/asan/runtime.log.gz": {
+      "sha256": "de80f18d8e655f3a2940ac10ab1d943b792b84877eb688d36c9ea3a5302320dc",
+      "bytes": 128,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/asan/runtime.log",
+      "sourceSHA256": "62365a35ee4185722d0474e1cb69d1cade72baf8d7ddb439c757413558c28805",
+      "sourceBytes": 230
+    },
+    "Final/asan/CADModelingSources.rsp.gz": {
+      "sha256": "8286884322bcb85ed7aa9ecfca960a0b69f970b789e4421420dd8ad09b10018a",
+      "bytes": 548,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/asan/CADModelingSources.rsp",
+      "sourceSHA256": "f09b69094f2e5bab00b282ae9ddfd48745a0747aa37a27f74ded6ce50da4db3a",
+      "sourceBytes": 6206
+    },
+    "Final/wasm/receipt.json.gz": {
+      "sha256": "06539558efd1860b9a8483a602a094f6d205a813eab896c62a7100f89f80f74b",
+      "bytes": 332372,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/wasm/receipt.json",
+      "sourceSHA256": "2eff1bb1fc0dbe1c49947b0903bec947ae1158404717abce697e2119589875b7",
+      "sourceBytes": 1636314
+    },
+    "Final/wasm/CADModeling.log.gz": {
+      "sha256": "65e1ae4826c8adafed48dcb86535a20eae881f8e79394af8d93f3d16e03348a0",
+      "bytes": 993,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/wasm/CADModeling.log",
+      "sourceSHA256": "1750893a72b64e22a90e20b51882af0b43d341c3fd3114e8adb99706855d5075",
+      "sourceBytes": 3687
+    },
+    "Final/wasm/client-link.log.gz": {
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "bytes": 20,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/wasm/client-link.log",
+      "sourceSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0
+    },
+    "Final/wasm/runtime.log.gz": {
+      "sha256": "5b63f9986a2bd8e3d5e0ef7afcbf247081ce6ac2270dc78cdffd6a224c3244ed",
+      "bytes": 237,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/wasm/runtime.log",
+      "sourceSHA256": "c390e1792339e17acaf22281ad2e266294474ce0e840137d9b2392c1407c6084",
+      "sourceBytes": 397
+    },
+    "Final/wasm/CADModelingSources.rsp.gz": {
+      "sha256": "c550be69b40641b1cce546d3a9baf12db2d0e780ff6e979168c50deda74db0fd",
+      "bytes": 548,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/wasm/CADModelingSources.rsp",
+      "sourceSHA256": "0e60bce6e637e8035ae5999c6cd2f55e1eba8499d02fd8f30462bb519bc77c80",
+      "sourceBytes": 6206
+    },
+    "Final/embedded/receipt.json.gz": {
+      "sha256": "589f9e327b6b1a168040d89b0e058a0942c8e62807a477835edb1e423c67a73e",
+      "bytes": 332250,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/receipt.json",
+      "sourceSHA256": "357e641075143872180d0636512d06b7d4d02de8188207fadf36b539097a860e",
+      "sourceBytes": 1654906
+    },
+    "Final/embedded/CADModeling.log.gz": {
+      "sha256": "b8d82fccff778afb6b2139e7ec44c29fd3541a5c28c34f39df1a30e34f6ca41d",
+      "bytes": 986,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/CADModeling.log",
+      "sourceSHA256": "0f9bbacac2e32db3bef651fa0535019908cfbd28f923b62256799454985ce676",
+      "sourceBytes": 3129
+    },
+    "Final/embedded/client-link.log.gz": {
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "bytes": 20,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/client-link.log",
+      "sourceSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0
+    },
+    "Final/embedded/runtime.log.gz": {
+      "sha256": "b362d45bf01ca8f262ca1526b959aaa6dd6b5604e0fbd327baa4382f07121d29",
+      "bytes": 237,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/runtime.log",
+      "sourceSHA256": "54a8e58127032b69038ee8473769f738d5fa109d4902b0b6ae0407bee0455d26",
+      "sourceBytes": 397
+    },
+    "Final/embedded/CADModelingSources.rsp.gz": {
+      "sha256": "ba8673958f43c4df0dc8c125f2e0a83c85b6c76df4a6db3070a2126c2713dee1",
+      "bytes": 553,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/CADModelingSources.rsp",
+      "sourceSHA256": "335f25c99d3e1736210d3021e3e60558487be6ed068adef8584a40aac0164608",
+      "sourceBytes": 6346
+    },
+    "Origins/bridge-portable-r1/asan/receipt.json.gz": {
+      "sha256": "5cbd2805ce667fe1f78bab3ef8906df387f80a5a737ca3c4269bce6f67c18742",
+      "bytes": 329596,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r1/asan/receipt.json",
+      "sourceSHA256": "5d3b8c357cd703ed4585d606027eca15ece79d0a0d3e3fc3503cfb59e135d16e",
+      "sourceBytes": 1617861
+    },
+    "Origins/bridge-portable-r1/asan/CADModeling.log.gz": {
+      "sha256": "e7176d51e288f666f66defb4aeacf50717d0671fa35a752072ee17f014f39a04",
+      "bytes": 927,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r1/asan/CADModeling.log",
+      "sourceSHA256": "347b43498d86bc23c1804a4d90d2a4344b379009d809f8c0684f12e034907b89",
+      "sourceBytes": 2873
+    },
+    "Origins/bridge-portable-r1/asan/CADIR.log.gz": {
+      "sha256": "b2ef23419bd38ec94ed28b97f496cd9e5310ff7a83907ac3b6203df0dcf8d0f7",
+      "bytes": 442,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r1/asan/CADIR.log",
+      "sourceSHA256": "4e0f3cf3ba6c9b794a290b052f4e8630eddd053b469e7b56beee19cfcda65444",
+      "sourceBytes": 742
+    },
+    "Origins/bridge-portable-r1/asan/CADTopology.log.gz": {
+      "sha256": "4f12ed8538a3771c1e1f5fb1ae8c7f1354d36ca92f4c9215f1d9ccba85382652",
+      "bytes": 1201,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r1/asan/CADTopology.log",
+      "sourceSHA256": "b247d3811cb03b9c882ee75c021102e47d591e0ed2ea6ec85394a9ba84b34f62",
+      "sourceBytes": 5342
+    },
+    "Origins/bridge-portable-r1/asan/CADModelingSources.rsp.gz": {
+      "sha256": "71bf9c3c6154a6735e3274eb37530c5a2fd6e6594ce4533b38320ad972d436b5",
+      "bytes": 480,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r1/asan/CADModelingSources.rsp",
+      "sourceSHA256": "0b88f86c45691d724c65185b1c3207ae92fe484a07450c3af5cc0a69e855c731",
+      "sourceBytes": 4845
+    },
+    "Origins/bridge-portable-r1/asan/CADTopologySources.rsp.gz": {
+      "sha256": "93088e0024a5e0c76f0b6fd32ff26b33c891faa7b5f4275871753f2b6ece5bd0",
+      "bytes": 1585,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r1/asan/CADTopologySources.rsp",
+      "sourceSHA256": "b2df7925eac4e650e19194491c61a140ed49661f7429cb666c6db2bbc09bfd7e",
+      "sourceBytes": 25635
+    },
+    "Origins/bridge-portable-r1/asan/CADIRSources.rsp.gz": {
+      "sha256": "fef74acd3be429fdf53c59b0e37b05660b0ed0c727d434062a134a6bf0f41689",
+      "bytes": 5980,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r1/asan/CADIRSources.rsp",
+      "sourceSHA256": "1ab1497765e543618503309273b8c76e84aad05fc2cc5d52b001433b26cb202b",
+      "sourceBytes": 156329
+    },
+    "Origins/bridge-portable-r2/asan/receipt.json.gz": {
+      "sha256": "4b793b90ed6a3847839cf5cd32c3a3167d95924567ab01bb8538b0db3d404e1c",
+      "bytes": 331207,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r2/asan/receipt.json",
+      "sourceSHA256": "aa3d12c232c3226ac46bd9c39e41163983996e5bbefc1dafa5c85ab9fdbb1a4f",
+      "sourceBytes": 1627977
+    },
+    "Origins/bridge-portable-r2/asan/CADModeling.log.gz": {
+      "sha256": "2fc0e8090b785fb7639256ee97784baf54c843b7bf4a5a40001c0feecb670afd",
+      "bytes": 752,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r2/asan/CADModeling.log",
+      "sourceSHA256": "8116ac43dfcedda7afdfceaff12eb4b98c56ba7e15bce783d262431892c86683",
+      "sourceBytes": 2853
+    },
+    "Origins/bridge-portable-r2/asan/runtime.log.gz": {
+      "sha256": "de80f18d8e655f3a2940ac10ab1d943b792b84877eb688d36c9ea3a5302320dc",
+      "bytes": 128,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r2/asan/runtime.log",
+      "sourceSHA256": "62365a35ee4185722d0474e1cb69d1cade72baf8d7ddb439c757413558c28805",
+      "sourceBytes": 230
+    },
+    "Origins/bridge-portable-r2/asan/client-link.log.gz": {
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "bytes": 20,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r2/asan/client-link.log",
+      "sourceSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0
+    },
+    "Origins/bridge-portable-r2/asan/CADModelingSources.rsp.gz": {
+      "sha256": "e60304fc0fd419afb8d52d4e0b09fa9ad5ef56176290b51af9895663efd2459d",
+      "bytes": 547,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r2/asan/CADModelingSources.rsp",
+      "sourceSHA256": "5d8071a3fd914b33c61b90d6deedd69bb386eb24a31e760dac0d9a8c4b10b8e1",
+      "sourceBytes": 6206
+    },
+    "Origins/bridge-portable-r2/wasm/receipt.json.gz": {
+      "sha256": "06993ba80aaa126f4f0db796f014bad50ed114faa13aae6cd26b5a294ee844e0",
+      "bytes": 331411,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r2/wasm/receipt.json",
+      "sourceSHA256": "5c3b0c0c9c8476a3bda604377de7b51d33362e63b404b977e0ef2fffdd40a037",
+      "sourceBytes": 1632353
+    },
+    "Origins/bridge-portable-r2/wasm/CADModeling.log.gz": {
+      "sha256": "86cdc7e66d2e8cda4c27c018e862cadc53b64b0f6ec4b996030388c7111537cb",
+      "bytes": 752,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r2/wasm/CADModeling.log",
+      "sourceSHA256": "a26b54da78735845d7952db4de7e5a0eaa45ba06122972eda5b8a06b6ba567dc",
+      "sourceBytes": 2853
+    },
+    "Origins/bridge-portable-r2/wasm/CADIR.log.gz": {
+      "sha256": "e745aa43e33c278abe0e98e7aadc23098f7c37e25c70d0cbfc61279c0f031cbd",
+      "bytes": 443,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r2/wasm/CADIR.log",
+      "sourceSHA256": "fdc7e8bb9840be62ca55b4050b36950a0329dfb986a4c91566535cf79d82492e",
+      "sourceBytes": 742
+    },
+    "Origins/bridge-portable-r2/wasm/runtime.log.gz": {
+      "sha256": "ee16dad292d56f9457dd47fdde65fe1b94fac3e6bb78fa4061e0d7f44f38017d",
+      "bytes": 238,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r2/wasm/runtime.log",
+      "sourceSHA256": "28da02540b5a8c6f05be140ca8291fcbf0b34ec6a1c2c0d81cf08062547348f9",
+      "sourceBytes": 397
+    },
+    "Origins/bridge-portable-r2/wasm/client-link.log.gz": {
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "bytes": 20,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r2/wasm/client-link.log",
+      "sourceSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0
+    },
+    "Origins/bridge-portable-r2/wasm/CADTopology.log.gz": {
+      "sha256": "5304dd3155af6c083f2e02482bba06ecfdf13e3a0ad462017d974dfe8110d554",
+      "bytes": 1201,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r2/wasm/CADTopology.log",
+      "sourceSHA256": "f79d10677639ffed2ffcd1b312517733663c34fc0e548599b913a2cf24b4f085",
+      "sourceBytes": 5342
+    },
+    "Origins/bridge-portable-r2/wasm/CADModelingSources.rsp.gz": {
+      "sha256": "b1f2dee1c6807f7a70cc988b28707459ec29349cb8ebc2167b9cd3216da79ae4",
+      "bytes": 547,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r2/wasm/CADModelingSources.rsp",
+      "sourceSHA256": "dcd8306f9dcfdc24c02b0f10d8c6d49fc0d9143f1c28fa59fde387de1a5309f9",
+      "sourceBytes": 6206
+    },
+    "Origins/bridge-portable-r2/wasm/CADTopologySources.rsp.gz": {
+      "sha256": "31351a70a3b296edbef19e8df6211b82d522c55a9b16f12d65f1ec21a8e2091e",
+      "bytes": 1585,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r2/wasm/CADTopologySources.rsp",
+      "sourceSHA256": "84764282ed2514864e65ac9e74306444d9c485ae8e0ca1062da8cf6fc5a17d1c",
+      "sourceBytes": 25635
+    },
+    "Origins/bridge-portable-r2/wasm/CADIRSources.rsp.gz": {
+      "sha256": "bab38f882eabde8a5cbda1cfff1f5674b793496349d5680ec99c7e52c6714787",
+      "bytes": 5980,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r2/wasm/CADIRSources.rsp",
+      "sourceSHA256": "7945c1bb0036e12c2f7137564536931be4134f943846421da36cac72d5bab79c",
+      "sourceBytes": 156329
+    },
+    "Origins/bridge-portable-r2/embedded/receipt.json.gz": {
+      "sha256": "ef5e894882a9445bebe3bb5cfab08c3ef49a4a2405107e79844f586218552098",
+      "bytes": 330361,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r2/embedded/receipt.json",
+      "sourceSHA256": "b68d245583a2e00933e24a435eeda5b8ffc15979880b6e91da770bcc9b0d789e",
+      "sourceBytes": 1635506
+    },
+    "Origins/bridge-portable-r2/embedded/CADModeling.log.gz": {
+      "sha256": "52ee0a79161bd0c08970d5846728cab0c2c1fd46eda57d72be3d4c46a6af006d",
+      "bytes": 1869,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r2/embedded/CADModeling.log",
+      "sourceSHA256": "50ce2e2bde8e69c9f6f825e590ebbe3b9d9b5b99837065005a792534990a378c",
+      "sourceBytes": 14992
+    },
+    "Origins/bridge-portable-r2/embedded/CADIR.log.gz": {
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "bytes": 20,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r2/embedded/CADIR.log",
+      "sourceSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0
+    },
+    "Origins/bridge-portable-r2/embedded/CADTopology.log.gz": {
+      "sha256": "2ec0fd290c86fb45034604117808a14a78e0577f8a4a62d68b98fee78e2d92ef",
+      "bytes": 1206,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r2/embedded/CADTopology.log",
+      "sourceSHA256": "e62cda9fe3ad2e6e0784a8a6b373f544dda18d480a3c634ee39d574a4cdc2c08",
+      "sourceBytes": 5370
+    },
+    "Origins/bridge-portable-r2/embedded/CADModelingSources.rsp.gz": {
+      "sha256": "3e45a816ef18898d1255dbd159ce839c83e040905f890b7f8a685044a24881e9",
+      "bytes": 552,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r2/embedded/CADModelingSources.rsp",
+      "sourceSHA256": "057e89af9334243fbb11333002717206eb800715085f83c7e886d2935926d6c2",
+      "sourceBytes": 6346
+    },
+    "Origins/bridge-portable-r2/embedded/CADTopologySources.rsp.gz": {
+      "sha256": "e870c07fa3133fc83bb473696f572f394ba25fa029a16dde3442baa8e746efcd",
+      "bytes": 1593,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r2/embedded/CADTopologySources.rsp",
+      "sourceSHA256": "4f42c6e7c4b714ba612b07fa90cc2e2e386e375988878ff453423310f09f0e19",
+      "sourceBytes": 26203
+    },
+    "Origins/bridge-portable-r2/embedded/CADIRSources.rsp.gz": {
+      "sha256": "f7bdf5abd0c1d4b89dac7f73f96c76ee58ccc2def051520b0f10fa2aa49bec94",
+      "bytes": 6020,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r2/embedded/CADIRSources.rsp",
+      "sourceSHA256": "d1733c932a07b4ae4e15e4351fa89d9e78e7328dcfdf6511683211d6882aa490",
+      "sourceBytes": 159601
+    },
+    "Origins/bridge-portable-r3/embedded/receipt.json.gz": {
+      "sha256": "f4ebad82b8731492cc33c0bd36d3b6e8a100ba53340db6d4db9b82597ca17b8c",
+      "bytes": 331071,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r3/embedded/receipt.json",
+      "sourceSHA256": "ff22d4a7a97d05b718eac40d7daa18c7fa140eee425fd606497bdc59df67ecc6",
+      "sourceBytes": 1638965
+    },
+    "Origins/bridge-portable-r3/embedded/CADModeling.log.gz": {
+      "sha256": "44b34cbe1304d31201be0a3d97af516e4e4e5c59481c044f58b807ecf630d76f",
+      "bytes": 956,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r3/embedded/CADModeling.log",
+      "sourceSHA256": "4e905dedc098c4f332e3ea7df5163521c7c8546d22c7a85fb04744f170f97c99",
+      "sourceBytes": 3080
+    },
+    "Origins/bridge-portable-r3/embedded/CADModelingSources.rsp.gz": {
+      "sha256": "2e524d8a515aebf050e3c66011dc5ecb32c5678e76b5d5a804af025ea76c2eb7",
+      "bytes": 553,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r3/embedded/CADModelingSources.rsp",
+      "sourceSHA256": "7c8be1f95346655108efe06e7dd84be9ba2ce88f86125c5292a75b8fe2ace3fd",
+      "sourceBytes": 6346
+    },
+    "Authority/bridge-import-binding-source-r1/source-freeze.json.gz": {
+      "sha256": "9f6e79060d3fe05149d821ce5bef993f72863005a099a9c8b3638daa4a15cfc0",
+      "bytes": 614,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-import-binding-source-r1/source-freeze.json",
+      "sourceSHA256": "de8a20453872467548154231c24e7d1d4bfc803ea97b92a81586db6ada9a1755",
+      "sourceBytes": 1161
+    },
+    "Authority/bridge-keypath-binding-source-r1/source-freeze.json.gz": {
+      "sha256": "7246cda50c405ea5bb7ff8745246f279933b303f1fc1c3bf1f863ffbbcbaa036",
+      "bytes": 489,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-keypath-binding-source-r1/source-freeze.json",
+      "sourceSHA256": "31fc60f3b88301f8eef644e3a33073b6f5e3332d3a204c5564f388ada8dc97ec",
+      "sourceBytes": 745
+    },
+    "Authority/native-full-r14/receipt.json.gz": {
+      "sha256": "83e5d8a2739a05c828f85c8fbbddd89e9c86b1bfa9c05ec99b74fb88491271b1",
+      "bytes": 229097,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-full-r14/receipt.json",
+      "sourceSHA256": "bed585f663ab6a9a04ef0d9e7055b2409f486d9bde91fa54ebe3b7b3cb69d3c3",
+      "sourceBytes": 1404494
+    },
+    "Authority/current-geometry/products.json.gz": {
+      "sha256": "0462f2285935671af7ca92e197196e52ce2abec49127a7803ac5fac5a3d1828c",
+      "bytes": 2266,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/products.json",
+      "sourceSHA256": "d09b7659aca7757e57f16805d1a1a637d5327b023d99b688a70133c5fc93b0d8",
+      "sourceBytes": 12265
+    },
+    "Authority/current-geometry/asan/receipt.json.gz": {
+      "sha256": "d9293ef478cf9e7cb85da88e7733efead5ffd3c41df3d65856a6d43fa784d6ef",
+      "bytes": 361664,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/asan/receipt.json",
+      "sourceSHA256": "c7aa43ec09e43d41f2651ddbc54db27a0c5debf60cff2cd7a4faa77294c5b6d1",
+      "sourceBytes": 1913877
+    },
+    "Authority/current-geometry/wasm/receipt.json.gz": {
+      "sha256": "3ad8607079263341b7d639fbaa4b5c5470d83caf1790692cee5c74dffcdd38f6",
+      "bytes": 361761,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/wasm/receipt.json",
+      "sourceSHA256": "d04b079040028b1956331f40bfdffe579827efc844c392977736851c95dc7667",
+      "sourceBytes": 1916476
+    },
+    "Authority/current-geometry/embedded/receipt.json.gz": {
+      "sha256": "aa926ad4bd9169b421672e8abf159ba86868a91de54304b4cd69005b5a1839a0",
+      "bytes": 361689,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/embedded/receipt.json",
+      "sourceSHA256": "68aa17d0f6da4e4b41a7869fb85e0acb5f01148e4ebf0184edbfc0590287d671",
+      "sourceBytes": 1923683
+    },
+    "Runners/bridge-portable-r1/run.py.gz": {
+      "sha256": "5db811580a69762b5b9f82047ae2efc5dad37ea3aac2e426649b15d41fa3d488",
+      "bytes": 4576,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r1/run.py",
+      "sourceSHA256": "9bd5e17d6b4d2bb48e000743e0264c360c75ecf4602f8059948865f8dfc1de66",
+      "sourceBytes": 14646
+    },
+    "Runners/bridge-portable-r1/candidate-model-paths.json.gz": {
+      "sha256": "5d2a364b7ebf3c939807a7e5a7377979bec897ff9b0eb8bd9cc63e5da6f99751",
+      "bytes": 391,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r1/candidate-model-paths.json",
+      "sourceSHA256": "cf64c48094b6e321b5c7d42b3c411a3751c49ad3a5194db9cf276cc57e5b3326",
+      "sourceBytes": 1716
+    },
+    "Runners/bridge-portable-r2/run.py.gz": {
+      "sha256": "f6cf46376cb489a11df9eaca39c6834d76901c28e54c5b209f11bada788d47a8",
+      "bytes": 5088,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r2/run.py",
+      "sourceSHA256": "10069db01640895f7f0f988f99ffb1082ebac3bac471c5ca6973237b5c3be134",
+      "sourceBytes": 17154
+    },
+    "Runners/bridge-portable-r2/candidate-model-paths.json.gz": {
+      "sha256": "2615134537e0abef1eb75735e3d3d899d1babcad0605ec0c1d0f6c966ac82669",
+      "bytes": 457,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r2/candidate-model-paths.json",
+      "sourceSHA256": "7ea9d31b2dd85af7ccafd819391da471ea6a21f08f376903ba81c5232f3f8abf",
+      "sourceBytes": 2149
+    },
+    "Runners/bridge-portable-r3/run.py.gz": {
+      "sha256": "f21561c30c9e07257f59adefcc0afd4d46abcbf4dbd44cb4c3da4c63c8c6647e",
+      "bytes": 5969,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r3/run.py",
+      "sourceSHA256": "2961fc8d83e741ddf1cd31365d34c35202b69c359228f0410ebf78195c4ff51e",
+      "sourceBytes": 19958
+    },
+    "Runners/bridge-portable-r3/candidate-model-paths.json.gz": {
+      "sha256": "2615134537e0abef1eb75735e3d3d899d1babcad0605ec0c1d0f6c966ac82669",
+      "bytes": 457,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r3/candidate-model-paths.json",
+      "sourceSHA256": "7ea9d31b2dd85af7ccafd819391da471ea6a21f08f376903ba81c5232f3f8abf",
+      "sourceBytes": 2149
+    },
+    "Runners/bridge-portable-r4/run.py.gz": {
+      "sha256": "a4442c9a8709c8c4dbe8cf77041cf3af13ee1f79d42ab8750e7db6056e227407",
+      "bytes": 6360,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/run.py",
+      "sourceSHA256": "4c1fd0395ab995e211555f3cd8be780e0b4a0ce5871175762f32869aa2cb5e5e",
+      "sourceBytes": 21787
+    },
+    "Runners/bridge-portable-r4/candidate-model-paths.json.gz": {
+      "sha256": "2615134537e0abef1eb75735e3d3d899d1babcad0605ec0c1d0f6c966ac82669",
+      "bytes": 457,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/candidate-model-paths.json",
+      "sourceSHA256": "7ea9d31b2dd85af7ccafd819391da471ea6a21f08f376903ba81c5232f3f8abf",
+      "sourceBytes": 2149
+    },
+    "Source/Sources/CADModeling/BRepSewingBodyTopology.swift.gz": {
+      "sha256": "4b9f8c3734a720769c0dd5d843a4fb79e136cb556dd749947780c963665c95ca",
+      "bytes": 1095,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/snapshot/Sources/CADModeling/BRepSewingBodyTopology.swift",
+      "sourceSHA256": "bf62df41fbaf630fab2804648ae3d89c0f322e3a2c9630b2ee7770d3c8e3d7c9",
+      "sourceBytes": 4512
+    },
+    "Source/Sources/CADModeling/BRepSewingEdge.swift.gz": {
+      "sha256": "1d1db6ab9a8ec3fc3e00460a3556f53a2da527620949434a215925ccf58b2adc",
+      "bytes": 1644,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/snapshot/Sources/CADModeling/BRepSewingEdge.swift",
+      "sourceSHA256": "ca569c702b97b780b66acf9cb46164017f0367772ed88bfacd476bf60e7853e4",
+      "sourceBytes": 6778
+    },
+    "Source/Sources/CADModeling/BRepSewingFacePatch.swift.gz": {
+      "sha256": "3381e24ec2baba2cf2975d86f6c962b97e0cfd861b6f86ce33899a7e6534f783",
+      "bytes": 1131,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/snapshot/Sources/CADModeling/BRepSewingFacePatch.swift",
+      "sourceSHA256": "a0d959706a746989c9ebbd476cf797e859ee85b59d16063843c0386830dd933f",
+      "sourceBytes": 4202
+    },
+    "Source/Sources/CADModeling/BRepSewingLoop.swift.gz": {
+      "sha256": "04042749c19008238268c02324eea5b061b9124de1b02d6803f4f3b52760b7c8",
+      "bytes": 957,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/snapshot/Sources/CADModeling/BRepSewingLoop.swift",
+      "sourceSHA256": "02e563a759a026906beda0efe3f0d6f406576685de13c7922d563f0da958b8d3",
+      "sourceBytes": 2959
+    },
+    "Source/Sources/CADModeling/BRepSewingRequest.swift.gz": {
+      "sha256": "03354614dfddd2286593a2c4491973d843c6345869e4ce25c4fe7bae0b03d472",
+      "bytes": 1951,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/snapshot/Sources/CADModeling/BRepSewingRequest.swift",
+      "sourceSHA256": "dff5375ee4476c00fbe4f3ad24d85ff177c31f96ea778b2cd42f28bd0c9c61bf",
+      "sourceBytes": 9088
+    },
+    "Source/Sources/CADModeling/BRepSewingShell.swift.gz": {
+      "sha256": "bc4218fca2df6317483ebcceafa650db56cea4c7a7cbf2f86d0e4e8c33f686cd",
+      "bytes": 714,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/snapshot/Sources/CADModeling/BRepSewingShell.swift",
+      "sourceSHA256": "6464b0122ef26823e97151dcd11266040710d4775d64414de54647921ddb815d",
+      "sourceBytes": 2053
+    },
+    "Source/Sources/CADModeling/BRepSewingSolidComponent.swift.gz": {
+      "sha256": "ca9139d6f612fb95d396d68693c419075a043c6ba29d87d07807b475fd732b4b",
+      "bytes": 244,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/snapshot/Sources/CADModeling/BRepSewingSolidComponent.swift",
+      "sourceSHA256": "53b8e5266e4ddde456a36becd6667c5e78d8585334fc7bb13a1d25aba1efcb25",
+      "sourceBytes": 546
+    },
+    "Source/Sources/CADModeling/BRepSewingTopologyNamespace.swift.gz": {
+      "sha256": "f78476bd2ead76d97c24b1cd98db5b3211b7edcb96f7d8483546dd9e2e1844c0",
+      "bytes": 119,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/snapshot/Sources/CADModeling/BRepSewingTopologyNamespace.swift",
+      "sourceSHA256": "db27d91fc4733a0199af3b6bc953be866f862bf67a80e1df846b8e9f89e28426",
+      "sourceBytes": 110
+    },
+    "Source/Sources/CADModeling/BSplineSurfaceFeatureEvaluator.swift.gz": {
+      "sha256": "e547890513bf81cb394addbed54115812ef66a29f83001526995c2b8a37fe980",
+      "bytes": 2882,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/snapshot/Sources/CADModeling/BSplineSurfaceFeatureEvaluator.swift",
+      "sourceSHA256": "e8089856e29efd6cc9361dcd2a8a2a38bae6201cc2364dd0ca860417cdfa1a26",
+      "sourceBytes": 13227
+    },
+    "Source/Sources/CADModeling/BoundedSewingValidation/OriginalSewingPatchValidator.swift.gz": {
+      "sha256": "705f03e69be6b7861e47b005b8601a480158265b97d8bcf0232158727ac269b1",
+      "bytes": 2061,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/snapshot/Sources/CADModeling/BoundedSewingValidation/OriginalSewingPatchValidator.swift",
+      "sourceSHA256": "532001933cedbf52e22ec119ac83c8d3d69007749253210e1a2907d5fbc065a7",
+      "sourceBytes": 9067
+    },
+    "Source/Sources/CADModeling/BridgeSurface/BridgeSurfaceFeatureEvaluator.swift.gz": {
+      "sha256": "1bc0b7c89857322b9cbcc40774c678efdf6e0258f1a5acd25c14f9c39e56ed49",
+      "bytes": 3420,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/snapshot/Sources/CADModeling/BridgeSurface/BridgeSurfaceFeatureEvaluator.swift",
+      "sourceSHA256": "84b54fbc6771b8eba83b835f0c65b9378a4b3a2a91f937239f533c30eede1725",
+      "sourceBytes": 15594
+    },
+    "Source/Sources/CADModeling/BridgeSurface/BridgeSurfaceWallTrimming.swift.gz": {
+      "sha256": "a24f2dcd40c4abcf93623cda17392ee480adfdfafef0609e59b8dce1462d61d4",
+      "bytes": 564,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/snapshot/Sources/CADModeling/BridgeSurface/BridgeSurfaceWallTrimming.swift",
+      "sourceSHA256": "0f3753b427b3e2e6b1e2eceaef22d8a4b57c74fcfd587e1c3273e36e70d84b25",
+      "sourceBytes": 1502
+    },
+    "Source/Sources/CADModeling/BridgeSurface/ConstrainedBridgeSurfaceBuilder.swift.gz": {
+      "sha256": "7cc5eda7d2a4ee400c8bbdac961a305a5dc0a73d8b6ed198eea4cf3a06f0f2c0",
+      "bytes": 3860,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/snapshot/Sources/CADModeling/BridgeSurface/ConstrainedBridgeSurfaceBuilder.swift",
+      "sourceSHA256": "2fc9ef8ac6b89ce549fb38b2a4843706bd50e87c86f8a06a62257d795ad8618f",
+      "sourceBytes": 15988
+    },
+    "Source/Sources/CADModeling/BridgeSurface/OriginalBridgeWallSamples.swift.gz": {
+      "sha256": "7920267d44b4e4bd59b424a367928144d5c4c2e26f47ed7022abef77c5c0dfa7",
+      "bytes": 1037,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/snapshot/Sources/CADModeling/BridgeSurface/OriginalBridgeWallSamples.swift",
+      "sourceSHA256": "a5d7c1b0bea6540b4deeeb50fef4830a5a6075c64ce548da43c8447ba1e1ad9d",
+      "sourceBytes": 3558
+    },
+    "Source/Sources/CADModeling/DraftedSection/OriginalDraftDirectionInputs.swift.gz": {
+      "sha256": "d554f51cd358547b726079c63788c8f5e90e44cef3adbb09115d51e2b78d28e5",
+      "bytes": 557,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/snapshot/Sources/CADModeling/DraftedSection/OriginalDraftDirectionInputs.swift",
+      "sourceSHA256": "67148caee9a5c3cbae1a5819a4ba920aa5883d8092fb3c51dbd1a74a2c08965f",
+      "sourceBytes": 1353
+    },
+    "Source/Sources/CADModeling/EvaluatedCurve.swift.gz": {
+      "sha256": "28119e30be951760e78f3a61433df64eb0ce9a5e184f60aeeef921cefeef70c4",
+      "bytes": 1692,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/snapshot/Sources/CADModeling/EvaluatedCurve.swift",
+      "sourceSHA256": "1d0d8521a27720cfaea4cdc97bdfa3a1de6b56dff0dca43a21e11ac9b90266b7",
+      "sourceBytes": 6888
+    },
+    "Source/Sources/CADModeling/EvaluatedCurveKind.swift.gz": {
+      "sha256": "a9be35abf74cbb9dac5d02802785b7d2f33caf6ec34e597c0f6ac9e413ac34f7",
+      "bytes": 195,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/snapshot/Sources/CADModeling/EvaluatedCurveKind.swift",
+      "sourceSHA256": "64877bb34db7610b534fe3b1c3126963026c007aaadc9191598660b6b5f18d71",
+      "sourceBytes": 262
+    },
+    "Source/Sources/CADModeling/EvaluatedCurveSource.swift.gz": {
+      "sha256": "5907ff1c9cf8dcbf306bf7c527145d3ae51e1fec7c5ded4020ee58cf713a248f",
+      "bytes": 215,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/snapshot/Sources/CADModeling/EvaluatedCurveSource.swift",
+      "sourceSHA256": "8c5c6cd226af6ae2303e28b8157dc8ae0e452d7d13fdc5744fa20bf56cd1dc46",
+      "sourceBytes": 299
+    },
+    "Source/Sources/CADModeling/EvaluationContext+SubshapeLookup.swift.gz": {
+      "sha256": "e2970e4edbf7df406da6a49a773d09273fab02e55ffe3a5f96112b8b6f1fdfc5",
+      "bytes": 770,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/snapshot/Sources/CADModeling/EvaluationContext+SubshapeLookup.swift",
+      "sourceSHA256": "c7fae99b958184d86f80af425ad7804148e039ed951f2dc3a6fdaac2f66940a7",
+      "sourceBytes": 2567
+    },
+    "Source/Sources/CADModeling/EvaluationContext.swift.gz": {
+      "sha256": "dbf89bfde6b90fc48d7cfa50e2763828dac4afbb009fe4117fc305ed09c49f8a",
+      "bytes": 441,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/snapshot/Sources/CADModeling/EvaluationContext.swift",
+      "sourceSHA256": "c8f51dcb91926161ab83975f1f954f90d2e098aff5b8c29fd244ba0cb5f5d42e",
+      "sourceBytes": 1738
+    },
+    "Source/Sources/CADModeling/EvaluationResult.swift.gz": {
+      "sha256": "92f7e5b6baf35e9953c0df1326c89bcf449d63f669e3c02fcc4d87e2b3259811",
+      "bytes": 365,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/snapshot/Sources/CADModeling/EvaluationResult.swift",
+      "sourceSHA256": "b1d12dfd690de8d5c1b658c937f2f3be41f3d53b1368bafd0b847327b830b2df",
+      "sourceBytes": 953
+    },
+    "Source/Sources/CADModeling/ExactBoundaryCurveResolver.swift.gz": {
+      "sha256": "c71b1f98990056a67bd9c411a9a3e4dbbe413e62c35860751e05c409b03ac283",
+      "bytes": 1304,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/snapshot/Sources/CADModeling/ExactBoundaryCurveResolver.swift",
+      "sourceSHA256": "228007096386d8a7d7154718c34b8c5a9858d746ffcf354dd98ad7265ca0d122",
+      "sourceBytes": 4506
+    },
+    "Source/Sources/CADModeling/ExactFacePcurve/ExactFacePcurveBuilder.swift.gz": {
+      "sha256": "e6c2de0f52bfcfc78c47cef158ae09ab45d882072158f68e176890d0743bc4b0",
+      "bytes": 4734,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/snapshot/Sources/CADModeling/ExactFacePcurve/ExactFacePcurveBuilder.swift",
+      "sourceSHA256": "734166a982b9ecdaa5ec001ff95ea50e2fa25bae4bd5c3768b47b85258193d34",
+      "sourceBytes": 31261
+    },
+    "Source/Sources/CADModeling/FeatureEvaluating.swift.gz": {
+      "sha256": "2dbf0513abd07cecce28824386601e122c5265d2616cc513608668a311939c92",
+      "bytes": 176,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/snapshot/Sources/CADModeling/FeatureEvaluating.swift",
+      "sourceSHA256": "d1e6c6e486fa5c954f1831fbb3e33241b43089c959622c70ba13104937e4879f",
+      "sourceBytes": 230
+    },
+    "Source/Sources/CADModeling/FeatureEvaluationBoundary.swift.gz": {
+      "sha256": "5ccca0e5c030be9839722e9affbbcd089f9524dfd94af6c5d33a8e039c90f7da",
+      "bytes": 1142,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/snapshot/Sources/CADModeling/FeatureEvaluationBoundary.swift",
+      "sourceSHA256": "f97e750362a492c5cd6095733e4befc58a021aa23011aaa1d63afb299f86e36c",
+      "sourceBytes": 6505
+    },
+    "Source/Sources/CADModeling/FeatureTopologyIDAllocator.swift.gz": {
+      "sha256": "ce1ee8e18320454b58f5895fad16d2539d1c7de5ca5c6ebd9c8bc31420d52101",
+      "bytes": 851,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/snapshot/Sources/CADModeling/FeatureTopologyIDAllocator.swift",
+      "sourceSHA256": "f8b0b672f8208709ef16a1142d56a263546436716e99dcddea14bdcbe2f5b19e",
+      "sourceBytes": 3277
+    },
+    "Source/Sources/CADModeling/FeatureTopologyLineageValidator.swift.gz": {
+      "sha256": "dc50917691b49c1d81505434b1e6c51b375717fc641aa70eded0d56792198fd0",
+      "bytes": 1148,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/snapshot/Sources/CADModeling/FeatureTopologyLineageValidator.swift",
+      "sourceSHA256": "41a6e1522e70316cfd3fbd12091a83d150c2a7a649083be8b3adacf2ddfcf0bb",
+      "sourceBytes": 4076
+    },
+    "Source/Sources/CADModeling/GeneratedTopologyLineageBuilder.swift.gz": {
+      "sha256": "cd3d45bf92e2d268f354a938cb3622568cbb25c27c9ecf0378244710ea261988",
+      "bytes": 615,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/snapshot/Sources/CADModeling/GeneratedTopologyLineageBuilder.swift",
+      "sourceSHA256": "ad246d2ca43944aa328b4579a66fa9c290e22d061b8588b1597e0cf27088e763",
+      "sourceBytes": 1730
+    },
+    "Source/Sources/CADModeling/SewingProvenance/AdmittedSewingProvenance.swift.gz": {
+      "sha256": "c09f6d04dc776466440596f5cbe1bd633ebb1ef8b58f956472b11934f5762766",
+      "bytes": 932,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/snapshot/Sources/CADModeling/SewingProvenance/AdmittedSewingProvenance.swift",
+      "sourceSHA256": "d2672ad5638fe0a40cf9609218995e1c9c91cc953a8d7ed523e2ee05f72982c7",
+      "sourceBytes": 2871
+    },
+    "Source/Sources/CADModeling/StableTopologyReference/StableSubshapeResolver+Bounded.swift.gz": {
+      "sha256": "650a1d18ef84a28269a2413d4cf178f36c3825d634b2dc11b4618699797229dc",
+      "bytes": 2039,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/snapshot/Sources/CADModeling/StableTopologyReference/StableSubshapeResolver+Bounded.swift",
+      "sourceSHA256": "feed18524af78a62ad92d1f6ccc60d416733931e23654c2a9f9ecdb0ba81d86c",
+      "sourceBytes": 9005
+    },
+    "Source/Sources/CADModeling/StableTopologyReference/StableSubshapeResolver.swift.gz": {
+      "sha256": "f43b4a3d2ba94f328f04590d1ed4101e7e2f5313073221580e1ea46c407396ba",
+      "bytes": 805,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/snapshot/Sources/CADModeling/StableTopologyReference/StableSubshapeResolver.swift",
+      "sourceSHA256": "6cdce67393926dc8d14c5abd84d0a351eb6966fe1864d53edbdf6c113ddf7c81",
+      "sourceBytes": 2276
+    },
+    "Source/Sources/CADModeling/StableTopologyReference/StableSubshapeResolving.swift.gz": {
+      "sha256": "c81d0a8607b5fb445c12102f036975e0d356b346ff7c4780e7456b8759c219eb",
+      "bytes": 349,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/snapshot/Sources/CADModeling/StableTopologyReference/StableSubshapeResolving.swift",
+      "sourceSHA256": "2eb9824c66b83971fd533dc2287b4e44dabcc6202455890a72c6106aa1b1750b",
+      "sourceBytes": 822
+    },
+    "Source/Sources/CADModeling/SubshapeGeometrySignatureBuilder.swift.gz": {
+      "sha256": "5eae820e23814505a843b0091837ec670198cfba3e9debd3147cd262eebb4b9d",
+      "bytes": 2658,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/snapshot/Sources/CADModeling/SubshapeGeometrySignatureBuilder.swift",
+      "sourceSHA256": "e94068535ae8c7a01de8bcad73787266e4e78cb63b77649277420ffdfa1f7cd5",
+      "sourceBytes": 14373
+    },
+    "Source/Sources/CADModeling/ValidatedFeatureEvaluating.swift.gz": {
+      "sha256": "884ce00928ea6f731f269c0a43f832a02a0b43cb02cb991f1ddb3d620478acba",
+      "bytes": 147,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/snapshot/Sources/CADModeling/ValidatedFeatureEvaluating.swift",
+      "sourceSHA256": "340fecf16e02a37d3be66d55c03691500e32f87e60e0c15439243b6ef51cd5da",
+      "sourceBytes": 217
+    },
+    "Source/Sources/CADModeling/ValidatedFeatureEvaluation.swift.gz": {
+      "sha256": "a2d84c86052b1de89730dae4d7629f9d005b11b558c9b719f87f022a8ff2dbb7",
+      "bytes": 760,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/snapshot/Sources/CADModeling/ValidatedFeatureEvaluation.swift",
+      "sourceSHA256": "06b91a9ebf55713faed9c4346478e4f22e5d09f001bddcff56526495ea0a8f32",
+      "sourceBytes": 4156
+    },
+    "Source/Tests/CADModelingTests/BridgeSurfaceFailureClassificationChecks.swift.gz": {
+      "sha256": "fa9423d2e906bcdda74eac10ea035ad62ee10ffb2b1e7658698df9f4647ba04a",
+      "bytes": 3297,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/snapshot/Tests/CADModelingTests/BridgeSurfaceFailureClassificationChecks.swift",
+      "sourceSHA256": "3cf36b8a0e4e9d39ca573fcdb5a3fe6d8b1f242006204e52fc85da745023c916",
+      "sourceBytes": 13363
+    },
+    "Source/Tests/OriginalQueryExecutionVerification/BridgeSurfaceFailureClassificationPortable.swift.gz": {
+      "sha256": "b5643e8a5f56be307d479d632db8df7bf0328c782a9431f143c5d83fc62ecb54",
+      "bytes": 279,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/bridge-portable-r4/embedded/snapshot/Tests/OriginalQueryExecutionVerification/BridgeSurfaceFailureClassificationPortable.swift",
+      "sourceSHA256": "833e57da72af879acd4b361a8089f66fae9bab6ca80aa0b80603e331caa20ebd",
+      "sourceBytes": 922
+    },
+    "NativeCurrent/native-bridge-current-r5/receipt.json.gz": {
+      "sha256": "38e4ff76a67be3c5647e350b7eddcee530ab8c5d1e330e9a132f7d9950921e79",
+      "bytes": 175934,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-bridge-current-r5/receipt.json",
+      "sourceSHA256": "b08fe05e9e5e9f6621ce61adffa60727695b28ea0ffb65a14addb3bd5aba2253",
+      "sourceBytes": 551876
+    },
+    "NativeCurrent/native-bridge-current-r5/compiler-version.log.gz": {
+      "sha256": "b2a195fb154058379af9b2e7aa94fdde1ed8d7c2cb9bdae784e34c1c58d64903",
+      "bytes": 91,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-bridge-current-r5/compiler-version.log",
+      "sourceSHA256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c",
+      "sourceBytes": 77
+    },
+    "NativeCurrent/native-bridge-current-r5/test-build-and-list.log.gz": {
+      "sha256": "6e7b3b6b39f485032d2879605f36f15d336f754b7b0a5e207253036eb6095381",
+      "bytes": 4270,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-bridge-current-r5/test-build-and-list.log",
+      "sourceSHA256": "61e6679bb431f96cfe1cf33fb0a04ad2878e0fe475526578385a4e6d5a42d1d6",
+      "sourceBytes": 45251
+    },
+    "NativeCurrent/native-bridge-current-r5/test-runtime.log.gz": {
+      "sha256": "f2dd871800baa3462aae7bd00b009b9a5a5ae46f9b1fe8ea74c54e87db58f4b6",
+      "bytes": 433,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-bridge-current-r5/test-runtime.log",
+      "sourceSHA256": "c328e39586ec082de8a283fd78aaa16de5af19563a60c32740f7c1f71e395284",
+      "sourceBytes": 1375
+    },
+    "NativeCurrent/native-bridge-current-r5/results.xml.gz": {
+      "sha256": "5bc588cb3635071fb211d7afaa1b48fd7e1cb20d52f27c3b4427f19666191648",
+      "bytes": 364,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-bridge-current-r5/results.xml",
+      "sourceSHA256": "748b26b5f9a5bf7f95bf4b475d2ca334018667a62270a69556ef37c743c5c014",
+      "sourceBytes": 993
+    },
+    "NativeCurrent/native-full-r15/receipt.json.gz": {
+      "sha256": "230bc7dc159bca22844a356b8d3834a3af3f7dee15b25ca6b1781c8f9b0176e6",
+      "bytes": 229009,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-full-r15/receipt.json",
+      "sourceSHA256": "7556d35089557f98ecb8c23981a3c6c9e073dbaed2ee2d14985b1ee45088a9cc",
+      "sourceBytes": 1404325
+    },
+    "Diagnostics/native-bridge-current-r4/receipt.json.gz": {
+      "sha256": "c04b0d55b9ca3762f945ae98a4f8d889eafbdb6b48223bf15bf1fd6f57db5645",
+      "bytes": 2340,
+      "source": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-bridge-current-r4/receipt.json",
+      "sourceSHA256": "b94c5322221279225d0d3d7eb143a77bbd6a230eadd10e20066d5561da6d6355",
+      "sourceBytes": 9656
+    }
+  },
+  "currentNative": {
+    "receipt": {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-bridge-current-r5/receipt.json",
+      "sha256": "b08fe05e9e5e9f6621ce61adffa60727695b28ea0ffb65a14addb3bd5aba2253",
+      "archive": "NativeCurrent/native-bridge-current-r5/receipt.json.gz"
+    },
+    "selectedModules": [
+      "CADCore",
+      "CADGeometry",
+      "CADTopology",
+      "CADIR",
+      "CADModeling"
+    ],
+    "productionSourceCount": 3531,
+    "executedTestCases": 5,
+    "moduleRegeneration": 0,
+    "freshClientBuildSeconds": 11.632402999995975,
+    "runtimeSeconds": 0.684718457996496,
+    "sourcesAndProductsUnchanged": true,
+    "scope": "Actual five Bridge tests on Native15 successful five-module prefix only. Native15 failed Kernel remains rejected and its product was not read or reused.",
+    "productionPrefixReceipt": {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-full-r15/receipt.json",
+      "sha256": "7556d35089557f98ecb8c23981a3c6c9e073dbaed2ee2d14985b1ee45088a9cc",
+      "archive": "NativeCurrent/native-full-r15/receipt.json.gz"
+    },
+    "preflightPathDiagnostic": {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-bridge-current-r4/receipt.json",
+      "sha256": "b94c5322221279225d0d3d7eb143a77bbd6a230eadd10e20066d5561da6d6355",
+      "archive": "Diagnostics/native-bridge-current-r4/receipt.json.gz"
+    }
+  },
+  "priorPortableOnlyIndexSHA256": "1fdd94c973c4d8e8649be33a4fcc23121ac913a88b048187af41804b6579d5b5",
+  "copiedArchiveIndexSHA256": "4ece319fd9cec1cfe47f87d2c1f9510a50f2097764b06d3371032c06904a4ef7",
+  "ownedSourceSHA256": {
+    "Sources/CADModeling/BridgeSurface/BridgeSurfaceFeatureEvaluator.swift": "84b54fbc6771b8eba83b835f0c65b9378a4b3a2a91f937239f533c30eede1725",
+    "Sources/CADModeling/ExactBoundaryCurveResolver.swift": "228007096386d8a7d7154718c34b8c5a9858d746ffcf354dd98ad7265ca0d122",
+    "Sources/CADModeling/BridgeSurface/DESIGN.md": "ffe692b80a11e7a9c5714d80df600b36ce81cfe899c4fbc0bae0338a1db231d6",
+    "Tests/CADModelingTests/BridgeSurfaceFailureClassificationChecks.swift": "3cf36b8a0e4e9d39ca573fcdb5a3fe6d8b1f242006204e52fc85da745023c916",
+    "Tests/CADModelingTests/BridgeSurfaceFailureClassificationTests.swift": "7c94fe51f14122c50ff7d260db4b7a0535585aecf0c22d0d118eb371e1d469d8",
+    "Tests/OriginalQueryExecutionVerification/BridgeSurfaceFailureClassificationPortable.swift": "833e57da72af879acd4b361a8089f66fae9bab6ca80aa0b80603e331caa20ebd"
+  },
+  "review": {
+    "file": "REVIEW.json.gz",
+    "uncompressedSHA256": "b5fd8a8b959be2909ac2e921345538b2a253b4b32a212a882aa727f5a5ef57d6"
+  },
+  "mainGate": "Fresh current-Main source composition/Modeling333/Kernel397 and 20 actual functions required. Candidate Topology private-frame success does not prove Main old-classifier acceptance."
+}

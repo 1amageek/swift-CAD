@@ -24,6 +24,16 @@ derivative rows and whole-boundary continuity certificates.
 | [SurfaceFill](../SurfaceFill/DESIGN.md) | coordinates with | exact edge-trim conversion | Shares the conversion of B-rep trims to bounded B-splines. | Both use the CADTopology open-boundary loop resolver. |
 | [CADKernel](../../CADKernel/DESIGN.md) | used by | evaluated input B-rep and subshape index | Supplies the immutable current source snapshot. | No re-evaluation or topology guessing. |
 
+The evaluator and its exact-boundary resolver import the target's existing
+`HashTreeCollections` dependency directly. Their live `BRepModel` persistent-map
+accesses require that module's concrete subscript witnesses on Embedded as on
+Native; this dependency binding does not change the model or query behavior.
+
+The output-role check uses a plain stored-property reader closure on every
+target. It retains the same `map` allocation, element order and exact role guard
+without requiring Embedded KeyPath runtime support. Verification of the latest
+target binding remains pending until the fresh Model35 executions finish.
+
 ## Architecture
 
 ```text
@@ -90,6 +100,24 @@ unmodified source bodies and candidate ancestry, publish exactly one sheet and
 propagate any missing, ambiguous or unproved contact. CADModeling validates the
 changed trimmed result before returning; a missing port is dependency failure.
 
+### Input Validation Stack Ownership
+
+The evaluator completes its existing request and exact-input validation before
+entering the noninlined construction phase. The later boundary, wall and candidate
+payload temporaries belong only to that phase and are not retained on the input
+validator's active stack. Both phases use the same incoming execution reference;
+this lifetime split changes no source law, call order, guard, fee, local ceiling,
+or failure publication. Existing ordinary-only lower calls remain the documented
+whole-feature accounting frontier; the split does not complete their migration.
+
+Boundary extraction, optional wall preparation and ruled/Hermite construction
+complete in a separate noninlined preparation frame before the sheet evaluator
+is entered. Preparation returns only the existing `BSplineSurfaceFeature` value
+(surface, material and its unchanged default domain) and the existing constrained
+flag. Source boundaries and wall intermediates are not live during candidate
+validation or wall-trim publication. The feature value's initializer only stores
+these original fields; this boundary adds no array, owner, budget or proof.
+
 ## State, Ownership, and Lifecycle
 
 The feature graph owns the stable references, affine maps and orientation. The evaluation
@@ -102,6 +130,12 @@ alignment resource limits are those of their existing builders. Maps must be
 finite and nonsingular; rational weights, knot domains and traversal are retained.
 Core owns occurrence identities and atomically refreshes these maps when placement
 changes. The kernel never reads presentation metadata or guesses a scene occurrence.
+The direct evaluation boundary publishes the original cause through Geometry,
+reads that concrete retained classification, and passes the resulting KernelError
+to Core for missing feature/tolerance context. Lower phase and code remain
+authoritative; the evaluation phase is only the fallback argument. Cancellation
+and immutable original query context are retained. An erased Geometry failure
+does not pass through Core's unknown-error classification fallback.
 
 ## Verification and Change Impact
 

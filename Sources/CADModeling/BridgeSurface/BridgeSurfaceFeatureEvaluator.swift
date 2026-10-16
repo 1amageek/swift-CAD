@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 import CADGeometry
 import CADIR
@@ -61,11 +62,15 @@ public struct BridgeSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         } catch {
             let retained = OriginalQueryFailure.published(error, context: execution.context,
                 tolerance: context.tolerance)
+            guard let classification = OriginalQueryFailure.classification(of: retained) else {
+                throw retained
+            }
             throw OriginalQueryFailure.contextualizing(retained, classification: KernelError.wrapping(
-                retained, phase: .evaluation, featureID: feature.id, tolerance: context.tolerance))
+                classification, phase: .evaluation, featureID: feature.id, tolerance: context.tolerance))
         }
     }
 
+    @inline(never)
     private func evaluateBridgeSurface(
         feature: FeatureNode,
         context: EvaluationContext, using execution: inout OriginalQueryExecution
@@ -86,7 +91,7 @@ public struct BridgeSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             try bridge.validate(tolerance: context.tolerance)
         }
         guard feature.inputs == bridge.sourceInputs,
-              feature.outputs.map(\.role) == [.sheet] else {
+              feature.outputs.map { $0.role } == [.sheet] else {
             throw FeatureEvaluationError.invalidGraph(
                 "Bridge surface requires its boundary source inputs and one sheet output."
             )
@@ -97,6 +102,48 @@ public struct BridgeSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             tolerance: context.tolerance
         )
 
+        return try constructBridgeSurface(bridge, feature: feature, context: context,
+            using: &execution)
+    }
+
+    @inline(never)
+    private func constructBridgeSurface(
+        _ bridge: BridgeSurfaceFeature,
+        feature: FeatureNode,
+        context: EvaluationContext,
+        using execution: inout OriginalQueryExecution
+    ) throws -> ValidatedFeatureEvaluation {
+        let prepared = try prepareBridgeSurface(bridge, feature: feature, context: context,
+            using: &execution)
+        let candidate = try surfaceEvaluator.evaluateValidated(
+            feature: FeatureNode(
+                id: feature.id,
+                name: feature.name,
+                operation: .bSplineSurface(prepared.surfaceFeature),
+                outputs: feature.outputs,
+                isSuppressed: feature.isSuppressed
+            ),
+            context: context
+        )
+        if prepared.constrained || bridge.startWall != nil || bridge.endWall != nil {
+            guard let wallTrimmer else {
+                throw KernelError(phase: .evaluation, code: .dependencyUnavailable, featureID: feature.id,
+                    tolerance: context.tolerance, message: "Finite bridge wall clipping requires the kernel trim port.")
+            }
+            return try ValidatedFeatureEvaluation(validating:
+                wallTrimmer.trim(feature: feature, candidate: candidate.result, context: context, using: &execution),
+                tolerance: context.tolerance, using: &execution)
+        }
+        return candidate
+    }
+
+    @inline(never)
+    private func prepareBridgeSurface(
+        _ bridge: BridgeSurfaceFeature,
+        feature: FeatureNode,
+        context: EvaluationContext,
+        using execution: inout OriginalQueryExecution
+    ) throws -> (surfaceFeature: BSplineSurfaceFeature, constrained: Bool) {
         let bodyID = try context.bodyID(generatedBy: bridge.targetFeatureID)
         let endBodyID = try context.bodyID(generatedBy: bridge.endBoundary.subshapeID.featureID)
         guard let body = context.brep.bodies[bodyID],
@@ -175,29 +222,7 @@ public struct BridgeSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             surface = try surfaceBuilder.build(startBoundary: startBoundary, endBoundary: endBoundary,
                 tolerance: context.tolerance, using: &execution)
         }
-        let candidate = try surfaceEvaluator.evaluateValidated(
-            feature: FeatureNode(
-                id: feature.id,
-                name: feature.name,
-                operation: .bSplineSurface(BSplineSurfaceFeature(
-                    surface: surface,
-                    material: body.material
-                )),
-                outputs: feature.outputs,
-                isSuppressed: feature.isSuppressed
-            ),
-            context: context
-        )
-        if constrained || bridge.startWall != nil || bridge.endWall != nil {
-            guard let wallTrimmer else {
-                throw KernelError(phase: .evaluation, code: .dependencyUnavailable, featureID: feature.id,
-                    tolerance: context.tolerance, message: "Finite bridge wall clipping requires the kernel trim port.")
-            }
-            return try ValidatedFeatureEvaluation(validating:
-                wallTrimmer.trim(feature: feature, candidate: candidate.result, context: context, using: &execution),
-                tolerance: context.tolerance, using: &execution)
-        }
-        return candidate
+        return (BSplineSurfaceFeature(surface: surface, material: body.material), constrained)
     }
 
     private func boundaryWall(edgeID: EdgeID, explicit: StableSubshapeReference?, body: Body,
