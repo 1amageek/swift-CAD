@@ -690,6 +690,15 @@ interval containment. Stored weights remain mutable source input, so any uniform
 classification must be recomputed from the current owning basis support or carried
 by a validated immutable preparation; a stale classification cannot be reused.
 
+The structural graph's derivative and restricted-subcell readers pass their
+existing caller execution to the rational Bezier curve jet enclosure. Ordinary
+jet wrappers are standalone entries only; they cannot reset work, typed storage,
+proof depth or cancellation while reading an already selected original middle
+curve. The signed-layer theorem, positive plane Jacobian, original support and
+closed-side guards remain unchanged. `SourceIsoparametricAdmissionGapTests` owns
+lower-enclosure admission probes; the existing four-cell public graph/caller
+regressions separately own complete source correspondence behavior.
+
 B-spline inverse projection refines candidate stationary points to the same
 parameter resolution used to distinguish roots. A small world-space residual
 or gradient alone is insufficient for small-scale surfaces. The stationary

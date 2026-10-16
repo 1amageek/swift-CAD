@@ -63,10 +63,8 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
               surface.vKnots[0] == surface.vKnots[1], surface.vKnots[2] == surface.vKnots[3],
               surface.weights.allSatisfy({ $0.allSatisfy { $0 == 1 } }),
               surface.controlPoints[0].count == 2 else { return nil }
-        // The selected resolver branch scans the fixed four-control joined net
-        // in at most five passes; it creates no source-equivalence receipt.
-        try execution.consumeWork(20)
-        guard let plane = try DefaultPlanarSurfaceResolver().exactPlane(for: .bSpline(surface), tolerance: tolerance) else { return nil }
+        guard let plane = try DefaultPlanarSurfaceResolver().exactPlane(for: .bSpline(surface),
+            tolerance: tolerance, using: &execution) else { return nil }
         try OriginalCoefficientAllocation.reserve(count: 4, of: Point3D.self, using: &execution)
         try OriginalCoefficientAllocation.reserve(count: 4, of: Point3D.self, using: &execution)
         let points = [surface.controlPoints[0][0], surface.controlPoints[0][1],

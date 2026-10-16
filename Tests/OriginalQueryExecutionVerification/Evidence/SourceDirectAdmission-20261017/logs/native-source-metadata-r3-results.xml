@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="TestResults" errors="0" tests="14" failures="1" skipped="0" time="0.040938958">
+    <testcase classname="FocusedTests.OriginalQueryDiagnosticPrefixTests" name="prefixPreservesEveryPublishedFieldAndInnerContext()" time="0.003812542" />
+    <testcase classname="FocusedTests.OriginalQueryDiagnosticPrefixTests" name="rawResourcePublicationRetainsCauseAndFillsOnlyMissingContext()" time="0.004010041" />
+    <testcase classname="FocusedTests.OriginalQueryDiagnosticPrefixTests" name="diagnosticPrefixNeverClassifiesCancellationOrInventsForeignAuthority()" time="0.00389175" />
+    <testcase classname="FocusedTests.OriginalQueryDiagnosticPrefixTests" name="explicitClassificationOwnerStillControlsItsAggregateDecision()" time="0.003895125" />
+    <testcase classname="FocusedTests.SourceDirectAdmissionGapTests" name="originalGainAdmitsItsActualFactorPayloadBeforeRetention()" time="0.003984292" />
+    <testcase classname="FocusedTests.SourceDirectAdmissionGapTests" name="stationaryNativeSupportCannotResetCallerSourceDepth()" time="0.004080792" />
+    <testcase classname="FocusedTests.SourceDirectAdmissionGapTests" name="factorOwnersAndIndependentZeroDepthKeepTheOriginalImageLaw()" time="0.004500125" >
+      <failure message="Caught error: Failure(detail: &quot;Original source admission oracle failed.&quot;, line: 185) (error)" />
+    </testcase>
+    <testcase classname="FocusedTests.SourceDirectAdmissionGapTests" name="sourceOperationsPreserveExactCallerResourceBoundaries(native:)" time="0.008952667" />
+    <testcase classname="FocusedTests.SourceDirectAdmissionGapTests" name="sourceOperationsObserveEntryAndTerminalCancellation(native:)" time="0.005584291" />
+    <testcase classname="FocusedTests.SourceIsoparametricAdmissionGapTests" name="selectedMiddleCurveJetsUseTheCallerStorageAdmission(restricted:)" time="0.009324875" />
+    <testcase classname="FocusedTests.SourceIsoparametricAdmissionGapTests" name="graphReadersPreserveCallerCancellation(restricted:)" time="0.015111167" />
+    <testcase classname="FocusedTests.SourceIsoparametricAdmissionGapTests" name="originalGraphLawsRetainDirectionsAndExactCallerLimits(restricted:)" time="0.022917541" />
+    <testcase classname="FocusedTests.ExactIsoparametricPlanarIntersectionGraphTests" name="sphereEquatorProducesFourCompleteGraphCellsInBothOrders()" time="0.040508541" />
+    <testcase classname="FocusedTests.BSplineSurfaceEmbeddingValidatorTests" name="planarCornerDegeneracyRequiresAnExactConvexBoundary(oblique:)" time="0.014753792" />
+  </testsuite>
+</testsuites>

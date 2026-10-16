@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="TestResults" errors="0" tests="1" failures="0" skipped="0" time="0.002054375">
+    <testcase classname="FocusedTests.SourceDirectAdmissionGapTests" name="factorOwnersAndIndependentZeroDepthKeepTheOriginalImageLaw()" time="0.001664166" />
+  </testsuite>
+</testsuites>

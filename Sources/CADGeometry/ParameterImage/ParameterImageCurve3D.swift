@@ -85,7 +85,7 @@ public struct ParameterImageCurve3D: Hashable, Sendable {
     public func sourceParameterBounds(over interval: ScalarInterval,
         tolerance: ModelingTolerance) throws -> ScalarInterval {
         var execution = try OriginalQueryExecution.independentGeometry()
-        try validate(tolerance: tolerance)
+        try validate(tolerance: tolerance, using: &execution)
         return try originalInterval(interval, using: &execution)
     }
 

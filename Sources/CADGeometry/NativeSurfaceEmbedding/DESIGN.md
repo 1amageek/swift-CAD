@@ -201,3 +201,18 @@ determinant, zero/indeterminate distinctions, an observed work `N` versus `N-1`
 boundary, zero-storage filter versus fallback, cancellation before work, and
 named vector expansion arithmetic. Authoring or parsing these tests does not
 constitute behavioral execution evidence.
+
+### Stationary planar support admission
+
+The existing unit-weight, clamped bilinear stationary-boundary selection calls
+its original exact-plane resolver on the same execution. A fixed work estimate
+cannot replace the resolver's actual source validation, structural comparison,
+scalar storage, checkpoint or caller-relative source-depth admission. The
+selection predicates, exact convex boundary, non-unit-normal rejection and
+local/pair capacities remain unchanged. Ordinary validation creates one root;
+its admitted body never creates a child root.
+
+`SourceDirectAdmissionGapTests` exercises the public stationary-boundary validator
+with an independently authored planar sheet, caller-relative source refusal,
+actual work/storage limits and cancellation. These controls establish admission
+ownership for this selected branch, not general Native embedding coverage.

@@ -1,0 +1,72 @@
+􀟈  Test run started.
+􀄵  Swift Standard Library Version: 6.4
+􀄵  Swift Compiler Version: 6.4
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀄵  OS Version: 27.0.1 (26A434)
+􀟈  Suite "B-spline surface embedding certification" (aka 'BSplineSurfaceEmbeddingValidatorTests') started.
+􀟈  Suite "Source direct admission gaps" (aka 'SourceDirectAdmissionGapTests') started.
+􀟈  Suite "Source isoparametric admission gaps" (aka 'SourceIsoparametricAdmissionGapTests') started.
+􀟈  Suite "Original query diagnostic prefixes" (aka 'OriginalQueryDiagnosticPrefixTests') started.
+􀟈  Suite "Exact Isoparametric Planar Intersection Graph" (aka 'ExactIsoparametricPlanarIntersectionGraphTests') started.
+􀟈  Test planarCornerDegeneracyRequiresAnExactConvexBoundary(oblique:) started.
+􀟈  Test originalGainAdmitsItsActualFactorPayloadBeforeRetention() started.
+􀟈  Test sourceOperationsObserveEntryAndTerminalCancellation(native:) started.
+􀟈  Test graphReadersPreserveCallerCancellation(restricted:) started.
+􀟈  Test selectedMiddleCurveJetsUseTheCallerStorageAdmission(restricted:) started.
+􀟈  Test originalGraphLawsRetainDirectionsAndExactCallerLimits(restricted:) started.
+􀟈  Test diagnosticPrefixNeverClassifiesCancellationOrInventsForeignAuthority() started.
+􀟈  Test sphereEquatorProducesFourCompleteGraphCellsInBothOrders() started.
+􀟈  Test rawResourcePublicationRetainsCauseAndFillsOnlyMissingContext() started.
+􀟈  Test explicitClassificationOwnerStillControlsItsAggregateDecision() started.
+􀟈  Test sourceOperationsPreserveExactCallerResourceBoundaries(native:) started.
+􀟈  Test factorOwnersAndIndependentZeroDepthKeepTheOriginalImageLaw() started.
+􀟈  Test stationaryNativeSupportCannotResetCallerSourceDepth() started.
+􀟈  Test case passing 1 argument native → false (Swift.Bool) to sourceOperationsObserveEntryAndTerminalCancellation(native:) started.
+􀟈  Test case passing 1 argument restricted → true (Swift.Bool) to originalGraphLawsRetainDirectionsAndExactCallerLimits(restricted:) started.
+􀟈  Test case passing 1 argument restricted → false (Swift.Bool) to originalGraphLawsRetainDirectionsAndExactCallerLimits(restricted:) started.
+􀟈  Test case passing 1 argument restricted → false (Swift.Bool) to graphReadersPreserveCallerCancellation(restricted:) started.
+􀟈  Test case passing 1 argument oblique → true (Swift.Bool) to planarCornerDegeneracyRequiresAnExactConvexBoundary(oblique:) started.
+􀟈  Test case passing 1 argument restricted → true (Swift.Bool) to selectedMiddleCurveJetsUseTheCallerStorageAdmission(restricted:) started.
+􀟈  Test case passing 1 argument native → true (Swift.Bool) to sourceOperationsObserveEntryAndTerminalCancellation(native:) started.
+􀟈  Test case passing 1 argument restricted → true (Swift.Bool) to graphReadersPreserveCallerCancellation(restricted:) started.
+􀟈  Test prefixPreservesEveryPublishedFieldAndInnerContext() started.
+􀟈  Test case passing 1 argument restricted → false (Swift.Bool) to selectedMiddleCurveJetsUseTheCallerStorageAdmission(restricted:) started.
+􀟈  Test case passing 1 argument oblique → false (Swift.Bool) to planarCornerDegeneracyRequiresAnExactConvexBoundary(oblique:) started.
+􀟈  Test case passing 1 argument native → false (Swift.Bool) to sourceOperationsPreserveExactCallerResourceBoundaries(native:) started.
+􀟈  Test case passing 1 argument native → true (Swift.Bool) to sourceOperationsPreserveExactCallerResourceBoundaries(native:) started.
+􁁛  Test case passing 1 argument native → false (Swift.Bool) to sourceOperationsPreserveExactCallerResourceBoundaries(native:) passed after 0.003 seconds.
+􁁛  Test case passing 1 argument native → false (Swift.Bool) to sourceOperationsObserveEntryAndTerminalCancellation(native:) passed after 0.003 seconds.
+􁁛  Test diagnosticPrefixNeverClassifiesCancellationOrInventsForeignAuthority() passed after 0.003 seconds.
+􁁛  Test originalGainAdmitsItsActualFactorPayloadBeforeRetention() passed after 0.003 seconds.
+􁁛  Test explicitClassificationOwnerStillControlsItsAggregateDecision() passed after 0.003 seconds.
+􁁛  Test prefixPreservesEveryPublishedFieldAndInnerContext() passed after 0.003 seconds.
+􁁛  Test rawResourcePublicationRetainsCauseAndFillsOnlyMissingContext() passed after 0.004 seconds.
+􁁛  Suite "Original query diagnostic prefixes" (aka 'OriginalQueryDiagnosticPrefixTests') passed after 0.004 seconds.
+􁁛  Test stationaryNativeSupportCannotResetCallerSourceDepth() passed after 0.004 seconds.
+􀢄  Test factorOwnersAndIndependentZeroDepthKeepTheOriginalImageLaw() recorded an issue at SourceDirectAdmissionGapTests.swift:21:6: Caught error: Failure(detail: "Original source admission oracle failed.", line: 185)
+􀢄  Test factorOwnersAndIndependentZeroDepthKeepTheOriginalImageLaw() failed after 0.004 seconds with 1 issue.
+􁁛  Test case passing 1 argument native → true (Swift.Bool) to sourceOperationsObserveEntryAndTerminalCancellation(native:) passed after 0.005 seconds.
+􁁛  Test sourceOperationsObserveEntryAndTerminalCancellation(native:) with 2 test cases passed after 0.005 seconds.
+􁁛  Test case passing 1 argument native → true (Swift.Bool) to sourceOperationsPreserveExactCallerResourceBoundaries(native:) passed after 0.008 seconds.
+􁁛  Test sourceOperationsPreserveExactCallerResourceBoundaries(native:) with 2 test cases passed after 0.008 seconds.
+􀢄  Suite "Source direct admission gaps" (aka 'SourceDirectAdmissionGapTests') failed after 0.009 seconds with 1 issue.
+􁁛  Test case passing 1 argument restricted → false (Swift.Bool) to selectedMiddleCurveJetsUseTheCallerStorageAdmission(restricted:) passed after 0.009 seconds.
+􁁛  Test case passing 1 argument restricted → true (Swift.Bool) to selectedMiddleCurveJetsUseTheCallerStorageAdmission(restricted:) passed after 0.009 seconds.
+􁁛  Test selectedMiddleCurveJetsUseTheCallerStorageAdmission(restricted:) with 2 test cases passed after 0.009 seconds.
+􁁛  Test case passing 1 argument oblique → false (Swift.Bool) to planarCornerDegeneracyRequiresAnExactConvexBoundary(oblique:) passed after 0.014 seconds.
+􁁛  Test case passing 1 argument oblique → true (Swift.Bool) to planarCornerDegeneracyRequiresAnExactConvexBoundary(oblique:) passed after 0.014 seconds.
+􁁛  Test planarCornerDegeneracyRequiresAnExactConvexBoundary(oblique:) with 2 test cases passed after 0.014 seconds.
+􁁛  Suite "B-spline surface embedding certification" (aka 'BSplineSurfaceEmbeddingValidatorTests') passed after 0.014 seconds.
+􁁛  Test case passing 1 argument restricted → false (Swift.Bool) to graphReadersPreserveCallerCancellation(restricted:) passed after 0.014 seconds.
+􁁛  Test case passing 1 argument restricted → true (Swift.Bool) to graphReadersPreserveCallerCancellation(restricted:) passed after 0.014 seconds.
+􁁛  Test graphReadersPreserveCallerCancellation(restricted:) with 2 test cases passed after 0.015 seconds.
+􁁛  Test case passing 1 argument restricted → false (Swift.Bool) to originalGraphLawsRetainDirectionsAndExactCallerLimits(restricted:) passed after 0.022 seconds.
+􁁛  Test case passing 1 argument restricted → true (Swift.Bool) to originalGraphLawsRetainDirectionsAndExactCallerLimits(restricted:) passed after 0.022 seconds.
+􁁛  Test originalGraphLawsRetainDirectionsAndExactCallerLimits(restricted:) with 2 test cases passed after 0.022 seconds.
+􁁛  Suite "Source isoparametric admission gaps" (aka 'SourceIsoparametricAdmissionGapTests') passed after 0.023 seconds.
+􁁛  Test sphereEquatorProducesFourCompleteGraphCellsInBothOrders() passed after 0.040 seconds.
+􁁛  Suite "Exact Isoparametric Planar Intersection Graph" (aka 'ExactIsoparametricPlanarIntersectionGraphTests') passed after 0.040 seconds.
+􀢄  Test run with 14 tests in 5 suites failed after 0.040 seconds with 1 issue.
+Note: Some test targets reported failures:
+  - FocusedTests (Swift Testing)

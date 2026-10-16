@@ -1,0 +1,15 @@
+(node:1944) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS stationaryNativeSupportCannotResetCallerSourceDepth
+PASS originalGainAdmitsItsActualFactorPayloadBeforeRetention
+PASS sourceOperationsPreserveExactCallerResourceBoundaries native=false
+PASS sourceOperationsPreserveExactCallerResourceBoundaries native=true
+PASS sourceOperationsObserveEntryAndTerminalCancellation native=false
+PASS sourceOperationsObserveEntryAndTerminalCancellation native=true
+PASS factorOwnersAndIndependentZeroDepthKeepTheOriginalImageLaw
+PASS selectedMiddleCurveJetsUseTheCallerStorageAdmission restricted=false
+PASS selectedMiddleCurveJetsUseTheCallerStorageAdmission restricted=true
+PASS originalGraphLawsRetainDirectionsAndExactCallerLimits restricted=false
+PASS originalGraphLawsRetainDirectionsAndExactCallerLimits restricted=true
+PASS graphReadersPreserveCallerCancellation restricted=false
+PASS graphReadersPreserveCallerCancellation restricted=true

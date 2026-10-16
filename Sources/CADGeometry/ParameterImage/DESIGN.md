@@ -273,3 +273,23 @@ generic caller A -> pure Native/word coefficient law -> retained source proof
 Owning behavioral success, guard rejection, independent budgets/depth, terminal
 cancellation and retained lifetime must execute through the actual direct path.
 Syntax or signature checks alone are not completion evidence.
+
+### Direct factor storage and ordinary entry ownership
+
+The flat original gain factor array admits its actual element stride and checked
+capacity growth before appending. A scalar-word estimate does not admit retained
+`OriginalParameterGain` values, and flattening borrows an existing product's
+factors instead of materializing singleton arrays. Exact multiplication order,
+source factor identity, finite nonzero gain, original support and independent
+proof-depth decisions remain unchanged. The same admission owns every factor
+visit, rational operation and result-publication cancellation checkpoint.
+
+The ordinary curve-image bounds entry creates one independent execution and
+forwards that execution through its existing validation and interval calculation.
+It preserves its original local source/subdivision/algebra policy; an admitted
+query never falls back to an ordinary child.
+
+`SourceDirectAdmissionGapTests` owns original factor/order and detached COW
+controls, typed factor-storage refusal, exact resource boundaries and cancellation.
+The native and portable values retain the same immutable storage and Sendable
+contract; no conditional state or synchronization adapter is introduced.

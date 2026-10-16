@@ -1,0 +1,11 @@
+􀟈  Test run started.
+􀄵  Swift Standard Library Version: 6.4
+􀄵  Swift Compiler Version: 6.4
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀄵  OS Version: 27.0.1 (26A434)
+􀟈  Suite "Source direct admission gaps" (aka 'SourceDirectAdmissionGapTests') started.
+􀟈  Test factorOwnersAndIndependentZeroDepthKeepTheOriginalImageLaw() started.
+􁁛  Test factorOwnersAndIndependentZeroDepthKeepTheOriginalImageLaw() passed after 0.001 seconds.
+􁁛  Suite "Source direct admission gaps" (aka 'SourceDirectAdmissionGapTests') passed after 0.001 seconds.
+􁁛  Test run with 1 test in 1 suite passed after 0.002 seconds.

@@ -67,22 +67,27 @@ public enum OriginalParameterGain: Hashable, Sendable {
         }
         try usage.visitCell(axis: .value, depth: 0)
         var originals: [OriginalParameterGain] = []
+        var capacity = 0
         var coefficient = ExactRationalCoefficient.one
+        func append(_ original: OriginalParameterGain, using usage: inout B) throws {
+            try OriginalCoefficientAllocation.reserveAppend(to: &originals, capacity: &capacity, using: &usage)
+            try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeWork(1)
+            coefficient = try coefficient.multiplied(by: original.exactCoefficient(usage: &usage), usage: &usage)
+            originals.append(original)
+        }
         for factor in factors {
             try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeWork(1); try factor.validate()
-            let next: [OriginalParameterGain]
-            if case .product(let product) = factor { next = product.factors } else { next = [factor] }
-            try usage.retainStorage(bytes: exactScalarPayloadBytes(count: next.count, of: UInt32.self))
-            for original in next {
-                try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeWork(1)
-                coefficient = try coefficient.multiplied(by: original.exactCoefficient(usage: &usage), usage: &usage)
-                originals.append(original)
+            if case .product(let product) = factor {
+                for original in product.factors { try append(original, using: &usage) }
+            } else {
+                try append(factor, using: &usage)
             }
         }
         let bounds = try coefficient.outwardInterval(usage: &usage)
         guard bounds.isFinite, bounds.excludesZero else {
             throw GeometryConversionError.resourceLimitExceeded("Original factor product has no finite nonzero binary enclosure.")
         }
+        try usage.checkpoint()
         return .product(.init(factors: originals, coefficient: coefficient, bounds: bounds))
     }
 

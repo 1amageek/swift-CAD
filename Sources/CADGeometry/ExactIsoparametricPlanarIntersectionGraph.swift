@@ -294,7 +294,7 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
     }
     let sourceJet = try RationalBezierCurveJetEncloser().enclosure(
       of: sourcePatch,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
     let sourceScale = OutwardScalarInterval(
       try parameterBox.interval(for: freeParameter).width
@@ -447,7 +447,7 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
     let sourceJet = try RationalBezierCurveJetEncloser().enclosure(
       of: sourcePatch,
       over: sourceInterval,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
     let affine = try affineCoordinateBounds(
       position: IntervalVector3DBounds(
