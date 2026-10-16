@@ -40,7 +40,8 @@ package struct SurfaceParameterLoopUnwrapper {
     // carriers and lower query temporary byte admission remain required for full scope.
     package func unwrap(_ curves: [SurfaceParameterCurve], on surface: Surface3D,
         tolerance: ModelingTolerance, context: String, maximumSubdivisionDepth: Int,
-        remainingSourceDepth: Int, using execution: inout OriginalQueryExecution) throws -> [UnwrappedCurve] {
+        remainingSourceDepth: Int, maximumAlgebraicDepth: Int? = nil,
+        using execution: inout OriginalQueryExecution) throws -> [UnwrappedCurve] {
         let parameterTolerance = parameterTolerance(for: surface, tolerance: tolerance)
         return try unwrap(curves, uPeriod: periodicValue(surface.uDomain),
             vPeriod: periodicValue(surface.vDomain),
@@ -48,13 +49,15 @@ package struct SurfaceParameterLoopUnwrapper {
             vClosureTolerance: parameterTolerance.v * 8, on: surface,
             tolerance: tolerance, context: context,
             maximumSubdivisionDepth: maximumSubdivisionDepth,
-            remainingSourceDepth: remainingSourceDepth, using: &execution)
+            remainingSourceDepth: remainingSourceDepth,
+            maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
     }
 
     package func unwrap(_ curves: [SurfaceParameterCurve], uPeriod: Double?, vPeriod: Double?,
         uClosureTolerance: Double, vClosureTolerance: Double, on surface: Surface3D,
         tolerance: ModelingTolerance, context: String, maximumSubdivisionDepth: Int,
-        remainingSourceDepth: Int, using execution: inout OriginalQueryExecution) throws -> [UnwrappedCurve] {
+        remainingSourceDepth: Int, maximumAlgebraicDepth: Int? = nil,
+        using execution: inout OriginalQueryExecution) throws -> [UnwrappedCurve] {
             try tolerance.validate()
             guard !curves.isEmpty, maximumSubdivisionDepth >= 0, remainingSourceDepth > 0,
                   uClosureTolerance.isFinite, uClosureTolerance > 0,
@@ -71,7 +74,8 @@ package struct SurfaceParameterLoopUnwrapper {
             }
             let prepared = try PreparedSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance,
                 remainingSourceDepth: remainingSourceDepth,
-                maximumSubdivisionDepth: maximumSubdivisionDepth, using: &execution)
+                maximumSubdivisionDepth: maximumSubdivisionDepth,
+                maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
             func translated(_ box: SurfaceParameterBox, _ u: Double, _ v: Double) throws -> SurfaceParameterBox {
                 let nativeU = OutwardScalarInterval(lower: box.u.lower, upper: box.u.upper)
                 let nativeV = OutwardScalarInterval(lower: box.v.lower, upper: box.v.upper)
@@ -121,7 +125,8 @@ package struct SurfaceParameterLoopUnwrapper {
                         ? .constantU(u: first.u.lower, vStart: first.v.midpoint, vEnd: second.v.midpoint)
                         : .constantV(v: first.v.lower, uStart: first.u.midpoint, uEnd: second.u.midpoint)
                     if try BRepEdgeGeometryClassifier(maximumSubdivisionDepth: maximumSubdivisionDepth,
-                        remainingSourceDepth: remainingSourceDepth)
+                        remainingSourceDepth: remainingSourceDepth,
+                        maximumAlgebraicDepth: maximumAlgebraicDepth)
                         .kind(curve: .surfaceLift(.init(surface: surface, parameterCurve: connector)),
                             from: 0, to: 1, tolerance: tolerance, using: &execution) == .singular { return true }
                 }
@@ -138,7 +143,8 @@ package struct SurfaceParameterLoopUnwrapper {
                 try visit()
                 let lift = try curve.continuousChartLift(on: surface, tolerance: tolerance,
                     maximumSpanCount: 1_048_576, maximumSubdivisionDepth: maximumSubdivisionDepth,
-                    remainingSourceDepth: remainingSourceDepth, using: &execution)
+                    remainingSourceDepth: remainingSourceDepth,
+                    maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
                 guard let boxes = lift.originalSampleBounds, boxes.count == 3 else {
                     throw GeometryConversionError.invalidInput("Original chart lift lost its endpoint source boxes.")
                 }

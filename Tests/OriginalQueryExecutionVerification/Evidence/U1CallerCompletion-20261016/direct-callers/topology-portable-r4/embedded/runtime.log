@@ -1,0 +1,10 @@
+(node:44675) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS Topology distance public witness and retained result
+TOPOLOGY_DISTANCE work=31 bytes=14056
+PASS Topology distance cumulative prefix and exact boundaries
+PASS Topology distance zero storage and checkpoints
+PASS Topology loop selected nil and independent algebra caps
+TOPOLOGY_LOOP work=273807 bytes=488120
+PASS Topology loop cumulative exact boundaries and cancellation
+PASS Topology distance portable all

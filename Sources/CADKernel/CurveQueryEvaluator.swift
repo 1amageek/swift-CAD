@@ -294,22 +294,44 @@ public struct CurveQueryEvaluator: Sendable {
         _ reference: CurveControlPointReference,
         in document: EvaluatedDocument
     ) throws -> Point3D {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try controlPoint(reference, in: document, using: &execution)
+    }
+
+    public func controlPoint(
+        _ reference: CurveControlPointReference,
+        in document: EvaluatedDocument,
+        using execution: inout OriginalQueryExecution
+    ) throws -> Point3D {
+        try execution.consumeWork(1)
         try reference.validate()
-        let evaluated = try resolve(reference.curve, in: document)
+        let evaluated = try resolve(reference.curve, in: document, using: &execution)
         guard let original = evaluated.exactCurve else {
             throw FeatureEvaluationError.missingInput("Curve control point query requires original curve geometry.")
         }
-        return try originalControlPoint(reference.controlPointIndex, on: original)
+        let point = try originalControlPoint(reference.controlPointIndex, on: original, using: &execution)
+        try execution.checkpoint()
+        return point
     }
 
     public func center(
         _ reference: CurveCenterReference,
         in document: EvaluatedDocument
     ) throws -> Point3D {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try center(reference, in: document, using: &execution)
+    }
+
+    public func center(
+        _ reference: CurveCenterReference,
+        in document: EvaluatedDocument,
+        using execution: inout OriginalQueryExecution
+    ) throws -> Point3D {
+        try execution.consumeWork(1)
         try reference.validate()
-        let curve = try resolve(reference.curve, in: document)
+        let curve = try resolve(reference.curve, in: document, using: &execution)
         guard let exactCurve = curve.exactCurve,
-              let center = try exactCenter(of: exactCurve) else {
+              let center = try exactCenter(of: exactCurve, using: &execution) else {
             throw KernelError(
                 phase: .validation,
                 code: .invalidInput,
@@ -317,6 +339,7 @@ public struct CurveQueryEvaluator: Sendable {
                 message: "Curve center selection requires an exact central conic."
             )
         }
+        try execution.checkpoint()
         return center
     }
 
@@ -393,7 +416,9 @@ public struct CurveQueryEvaluator: Sendable {
     }
 
     /// Numerical handle coordinates come from the original image, never a new spline source.
-    private func originalControlPoint(_ index: Int, on curve: Curve3D) throws -> Point3D {
+    private func originalControlPoint(_ index: Int, on curve: Curve3D, using execution: inout OriginalQueryExecution) throws -> Point3D {
+        try execution.consumeWork(1)
+        try execution.admitSourceDepth(0)
         switch curve {
         case .bSpline(let spline):
             guard index >= 0, index < spline.controlPoints.count else {
@@ -401,11 +426,22 @@ public struct CurveQueryEvaluator: Sendable {
             }
             return spline.controlPoints[index]
         case .rigidImage(let image):
-            return try image.transform.applying(to: originalControlPoint(index, on: image.source))
+            let point = try execution.withSourceDepthOffset(1) { execution in
+                try originalControlPoint(index, on: image.source, using: &execution)
+            }
+            try execution.consumeWork(1)
+            return image.transform.applying(to: point)
         case .affineImage(let image):
-            return try image.transform.applying(to: originalControlPoint(index, on: image.source))
+            let point = try execution.withSourceDepthOffset(1) { execution in
+                try originalControlPoint(index, on: image.source, using: &execution)
+            }
+            try execution.consumeWork(1)
+            return image.transform.applying(to: point)
         case .originalAffineWord(let image):
-            return try image.applying(to: originalControlPoint(index, on: image.source))
+            let point = try execution.withSourceDepthOffset(1) { execution in
+                try originalControlPoint(index, on: image.source, using: &execution)
+            }
+            return try image.preparedWord.applying(to: point, usage: &execution)
         default:
             throw KernelError(phase: .validation, code: .invalidInput, tolerance: tolerance,
                 message: "Curve control point selection requires an original B-spline source.")
@@ -483,7 +519,9 @@ public struct CurveQueryEvaluator: Sendable {
         }
     }
 
-    private func exactCenter(of curve: Curve3D) throws -> Point3D? {
+    private func exactCenter(of curve: Curve3D, using execution: inout OriginalQueryExecution) throws -> Point3D? {
+        try execution.consumeWork(1)
+        try execution.admitSourceDepth(0)
         switch curve {
         case let .circle(circle):
             return circle.center
@@ -494,16 +532,33 @@ public struct CurveQueryEvaluator: Sendable {
         case let .analytic(.hyperbola(hyperbola)):
             return hyperbola.center
         case let .rigidImage(image):
-            return try exactCenter(of: image.source).map(image.transform.applying(to:))
+            let center = try execution.withSourceDepthOffset(1) { execution in
+                try exactCenter(of: image.source, using: &execution)
+            }
+            guard let center else { return nil }
+            try execution.consumeWork(1)
+            return image.transform.applying(to: center)
         case let .affineImage(image):
-            return try exactCenter(of: image.source).map(image.transform.applying(to:))
+            let center = try execution.withSourceDepthOffset(1) { execution in
+                try exactCenter(of: image.source, using: &execution)
+            }
+            guard let center else { return nil }
+            try execution.consumeWork(1)
+            return image.transform.applying(to: center)
         case let .originalAffineWord(image):
-            guard let center = try exactCenter(of: image.source) else { return nil }
-            return try image.applying(to: center)
+            let center = try execution.withSourceDepthOffset(1) { execution in
+                try exactCenter(of: image.source, using: &execution)
+            }
+            guard let center else { return nil }
+            return try image.preparedWord.applying(to: center, usage: &execution)
         case .parameterImage(let image):
-            return try exactCenter(of: image.source)
+            return try execution.withSourceDepthOffset(1) { execution in
+                try exactCenter(of: image.source, using: &execution)
+            }
         case .originalConstructionChart(let image):
-            return try exactCenter(of: image.source)
+            return try execution.withSourceDepthOffset(1) { execution in
+                try exactCenter(of: image.source, using: &execution)
+            }
         case .line,
              .analytic(.line),
              .analytic(.parabola),

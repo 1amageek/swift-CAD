@@ -101,7 +101,7 @@ public struct BRepModel: Equatable, Sendable {
     return OriginalBRepValidationInvocation(model: self,
       maximumSubdivisionDepth: limits.maximumSubdivisionDepth,
       remainingSourceDepth: limits.remainingSourceDepth,
-      maximumAlgebraicDepth: nil)
+      maximumAlgebraicDepth: 32)
   }
 
   public func validate(tolerance: ModelingTolerance) throws {

@@ -978,6 +978,21 @@ Singleton queries use original closed positions and derivatives without an
 artificial epsilon interval. Unknown lower byte/family authority propagates a
 typed failure.
 
+The prepared continuity owner also admits one source-specific lifted law: a
+validated authored plane hosting exactly two finite, distinct polyline points,
+restricted to the original closed fraction interval `[0, 1]`. The sole
+Euclidean segment has normalized gain one, so its original UV law is affine;
+composition with the original plane is continuous everywhere on that interval.
+This issues only the existing preparation-bound positional continuity receipt,
+after retained proof, tolerance, source-depth, work, storage and cancellation
+admission. It neither compares two sources nor approves a general lifted join.
+Correspondence still evaluates the actual source and lifted derivative bounds
+under the same execution before using its centered residual theorem. Other
+implicit/lifted joins retain their explicit incomplete authority. Verification
+is owned by `Tests/CADGeometryTests/OriginalTwoPointPolylineBoundsTests.swift`,
+including retained source identity, foreign tolerance, outside range and tight
+source-depth refusal, and actual directed planar coedge valid/distant queries.
+
 ### Caller-Admitted Original Surface Sources
 
 The surface protocol publishes direct validation, point proposal and complete differential enclosure requirements. Native sources retain paid preparation and its immutable receipt. Each query borrows the supplied execution; ordinary query conveniences use the retained cumulative owner. An explicitly independent execution readmits preparation evidence rather than replaying its decomposition. Point proposals use original closed singleton bounds; whole certification consumes complete differential enclosures. Unsupported source witnesses fail explicitly.

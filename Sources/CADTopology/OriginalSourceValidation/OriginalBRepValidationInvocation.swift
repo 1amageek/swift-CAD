@@ -982,7 +982,8 @@ struct OriginalBRepValidationInvocation: Sendable {
         uPeriod: uPeriod, vPeriod: vPeriod,
         uClosureTolerance: uClosureTolerance, vClosureTolerance: vClosureTolerance,
         on: surface, tolerance: tolerance, context: "Surface loop \(loop.id)",
-        maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth, using: &execution)
+        maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
+        maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
     }
     let integrator = SurfaceParameterCurveAreaIntegrator(
       maximumSubdivisionDepth: maximumSubdivisionDepth,

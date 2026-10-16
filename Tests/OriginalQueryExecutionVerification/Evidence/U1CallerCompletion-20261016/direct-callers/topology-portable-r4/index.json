@@ -1,0 +1,160 @@
+{
+  "status": "passed",
+  "scope": "Finite actual CADTopology public point-distance Domain lifecycle plus bounded original sqrt(2)/sqrt(5) polyline loop cap propagation. Not whole Topology, U1, Kernel or original-intersection-family completion.",
+  "fixture": {
+    "path": "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD/Tests/OriginalQueryExecutionVerification/TopologyDistanceAdmissionPortable.swift",
+    "sha256": "cd14d0d38c5b9a42b02ef7549adf868794f4416c20dddfcdf675669191b81865"
+  },
+  "sourceCounts": {
+    "CADCore": 67,
+    "CADGeometry": 2170,
+    "CADTopology": 142
+  },
+  "nativeAuthority": {
+    "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-callers-20261016/native-topology-r5/receipt.json",
+    "sha256": "4a87b03a7424cfa037374406fac916710f2823d6eb80917676f7874f1f450e1b"
+  },
+  "coreGeometryAuthority": {
+    "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-callers-20261016/portable-new-callers-c0-r3/receipt.json",
+    "sha256": "b959248c322e2b7196078f9094af3115f1884b1285669cf0f76954446060c8fe",
+    "scope": "Successful selected lane only; immutable prefix may retain another lane running."
+  },
+  "driver": {
+    "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-callers-20261016/topology-portable-r4/run.py",
+    "sha256": "5b4d0cb02183950836d2a2113ab7b7373f6d00dde305238e65d47bbf6398083f"
+  },
+  "lanes": {
+    "asan": {
+      "receipt": {
+        "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-callers-20261016/topology-portable-r4/asan/receipt.json",
+        "sha256": "dd238cddce3583557dcde0b4940ce143f44024bfe235bacd3bb2523abe0b15ca"
+      },
+      "runtimeLog": {
+        "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-callers-20261016/topology-portable-r4/asan/runtime.log",
+        "sha256": "f6614b588bd655b5bb45c7c2531f69c20fe504dc27831877e4cb3a786862b84b"
+      },
+      "actualOracleLines": [
+        "PASS Topology distance public witness and retained result",
+        "PASS Topology distance cumulative prefix and exact boundaries",
+        "PASS Topology distance zero storage and checkpoints",
+        "PASS Topology loop selected nil and independent algebra caps",
+        "PASS Topology loop cumulative exact boundaries and cancellation",
+        "PASS Topology distance portable all"
+      ],
+      "metrics": [
+        "TOPOLOGY_DISTANCE work=31 bytes=20072",
+        "TOPOLOGY_LOOP work=273807 bytes=910636"
+      ],
+      "actualFreshSteps": {
+        "client-link": {
+          "seconds": 2.793298999997205,
+          "peakRSSBytes": 493322240
+        },
+        "runtime": {
+          "seconds": 5.343762958000298,
+          "peakRSSBytes": 685572096
+        }
+      },
+      "exactTopologyModuleOrigin": {
+        "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-callers-20261016/topology-portable-r3/asan/receipt.json",
+        "sha256": "f4b5e98c0a66473a0c19556c61b568f0ca1e300012b669127b10c04bd0196f78",
+        "scope": "Exact unchanged production, tools and products; fixture-only equivalent accessor correction."
+      },
+      "sourceProductAndLogDrift": false
+    },
+    "wasm": {
+      "receipt": {
+        "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-callers-20261016/topology-portable-r4/wasm/receipt.json",
+        "sha256": "ce396e2b0a43779ccbe74b900d1d19ad8e9836b4d437050bc2fa8413acccb0e2"
+      },
+      "runtimeLog": {
+        "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-callers-20261016/topology-portable-r4/wasm/runtime.log",
+        "sha256": "cb77cd6b307c189ccdfc9f09ab9a02af611ae01fa1306cf2b85628cf33aa48e0"
+      },
+      "actualOracleLines": [
+        "PASS Topology distance public witness and retained result",
+        "PASS Topology distance cumulative prefix and exact boundaries",
+        "PASS Topology distance zero storage and checkpoints",
+        "PASS Topology loop selected nil and independent algebra caps",
+        "PASS Topology loop cumulative exact boundaries and cancellation",
+        "PASS Topology distance portable all"
+      ],
+      "metrics": [
+        "TOPOLOGY_DISTANCE work=31 bytes=14056",
+        "TOPOLOGY_LOOP work=273807 bytes=488120"
+      ],
+      "actualFreshSteps": {
+        "client-link": {
+          "seconds": 1.8524944579985458,
+          "peakRSSBytes": 863371264
+        },
+        "runtime": {
+          "seconds": 2.311376208002912,
+          "peakRSSBytes": 478986240
+        }
+      },
+      "exactTopologyModuleOrigin": {
+        "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-callers-20261016/topology-portable-r3/wasm/receipt.json",
+        "sha256": "a9e232fd4a69fee740d411800d780dd701ffaa816519d5938ba540394913662d",
+        "scope": "Exact unchanged production, tools and products; fixture-only equivalent accessor correction."
+      },
+      "sourceProductAndLogDrift": false
+    },
+    "embedded": {
+      "receipt": {
+        "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-callers-20261016/topology-portable-r4/embedded/receipt.json",
+        "sha256": "afd4421336f5598ba8173b5fb94395f435b98610bdb969ee34b37d772ff9822c"
+      },
+      "runtimeLog": {
+        "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-callers-20261016/topology-portable-r4/embedded/runtime.log",
+        "sha256": "a0c0e4a0b5c7e274d1d4b8fc35a4f44a807e98bf73571925c39d83be884b1b60"
+      },
+      "actualOracleLines": [
+        "PASS Topology distance public witness and retained result",
+        "PASS Topology distance cumulative prefix and exact boundaries",
+        "PASS Topology distance zero storage and checkpoints",
+        "PASS Topology loop selected nil and independent algebra caps",
+        "PASS Topology loop cumulative exact boundaries and cancellation",
+        "PASS Topology distance portable all"
+      ],
+      "metrics": [
+        "TOPOLOGY_DISTANCE work=31 bytes=14056",
+        "TOPOLOGY_LOOP work=273807 bytes=488120"
+      ],
+      "actualFreshSteps": {
+        "client-link": {
+          "seconds": 52.78162224999687,
+          "peakRSSBytes": 6266798080
+        },
+        "runtime": {
+          "seconds": 0.6907051250018412,
+          "peakRSSBytes": 210141184
+        }
+      },
+      "exactTopologyModuleOrigin": {
+        "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-callers-20261016/topology-portable-r3/embedded/receipt.json",
+        "sha256": "7be156dd03fdd19bf8c7aeb671d2178c22257780688e2ab68d3e62a477bad6cb",
+        "scope": "Exact unchanged production, tools and products; fixture-only equivalent accessor correction."
+      },
+      "sourceProductAndLogDrift": false
+    }
+  },
+  "productionRegeneration": {
+    "Core": false,
+    "Geometry": false,
+    "Collections": false,
+    "Topology": "Exactly once per lane at final source in topology-portable-r3; reused for fixture-only closure correction."
+  },
+  "historicalDiagnosticsPreserved": [
+    "topology-portable-r2/asan-r1: unrelated Native receipt growth after successful compile/link",
+    "topology-portable-r2/embedded-r1: missing direct HashTreeCollections import",
+    "topology-portable-r3/embedded: fixture key-path unsupported; final Topology module successful"
+  ],
+  "boundaries": {
+    "compileLinkSeconds": 1200,
+    "runtimeSeconds": 120,
+    "RSSBytes": 10737418240,
+    "ownedCompilerCount": 1
+  },
+  "finished": true
+}

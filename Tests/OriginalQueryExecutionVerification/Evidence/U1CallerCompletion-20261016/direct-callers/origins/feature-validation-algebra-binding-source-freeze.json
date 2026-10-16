@@ -1,0 +1,46 @@
+{
+  "status": "source-ready-not-compiled",
+  "sourceRoot": "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD",
+  "files": [
+    {
+      "path": "Sources/CADTopology/BRepModel.swift",
+      "sha256": "5ddc8a51519037b037e1391520c5d77362dbf697f772846d25baea3102730ce3"
+    },
+    {
+      "path": "Sources/CADTopology/ValidatedBRepModel.swift",
+      "sha256": "3958ca5e1fe2106841a0650bee07f093a498d9168de3c84cf1d85144388baee6"
+    },
+    {
+      "path": "Sources/CADModeling/FeatureEvaluationBoundary.swift",
+      "sha256": "f97e750362a492c5cd6095733e4befc58a021aa23011aaa1d63afb299f86e36c"
+    },
+    {
+      "path": "Sources/CADModeling/ValidatedFeatureEvaluation.swift",
+      "sha256": "06b91a9ebf55713faed9c4346478e4f22e5d09f001bddcff56526495ea0a8f32"
+    },
+    {
+      "path": "Sources/CADTopology/OriginalSourceValidation/DESIGN.md",
+      "sha256": "b956f16bb1c9ed19a2d8425aa88610ffbb36745e6e9e4acdf5b97b3f86178072"
+    },
+    {
+      "path": "Sources/CADModeling/DESIGN.md",
+      "sha256": "69b540c08eba0ff6f9274a3c42e72c466f44c2a621ab894fe2518537703f2294"
+    },
+    {
+      "path": "Tests/CADModelingTests/FeatureValidationAlgebraAdmissionTests.swift",
+      "sha256": "454f01304e567e1b4041ae7986ab36c99de2ef1909562a18a535adca5dbe6d18"
+    }
+  ],
+  "patchSHA256": "3d0699d3998d11f7094d78e1ab6a4cc917ac48c56d87ec2a2f7d0a7537828d73",
+  "productionScope": "Only four caller bindings explicitly select existing local producer algebra maximum32 on same execution. Explicit bounded optionalnil unchanged; no value/coefficient axis inference.",
+  "nativeTestFiles": [
+    "Tests/CADModelingTests/FeatureValidationAlgebraAdmissionTests.swift"
+  ],
+  "nativeFilter": "FeatureValidationAlgebraAdmissionTests",
+  "integrationFilter": "OffsetSurfaceParameterCurveImageIntegrationTests/surfaceOffsetEvaluatorOwnsOffsetPcurveImageCreation",
+  "testDependencies": [
+    "Tests/CADKernelTests/PlanarSheetTestFixture.swift",
+    "Tests/CADKernelTests/SurfaceOperationTargetTestSupport.swift"
+  ],
+  "verification": "Diff/source checks only; Root owns Native generation and focused execution."
+}

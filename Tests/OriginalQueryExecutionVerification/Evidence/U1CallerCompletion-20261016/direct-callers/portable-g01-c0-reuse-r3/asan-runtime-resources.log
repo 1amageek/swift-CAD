@@ -1,0 +1,17 @@
+PASS G01 retained contribution source preflight
+STAGE G01 check reader regression swapped=false
+STAGE G01 check chart regression swapped=false
+STAGE G01 check metadata regression swapped=false
+STAGE G01 check reader regression swapped=false
+STAGE G01 check chart regression swapped=false
+STAGE G01 check metadata regression swapped=false
+PASS G01 measured public N/N-1 work=4469362 bytes=4103709
+STAGE G01 check reader regression swapped=false
+STAGE G01 check chart regression swapped=false
+STAGE G01 check metadata regression swapped=false
+PASS G01 terminal cancellation regression checkpoint=5885278 noOutput=true
+STAGE G01 check reader singleton swapped=false
+STAGE G01 check chart singleton swapped=false
+STAGE G01 check metadata singleton swapped=false
+PASS G01 terminal cancellation singleton checkpoint=3599836 noOutput=true
+PASS G01 public resources

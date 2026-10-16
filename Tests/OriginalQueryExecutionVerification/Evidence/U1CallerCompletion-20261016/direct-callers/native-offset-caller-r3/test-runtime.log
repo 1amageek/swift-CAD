@@ -1,0 +1,14 @@
+􀟈  Test run started.
+􀄵  Swift Standard Library Version: 6.4
+􀄵  Swift Compiler Version: 6.4
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀄵  OS Version: 27.0.1 (26A434)
+􀟈  Suite OffsetSurfaceParameterCurveImageIntegrationTests started.
+􀟈  Test surfaceOffsetEvaluatorOwnsOffsetPcurveImageCreation() started.
+􀢄  Test surfaceOffsetEvaluatorOwnsOffsetPcurveImageCreation() recorded an issue at OffsetSurfaceParameterCurveImageIntegrationTests.swift:10:6: Caught error: OriginalQueryFailure(originalError: KernelError(phase: geometry, code: unsupportedCapability, tolerance: ModelingTolerance(distance: 1e-06, angle: 1e-09, relative: 1e-09), message: Face 7D88BFA8-A285-8475-920D-E1064637D74A coedge D6C8980C-A4B7-8773-B3E1-64673C2BCAD4 failed pcurve endpoint validation: Original Euclidean polyline bounds require caller algebra admission.), kernelFailure: KernelError(phase: geometry, code: unsupportedCapability, tolerance: ModelingTolerance(distance: 1e-06, angle: 1e-09, relative: 1e-09), message: Face 7D88BFA8-A285-8475-920D-E1064637D74A coedge D6C8980C-A4B7-8773-B3E1-64673C2BCAD4 failed pcurve endpoint validation: Original Euclidean polyline bounds require caller algebra admission.), context: CADGeometry.OriginalQueryFailureContext(operation: CADGeometry.OriginalQueryFailureContext.Operation.conversion, entry: CADGeometry.OriginalQueryFailureContext.Entry.ordinary, stage: CADGeometry.OriginalQueryFailureContext.Stage.source, first: nil, second: nil, firstOwner: nil, secondOwner: nil, resource: nil))
+􀢄  Test surfaceOffsetEvaluatorOwnsOffsetPcurveImageCreation() failed after 0.059 seconds with 1 issue.
+􀢄  Suite OffsetSurfaceParameterCurveImageIntegrationTests failed after 0.060 seconds with 1 issue.
+􀢄  Test run with 1 test in 1 suite failed after 0.061 seconds with 1 issue.
+Note: Some test targets reported failures:
+  - FocusedTests (Swift Testing)

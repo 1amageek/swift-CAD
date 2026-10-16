@@ -161,3 +161,39 @@ source preparation and Geometry queries. Ordinary roots delegate once into the
 same body. Independent local limits, formulas, result meaning and all supported
 branches remain unchanged; resource and cancellation failures stay explicit.
 This delivery binding does not add an independent algorithm or feature fix.
+
+### Immutable distance-domain lifetime
+
+Distance cells retain immutable `Domain` references rather than copying the
+complete authored selection, curve/support and prepared-source payload into
+every cell and temporary. A private final `Sendable` owner stores only `let`
+fields. Child ranges and witness stations create new owners; no owner is mutated.
+The request retains all original source and prepared receipts until its domain,
+frontier and witness-station references are released.
+
+```text
+OriginalQueryExecution -> checked domain payload + object-header admission
+  -> immutable Domain owner <- domain array / Cell / witness station
+```
+
+Every root, child and station construction uses one factory that admits the
+typed field payload and aligned object header before creating the owner. The
+fixed Swift 6.4.0 `shims/HeapObject.h` declares two pointer-sized header words for
+both ordinary and Embedded objects (16 bytes on 64-bit, 8 on 32-bit). Checked
+arithmetic aligns this header to the private field-layout payload's alignment,
+then adds its stride. Existing `DistanceQueryStorage` and the same execution
+admit the complete request before initialization. This ABI assumption must be
+rechecked when the fixed toolchain changes. Array and cell storage use their actual reference-sized layouts;
+the former inline-copy size is not charged as fictitious retained storage.
+Failed work, storage or cancellation admission prevents owner allocation.
+The storage policy counts these typed requests, not a complete allocator-capacity
+or runtime-stack guarantee. Native, WASM and Embedded use the same immutable
+owner and original execution isolation, with no target-specific mutable state.
+
+This boundary addresses the actual point-to-point Selection distance stack guard:
+the original 5,064-byte inline domain generated a 6,160-byte copy frame below
+`makeCell` (56,272 bytes) and `evaluate` (344,528 bytes). The change preserves
+distance bounds, UV/range subdivision, heap/witness order and all request caps.
+Verification uses the existing Selection control-to-sketch distance regression
+and [direct domain lifetime tests](../../../Tests/CADTopologyTests/DistanceDomainLifetimeTests.swift)
+for work/storage N/N−1, zero-byte and cancellation cases.

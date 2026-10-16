@@ -45,7 +45,26 @@ Bounded model-space containment retains the exact face's complete finite origina
 ## Failure, Concurrency, and Constraints
 Missing source references, discontinuous original trim charts, unresolved original containment, invalid caller limits, exhausted producer work/depth and cancellation fail explicitly. Primitive constant-level periodic bands retain their existing contract. General nonconstant noncontractible bands remain a separate existing source gap; no ordinary bounded polygon result establishes their completeness. Original pcurve reconstruction and validation preparation must also forward caller admission before a whole-query budget guarantee.
 
+Loop preparation publishes lower failures through Geometry's existing original-query
+failure boundary before adding face/loop diagnostic text. The lower classification,
+original typed cause, independent resource axis and immutable query context remain
+authoritative; Core's erased-error fallback cannot replace a Geometry-owned resource
+or source classification. Cancellation remains the original cancellation cause.
+A diagnostic prefix supplies ownership context only and does not select containment
+mathematics, relax a ceiling or convert indeterminacy into nonmembership.
+
 ## Verification and Change Impact
+`FaceContainmentLoopFailureClassificationTests` owns a real prepared-session
+work refusal inside loop parameterization after the source and nonzero preparation
+prefix have succeeded. The raw authored rectangle's full-cap session and supplied
+UV membership are its positive control. A measured surface-validation prefix plus
+the four existing outer visits selects the lower work boundary without injecting
+an error or relying on entry-zero refusal. The public code, retained original cause,
+resource axis and caller operation/entry/stage must agree. A caller-checkpoint
+cancellation at the same completed nonzero prefix must remain CancellationError.
+Production repair remains pending until the real resource fixture is observed red
+and the same boundary is observed green.
+
 After source work, verify original-image trims, holes, periodic chart representatives, singular closed boundaries and foreign session IDs, together with work/depth/cancellation failures. Recheck Boolean region classification, ray classification, surface queries and edit publication after changes to original pcurve or projection authority. Source-only work does not establish behavioral completion.
 
 ## Original Trim Box Interior

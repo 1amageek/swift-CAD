@@ -42,6 +42,8 @@ def main():
     parser.add_argument('--compile-only', action='store_true')
     parser.add_argument('--reuse-geometry-products', type=Path)
     parser.add_argument('--fixture', type=Path, default=HERE / 'FullGeometryPortable.swift')
+    parser.add_argument('--fixture-root', type=Path, default=ROOT,
+        help='Root containing the explicitly selected real Tests fixture; other harness evidence stays canonical.')
     parser.add_argument('--expected-output', action='append',
         help='Exact required runtime line; repeat for each root-owned public-query oracle.')
     parser.add_argument('--runtime-group', action='append', choices=G01_RUNTIME_GROUPS,
@@ -84,8 +86,11 @@ def main():
             assert not any(any(word in line for word in ['DEBUG', 'NativeExchange', 'SWIFT_PACKAGE']) for lines in core_conditionals.values() for line in lines)
         inputs = {**core, **geometry}
         input_origins = {p: str(source_root / p) for p in inputs}
+        fixture_root = args.fixture_root.resolve()
+        assert fixture_root.is_dir(), 'The selected fixture root does not exist'
         fixture_source = args.fixture.resolve()
-        fixture_relative = fixture_source.relative_to(ROOT)
+        fixture_relative = fixture_source.relative_to(fixture_root)
+        assert fixture_relative.parts and fixture_relative.parts[0] == 'Tests', 'The fixture must belong to the selected root Tests tree'
         expected_output = args.expected_output or ['PASS full Geometry portable: 5 oracle groups']
         assert args.expected_output or fixture_source == (HERE / 'FullGeometryPortable.swift').resolve(), 'Supply exact root-owned oracle lines for an alternate fixture'
         if args.runtime_group:
@@ -96,8 +101,12 @@ def main():
             ROOT / 'Tests/CADGeometryTests/OriginalNativeRectangleGeometryTests.swift',
             ROOT / 'Tests/CADGeometryTests/CurveTessellationDirectExecutionTests.swift',
             ROOT / 'Tests/CADGeometryTests/OriginalPublicCallerDirectExecutionTests.swift']
-        inputs.update({str(p.relative_to(ROOT)): digest(p) for p in extra})
-        input_origins.update({str(p.relative_to(ROOT)): str(p) for p in extra})
+        for path in extra:
+            relative = str(fixture_relative if path == fixture_source else path.relative_to(ROOT))
+            origin = str(path)
+            assert relative not in input_origins or input_origins[relative] == origin, 'An input key names different authority origins: ' + relative
+            inputs[relative] = digest(path)
+            input_origins[relative] = origin
         snapshot = {}
         for relative, expected in inputs.items():
             target = output / 'snapshot' / relative
@@ -118,6 +127,7 @@ def main():
                 'swiftLibraryCodeLinkInputs': [], 'libraryEmission': 'module only; client compiles serialized Swift code'},
             'lineageReceipt': {'path': str(LINEAGE), 'sha256': digest(LINEAGE)},
             'asanLineageReceipt': {'path': str(ASAN_LINEAGE), 'sha256': digest(ASAN_LINEAGE)},
+            'fixtureRoot': str(fixture_root),
             'fixture': {'path': str(fixture_source), 'sha256': digest(fixture_source), 'expectedOutputLines': expected_output},
             'compilerVersion': lineage['compilerVersion'], 'toolSHA256': lineage['toolSHA256'], 'wasmSDK': lineage['wasmSDK'],
             'nativeSDK': asan_lineage['nativeSDK'], 'nativeLinker': asan_lineage['nativeLinker'],
@@ -268,9 +278,30 @@ def main():
                     shutil.copyfile(source, target)
                     retained_products[str(target)] = expected
                 selected['compiledProductSHA256'] = retained_products
+                if args.compile_core:
+                    core_products = old['lanes'][lane].get('compiledCoreProductSHA256')
+                    assert core_products, 'Fresh Core reuse requires its actual compiled product hashes'
+                    core_phase = next(p for p in old['phases'] if p['name'] == lane + '-core-compile'
+                        and p['exitCode'] == 0 and p.get('stopReason') is None)
+                    retained_core = {}
+                    for source, expected in core_products.items():
+                        if lane == 'embedded' and not source.endswith('.swiftmodule'):
+                            continue
+                        assert digest(source) == expected
+                        target = output / lane / 'dependencies' / Path(source).name
+                        shutil.copyfile(source, target)
+                        assert digest(target) == expected
+                        retained_core[str(target)] = expected
+                    assert set(retained_core) == set(selected['coreProducts']), 'Reused Core product set differs'
+                    selected['compiledCoreProductSHA256'] = retained_core
+                    selected['reusedCoreProof'] = {'receipt': str(old_path), 'receiptSHA256': digest(old_path),
+                        'compilePhase': core_phase}
+                ppid_accounting = {'sampled PPID-descendant process tree',
+                    'tracked PPID descendants including separate process groups'}
+                bound_proven = prior_phase.get('rssScope') in ppid_accounting
                 selected['reusedGeometryProof'] = {'receipt': str(old_path), 'receiptSHA256': digest(old_path),
-                    'compilePhase': prior_phase, 'resourceBoundProven': prior_phase.get('rssScope') == 'sampled PPID-descendant process tree',
-                    'resourceLimitation': None if prior_phase.get('rssScope') == 'sampled PPID-descendant process tree' else 'Initial PGID sampler did not capture the entire frontend tree.'}
+                    'compilePhase': prior_phase, 'resourceBoundProven': bound_proven,
+                    'resourceLimitation': None if bound_proven else 'The compile receipt does not prove PPID-descendant process-tree RSS accounting.'}
                 phases = ['link'] + list(runtime_by_phase)
         for phase in phases:
             log = output / (lane + '-' + phase + '.log')

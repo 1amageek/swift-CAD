@@ -237,7 +237,32 @@ The extracted candidate must compile and verify its own angle call chain. Existi
 | `../EdgeQueryEvaluator.swift` | resolve/midpoint/frame + edgeParameterRange -> original topology/source validation and Curve differential direct calls |
 | `../SurfaceQueryEvaluator.swift` | resolve/frame/closestPoint/span/knot/trimCurve and their existing projection/trim helpers -> direct original source/projection calls |
 
-The general legacy point-selector helper closure used by distance fallback is not converted by this angle scope. No direct general point(for:in:using:) is introduced. Lower query methods retain their previous branches, station formulas, trim approximation selectors and supported inputs; no new geometry case or success branch is imported.
+The earlier angle-only migration deliberately left the general point-selector closure outside its scope. The following caller-closure work supersedes that boundary without changing angle or distance mathematics.
+
+### Direct Selection Point Caller Closure
+
+`SelectionMeasurementEvaluator.point(for:in:using:)` is the direct point-query entry. The ordinary entry creates one ordinary Kernel execution and delegates once. The existing admitted `distanceSelection` fallback calls this direct entry with its incoming execution; it never creates an execution while resolving a sketch point or construction handle. Existing scalar/depth ceilings, selected contributions, cancellation, validation errors and final publication belong to that same caller. Representative points remain selector values, not original intersection or distance proof.
+
+```text
+ordinary point -> one ordinary execution --+
+                                         +-> direct point switch -> existing query helpers
+admitted distanceSelection --------------+       -> same caller execution -> publication
+```
+
+| Selector | Preserved authority and station rule | Direct dependency |
+|---|---|---|
+| Whole topology / vertex | Stable current reference; body bounds center; stored vertex position | Existing original topology resolution and body bounds |
+| Edge whole / parameter | Existing midpoint or requested parameter frame | Existing EdgeQueryEvaluator direct frame/midpoint |
+| Curve whole / parameter / span / knot | Existing Euclidean clock/domain, span midpoint and exact stored knot | Existing direct curve resolve/point/midpoint/span/knot |
+| Curve center / control point | Exact central conic; original B-spline control indexed before original image transforms | Narrow direct CurveQueryEvaluator center/control helpers |
+| Sketch point | Existing resolved quantity kinds, finite checks and XY/YZ/ZX/authored-plane mapping | Existing expression semantics; actual expression-node admission must be supplied by its Modeling owner |
+| Surface selectors | Existing representative centroid projection/fallback, U/V spans/knots, construction controls and trim stations | Existing SurfaceQueryEvaluator direct helpers, direct controlPoint and actual per-knot span visits |
+
+The original full switch remains exhaustive. No selector becomes unsupported merely to avoid its execution dependency. Existing invalid indices, missing output, noncentral/non-B-spline sources and invalid sketch entity failures remain failures. Original image control/center recursion consumes actual source/transport visits through the same execution and preserves the order of the original transforms. The point helper's trim midpoint finite-difference tangent remains the existing representative selector proposal; this migration does not elevate it to exact tangent proof. Existing angle-only complete derivative proof remains separate.
+
+Sketch expressions consume the actual `ParameterResolving.evaluate(_:parameters:variables:using:)` requirement supplied by [Modeling](../../CADModeling/DESIGN.md). Recursive expression-node visits, coordinate-array storage and the existing Bezier extension coordinate producers belong to that lower owner. Kernel calls X then Y under one execution and retains its existing quantity-kind and finite-value checks. No second root, precharge-only proxy or duplicated expression interpreter supplies this path. Source wiring alone does not establish complete sketch-expression accounting; the lower producer batch and this public caller require actual bounded verification before completion.
+
+The focused owner is [SelectionPointDirectExecutionTests](../../../Tests/CADKernelTests/SelectionPointDirectExecutionTests.swift). Its fixed authored degree-one spline controls, original knot station, native surface control/span station and ZX sketch point establish semantic parity; compound arithmetic/hypot expressions exercise recursive lower-node composition, and actual distance fallback establishes the caller connection. Work N/N-1 is measured from the same real direct operation under the same allocation policy, with independent selected-contribution, no-output, entry/terminal cancellation and counter checks. No fixed arbitrary work increase or model-evaluation setup cost enters the measurement. Existing broad selector tests retain the other switch semantics and must be run only after the finite source batch stabilizes.
 
 The Mass native API binding uses the original volume-moment execution factory
 and one selected maximumWork/depth contribution across attributes, moments and

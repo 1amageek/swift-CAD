@@ -1,0 +1,38 @@
+􀟈  Test run started.
+􀄵  Swift Standard Library Version: 6.4
+􀄵  Swift Compiler Version: 6.4
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀄵  OS Version: 27.0.1 (26A434)
+􀟈  Suite OffsetSurfaceParameterCurveImageIntegrationTests started.
+􀟈  Suite "Feature validation algebra admission" (aka 'FeatureValidationAlgebraAdmissionTests') started.
+􀟈  Test surfaceOffsetEvaluatorOwnsOffsetPcurveImageCreation() started.
+􀟈  Test ordinarySelectionDoesNotReplaceExplicitNilOrAuthorizeInvalidSource() started.
+􀟈  Test selectedConveniencesKeepIndependentCoefficientWorkBytesSourceAndCancellationLimits() started.
+􀢄  Test ordinarySelectionDoesNotReplaceExplicitNilOrAuthorizeInvalidSource() recorded an issue at FeatureValidationAlgebraAdmissionTests.swift:164:17: Expectation failed: OriginalQueryFailure.classification(of: error)?.code == .topologyFailure
+􀄵  OriginalQueryFailure.classification(of: error)?.code == .topologyFailure: Swift.Bool → false
+􀄵    OriginalQueryFailure.classification(of: error)?.code: Swift.Optional<CADCore.KernelErrorCode> → nil
+􀄵    .topologyFailure: Swift.Optional<CADCore.KernelErrorCode> → .topologyFailure
+􀄵      some: CADCore.KernelErrorCode → .topologyFailure
+􀢄  Test ordinarySelectionDoesNotReplaceExplicitNilOrAuthorizeInvalidSource() recorded an issue at FeatureValidationAlgebraAdmissionTests.swift:164:17: Expectation failed: OriginalQueryFailure.classification(of: error)?.code == .topologyFailure
+􀄵  OriginalQueryFailure.classification(of: error)?.code == .topologyFailure: Swift.Bool → false
+􀄵    OriginalQueryFailure.classification(of: error)?.code: Swift.Optional<CADCore.KernelErrorCode> → nil
+􀄵    .topologyFailure: Swift.Optional<CADCore.KernelErrorCode> → .topologyFailure
+􀄵      some: CADCore.KernelErrorCode → .topologyFailure
+􀢄  Test ordinarySelectionDoesNotReplaceExplicitNilOrAuthorizeInvalidSource() recorded an issue at FeatureValidationAlgebraAdmissionTests.swift:164:17: Expectation failed: OriginalQueryFailure.classification(of: error)?.code == .topologyFailure
+􀄵  OriginalQueryFailure.classification(of: error)?.code == .topologyFailure: Swift.Bool → false
+􀄵    OriginalQueryFailure.classification(of: error)?.code: Swift.Optional<CADCore.KernelErrorCode> → nil
+􀄵    .topologyFailure: Swift.Optional<CADCore.KernelErrorCode> → .topologyFailure
+􀄵      some: CADCore.KernelErrorCode → .topologyFailure
+􀢄  Test ordinarySelectionDoesNotReplaceExplicitNilOrAuthorizeInvalidSource() failed after 0.024 seconds with 3 issues.
+􀢄  Test selectedConveniencesKeepIndependentCoefficientWorkBytesSourceAndCancellationLimits() recorded an issue at FeatureValidationAlgebraAdmissionTests.swift:88:31: Expectation failed: retained(error)
+􀄵  retained(error): Swift.Optional<CADGeometry.OriginalQueryFailure> → nil
+􀄵    error: () → ()
+􀢄  Test selectedConveniencesKeepIndependentCoefficientWorkBytesSourceAndCancellationLimits() failed after 0.038 seconds with 1 issue.
+􀢄  Suite "Feature validation algebra admission" (aka 'FeatureValidationAlgebraAdmissionTests') failed after 0.038 seconds with 4 issues.
+􀢄  Test surfaceOffsetEvaluatorOwnsOffsetPcurveImageCreation() recorded an issue at OffsetSurfaceParameterCurveImageIntegrationTests.swift:10:6: Caught error: OriginalQueryFailure(originalError: KernelError(phase: geometry, code: unsupportedCapability, tolerance: ModelingTolerance(distance: 1e-06, angle: 1e-09, relative: 1e-09), message: Materialized offset chart target lacks an exact original directed source relation.), kernelFailure: KernelError(phase: geometry, code: unsupportedCapability, tolerance: ModelingTolerance(distance: 1e-06, angle: 1e-09, relative: 1e-09), message: Materialized offset chart target lacks an exact original directed source relation.), context: CADGeometry.OriginalQueryFailureContext(operation: CADGeometry.OriginalQueryFailureContext.Operation.conversion, entry: CADGeometry.OriginalQueryFailureContext.Entry.ordinary, stage: CADGeometry.OriginalQueryFailureContext.Stage.request, first: nil, second: nil, firstOwner: nil, secondOwner: nil, resource: nil))
+􀢄  Test surfaceOffsetEvaluatorOwnsOffsetPcurveImageCreation() failed after 0.042 seconds with 1 issue.
+􀢄  Suite OffsetSurfaceParameterCurveImageIntegrationTests failed after 0.042 seconds with 1 issue.
+􀢄  Test run with 3 tests in 2 suites failed after 0.042 seconds with 5 issues.
+Note: Some test targets reported failures:
+  - FocusedTests (Swift Testing)

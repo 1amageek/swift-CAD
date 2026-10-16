@@ -1,0 +1,17 @@
+􀟈  Test run started.
+􀄵  Swift Standard Library Version: 6.4
+􀄵  Swift Compiler Version: 6.4
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀄵  OS Version: 27.0.1 (26A434)
+􀟈  Suite BezierShapedExtensionTests started.
+􀟈  Test reflectiveMirrorsTheTailOfTheStoredSegments() started.
+􀟈  Test anArcExtensionKeepsItsSpansAndMatchesTheProfile() started.
+􀟈  Test theExpressionRoundTripsAndRefusesMalformedForms() started.
+􀟈  Test tooFewStoredSpansFail() started.
+􁁛  Test theExpressionRoundTripsAndRefusesMalformedForms() passed after 0.001 seconds.
+􁁛  Test tooFewStoredSpansFail() passed after 0.013 seconds.
+􁁛  Test anArcExtensionKeepsItsSpansAndMatchesTheProfile() passed after 0.441 seconds.
+􁁛  Test reflectiveMirrorsTheTailOfTheStoredSegments() passed after 2.712 seconds.
+􁁛  Suite BezierShapedExtensionTests passed after 2.712 seconds.
+􁁛  Test run with 4 tests in 1 suite passed after 2.712 seconds.

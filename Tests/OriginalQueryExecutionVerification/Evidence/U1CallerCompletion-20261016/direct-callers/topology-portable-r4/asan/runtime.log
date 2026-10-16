@@ -1,0 +1,8 @@
+PASS Topology distance public witness and retained result
+TOPOLOGY_DISTANCE work=31 bytes=20072
+PASS Topology distance cumulative prefix and exact boundaries
+PASS Topology distance zero storage and checkpoints
+PASS Topology loop selected nil and independent algebra caps
+TOPOLOGY_LOOP work=273807 bytes=910636
+PASS Topology loop cumulative exact boundaries and cancellation
+PASS Topology distance portable all

@@ -1775,3 +1775,55 @@ stored equal graphs and a consistently translated source graph exercise cache
 reuse and genuine validation fallback. The independent-line residual partition
 and generic worker-stack/runtime frontier are outside this comparison regression
 and remain unaccepted.
+
+The existing exact-input and validated-result fallback calls explicitly select
+the Topology producer's local algebra maximum of 32 on their existing caller
+execution. They do not forward an accidentally omitted capability into original
+pcurve endpoint or loop validation. Actual value and coefficient proof depths
+remain independent limits enforced by that execution; the local policy is not
+computed from either axis and does not raise either ceiling. Explicit bounded
+`nil` remains a separate refusal contract owned by
+[Original Source Validation](../CADTopology/OriginalSourceValidation/DESIGN.md).
+[FeatureValidationAlgebraAdmissionTests](../../Tests/CADModelingTests/FeatureValidationAlgebraAdmissionTests.swift)
+checks genuine plane/polyline source validation, independent scalar refusal,
+invalid input, exact cumulative work/bytes and cancellation. The existing
+Offset pcurve integration checks the actual input/output caller. This finite
+capability binding does not migrate the ordinary-only SurfaceOffset evaluator
+to one execution across all its existing feature stages.
+
+
+### Parameter Expression Evaluation Admission
+
+`ParameterResolving.evaluate(_:parameters:variables:using:)` is a concrete
+existential requirement for Selection's authored sketch-coordinate expressions.
+`ParameterResolver` owns the existing unit-aware interpreter; Kernel callers do
+not implement another arithmetic evaluator. The ordinary evaluation entry issues
+one independent execution and delegates to this same body, preserving its
+unrestricted ordinary depth policy and all quantity, unit and domain errors.
+
+Each expression-node visit checks cancellation, admits the actual value-tree
+depth (root zero), and charges work before inspecting that node. A binary
+operator evaluates left then right as before; trigonometry, `hypot`, division's
+existing zero guard and finite quantity validation retain their original math.
+Parameter references read the supplied resolved table, and variable validation
+and lookup pay the actual identifier traversal. The direct public entry performs
+a final caller checkpoint after quantity validation and before returning its
+result; cancellation cannot publish a completed quantity. Expression depth uses the value
+axis, independently of geometric subdivision, source representation, transport
+and coefficient depth.
+
+Bezier coordinate expressions evaluate their original ordered children and
+length under the same execution. Their `Quantity` array admits checked typed
+storage before allocation. The existing Natural and Shaped extension producer
+owns its numerical iterations, temporary buffers and failure semantics; full
+admission requires that actual producer to receive the same execution rather
+than a speculative outer charge or another interpreter. Table-wide parameter
+validation and dependency resolution remain the existing `resolve(_:)`
+responsibility; this finite Selection entry does not claim direct bounded
+resolution of an entire unresolved parameter table.
+
+[ParameterExpressionAdmissionTests](../../Tests/CADModelingTests/ParameterExpressionAdmissionTests.swift)
+owns arithmetic/trigonometry/hypot/reference/variable and both Bezier producer
+cases, original unit/domain errors, exact cumulative work and storage boundaries,
+independent value-depth refusal and cancellation before output. Selection owns
+composition of its X and Y reads with its already active caller execution.

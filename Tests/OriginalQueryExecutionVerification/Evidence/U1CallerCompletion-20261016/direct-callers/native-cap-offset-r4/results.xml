@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="TestResults" errors="0" tests="3" failures="5" skipped="0" time="0.042542">
+    <testcase classname="FocusedTests.OffsetSurfaceParameterCurveImageIntegrationTests" name="surfaceOffsetEvaluatorOwnsOffsetPcurveImageCreation()" time="0.042199333" >
+      <failure message="Caught error: OriginalQueryFailure(originalError: KernelError(phase: geometry, code: unsupportedCapability, tolerance: ModelingTolerance(distance: 1e-06, angle: 1e-09, relative: 1e-09), message: Materialized offset chart target lacks an exact original directed source relation.), kernelFailure: KernelError(phase: geometry, code: unsupportedCapability, tolerance: ModelingTolerance(distance: 1e-06, angle: 1e-09, relative: 1e-09), message: Materialized offset chart target lacks an exact original directed source relation.), context: CADGeometry.OriginalQueryFailureContext(operation: CADGeometry.OriginalQueryFailureContext.Operation.conversion, entry: CADGeometry.OriginalQueryFailureContext.Entry.ordinary, stage: CADGeometry.OriginalQueryFailureContext.Stage.request, first: nil, second: nil, firstOwner: nil, secondOwner: nil, resource: nil)) (error)" />
+    </testcase>
+    <testcase classname="FocusedTests.FeatureValidationAlgebraAdmissionTests" name="selectedConveniencesKeepIndependentCoefficientWorkBytesSourceAndCancellationLimits()" time="0.038652583" >
+      <failure message="Expectation failed: retained(error) (error)" />
+    </testcase>
+    <testcase classname="FocusedTests.FeatureValidationAlgebraAdmissionTests" name="ordinarySelectionDoesNotReplaceExplicitNilOrAuthorizeInvalidSource()" time="0.024976708" >
+      <failure message="Expectation failed: OriginalQueryFailure.classification(of: error)?.code == .topologyFailure (error)" />
+      <failure message="Expectation failed: OriginalQueryFailure.classification(of: error)?.code == .topologyFailure (error)" />
+      <failure message="Expectation failed: OriginalQueryFailure.classification(of: error)?.code == .topologyFailure (error)" />
+    </testcase>
+  </testsuite>
+</testsuites>

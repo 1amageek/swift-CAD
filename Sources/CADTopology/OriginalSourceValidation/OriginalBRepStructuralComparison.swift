@@ -1,5 +1,6 @@
 import CADCore
 import CADGeometry
+import HashTreeCollections
 
 /// Accounts the authored variable-length payloads consumed by structural equality.
 package enum OriginalBRepStructuralComparison {

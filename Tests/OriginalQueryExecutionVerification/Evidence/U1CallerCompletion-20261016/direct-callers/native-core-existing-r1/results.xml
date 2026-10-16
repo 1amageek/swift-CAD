@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="TestResults" errors="0" tests="4" failures="0" skipped="0" time="2.712345">
+    <testcase classname="FocusedTests.BezierShapedExtensionTests" name="theExpressionRoundTripsAndRefusesMalformedForms()" time="0.001832875" />
+    <testcase classname="FocusedTests.BezierShapedExtensionTests" name="anArcExtensionKeepsItsSpansAndMatchesTheProfile()" time="0.44115475" />
+    <testcase classname="FocusedTests.BezierShapedExtensionTests" name="tooFewStoredSpansFail()" time="0.013479917" />
+    <testcase classname="FocusedTests.BezierShapedExtensionTests" name="reflectiveMirrorsTheTailOfTheStoredSegments()" time="2.712081" />
+  </testsuite>
+</testsuites>

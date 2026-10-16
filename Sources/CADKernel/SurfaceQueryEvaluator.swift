@@ -500,15 +500,33 @@ public struct SurfaceQueryEvaluator: Sendable {
         _ reference: SurfaceControlPointReference,
         in document: some SurfaceQueryModel
     ) throws -> Point3D {
-        try reference.validate()
-        let surface = try exactBSpline(for: reference.surface, in: document)
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try controlPoint(reference, in: document, using: &execution)
+    }
+
+    public func controlPoint(
+        _ reference: SurfaceControlPointReference,
+        in document: some SurfaceQueryModel,
+        using execution: inout OriginalQueryExecution
+    ) throws -> Point3D {
+        try execution.consumeWork(1)
+        try reference.surface.subshape.validate(using: &execution)
+        guard reference.uIndex >= 0 else {
+            throw FeatureEvaluationError.invalidGraph("Surface control point U index must not be negative.")
+        }
+        guard reference.vIndex >= 0 else {
+            throw FeatureEvaluationError.invalidGraph("Surface control point V index must not be negative.")
+        }
+        let surface = try exactBSpline(for: reference.surface, in: document, using: &execution)
         guard reference.vIndex < surface.controlPoints.count else {
             throw FeatureEvaluationError.missingInput("Surface control point V index could not be resolved.")
         }
         guard reference.uIndex < surface.controlPoints[reference.vIndex].count else {
             throw FeatureEvaluationError.missingInput("Surface control point U index could not be resolved.")
         }
-        return surface.controlPoints[reference.vIndex][reference.uIndex]
+        let point = surface.controlPoints[reference.vIndex][reference.uIndex]
+        try execution.checkpoint()
+        return point
     }
 
     public func knot(
@@ -561,6 +579,7 @@ public struct SurfaceQueryEvaluator: Sendable {
             throw FeatureEvaluationError.emptyResult("Surface has no queryable knot spans.")
         }
         for index in lowerIndex..<upperIndex {
+            try execution.consumeWork(1)
             let lower = knots[index]
             let upper = knots[index + 1]
             guard upper - lower > tolerance.distance else {

@@ -21,6 +21,10 @@ implementations. Geometry equality and coverage remain production-owner proofs.
 | [SwiftCAD](../../DESIGN.md) | parent | fixed deployment and package graph | Owns integration and delivery | A local test is not whole-package acceptance |
 | [Original Query Execution](../../Sources/CADGeometry/OriginalQueryExecution/DESIGN.md) | depends on | cumulative admission, scopes and retained owners | Supplies actual query execution | Independent resource axes retain their meaning |
 | [Exact Scalar](../../Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/DESIGN.md) | depends on | depth and actual decision visits | Supplies low-level arithmetic | Constant depth admission is not a root visit |
+| [Numeric Work Admission](../../Sources/CADCore/NumericWorkAdmission/DESIGN.md) | depends on | Original numerical producer admission | Exercises the actual Core witness through Geometry | Ordinary authoring and admitted queries share one numerical body |
+| [Modeling](../../Sources/CADModeling/DESIGN.md) | depends on | Parameter expression and feature validation boundaries | Exercises real protocol dispatch and preserved typed failures | Finite source composition does not certify the entire module |
+| [Original Source Validation](../../Sources/CADTopology/OriginalSourceValidation/DESIGN.md) | depends on | Selected algebra policy and explicit bounded nil | Exercises actual loop and model validation | Independent scalar and source ceilings remain separate |
+| [Geometric Extrema](../../Sources/CADTopology/GeometricExtrema/DESIGN.md) | depends on | Retained distance domain ownership | Exercises actual provider dispatch and lifecycle | Heap ownership is charged before allocation |
 
 ## Architecture
 
@@ -83,6 +87,20 @@ Resource refusal and cancellation are checked by their original typed causes.
 An unexpected error cannot satisfy a specific refusal oracle.
 
 ## Verification and Change Impact
+
+| Changed contract | Actual verification owner |
+|---|---|
+| Core numerical admission and two-point lift bounds | [CoreBezierAdmissionPortable.swift](CoreBezierAdmissionPortable.swift), [selected Geometry tests](../CADGeometryTests/OriginalTwoPointPolylineBoundsTests.swift) |
+| All parameter expression cases | [ParameterExpressionAdmissionPortable.swift](ParameterExpressionAdmissionPortable.swift), [selected Modeling tests](../CADModelingTests/ParameterExpressionAdmissionTests.swift) |
+| Loop cap and immutable distance domains | [TopologyDistanceAdmissionPortable.swift](TopologyDistanceAdmissionPortable.swift), [loop tests](../CADTopologyTests/SurfaceParameterLoopAlgebraAdmissionTests.swift), [domain tests](../CADTopologyTests/DistanceDomainLifetimeTests.swift) |
+| Feature validation cap and original failures | [FeatureValidationAlgebraAdmissionTests.swift](../CADModelingTests/FeatureValidationAlgebraAdmissionTests.swift) |
+| Complete authored planar sewing under the existing work cap | [PlanarSewingAdmissionTests.swift](../CADKernelTests/PlanarSewingAdmissionTests.swift); Native public `DefaultBRepSewer` execution |
+| Kernel point-provider and loop failure boundaries | [SelectionPointDirectExecutionTests.swift](../CADKernelTests/SelectionPointDirectExecutionTests.swift), [FaceContainmentLoopFailureClassificationTests.swift](../CADKernelTests/FaceContainmentLoopFailureClassificationTests.swift); these selected caller executions are Native evidence |
+
+The [direct caller evidence](Evidence/U1CallerCompletion-20261016/direct-callers/VERIFICATION.md)
+binds the accepted snapshots and exact execution scope. The real offset caller's
+materialized target/source relation remains explicitly unsupported and is not
+counted as a successful offset or whole-U1 delivery.
 
 Changed admission paths require actual success/refusal, N/N−1, independent
 depth, cancellation and lifetime controls. Missing mandatory `using:` ports have

@@ -1,0 +1,105 @@
+􀟈  Test run started.
+􀄵  Swift Standard Library Version: 6.4
+􀄵  Swift Compiler Version: 6.4
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀄵  OS Version: 27.0.1 (26A434)
+􀟈  Suite "Native dependency callback and pcurve contracts" (aka 'NativeDependencyContractTests') started.
+􀟈  Suite "Feature validation algebra admission" (aka 'FeatureValidationAlgebraAdmissionTests') started.
+􀟈  Suite "Face containment loop failure classification" (aka 'FaceContainmentLoopFailureClassificationTests') started.
+􀟈  Suite "Parameter expression admission" (aka 'ParameterExpressionAdmissionTests') started.
+􀟈  Suite "Planar sewing caller admission" (aka 'PlanarSewingAdmissionTests') started.
+􀟈  Suite "Direct selection point execution" (aka 'SelectionPointDirectExecutionTests') started.
+􀟈  Suite "Loop chart algebra admission" (aka 'SurfaceParameterLoopAlgebraAdmissionTests') started.
+􀟈  Suite "Original two-point polyline bounds" (aka 'OriginalTwoPointPolylineBoundsTests') started.
+􀟈  Suite "Distance domain lifetime" (aka 'DistanceDomainLifetimeTests') started.
+􀟈  Test selectedConveniencesKeepIndependentCoefficientWorkBytesSourceAndCancellationLimits() started.
+􀟈  Test ordinarySelectionDoesNotReplaceExplicitNilOrAuthorizeInvalidSource() started.
+􀟈  Test originalUnitDomainAndReferenceFailuresRemainTypedAndOrdered() started.
+􀟈  Test supportBoundLoopBorrowsAdmissionAndPreservesClosure() started.
+􀟈  Test repeatedQueriesAndCancellationKeepTheSameCallerBudgetBeforeOutput() started.
+􀟈  Test finiteWorkPublishesTheOriginalPlanarSheetGraph() started.
+􀟈  Test authoredRectanglePreparesAndClassifiesItsOriginalUV() started.
+􀟈  Test actualBezierWorkAndStorageHaveExactCumulativeBoundaries() started.
+􀟈  Test allBezierExpressionProducersRetainTheOriginalContinuationLaws() started.
+􀟈  Test compoundUnitAwareExpressionsUseTheRequiredWitnessAndOriginalMath() started.
+􀟈  Test lowerLoopCallerCancellationKeepsItsCause() started.
+􀟈  Test lowerLoopWorkRefusalPreservesItsOriginalClassificationAndContext() started.
+􀟈  Test directPointPreservesControlKnotAndSketchValues() started.
+􀟈  Test expressionValueDepthIsIndependentOfSourceGeometryAndCoefficientDepth() started.
+􀟈  Test surfaceSpanPointRetainsItsStationAndExactCallerCeiling() started.
+􀟈  Test eachSelectorHonorsExactWorkAndSelectedZeroLimits() started.
+􀟈  Test terminalCheckpointFollowsActualQuantityValidationBeforePublication() started.
+􀟈  Test irrationalSegmentLengthCancelsBeforeOriginalFractionEvaluation(_:) started.
+􀟈  Test compoundSketchExpressionsConsumeTheSameCallerAtTheirActualNodes() started.
+􀟈  Test selectedCapPreservesTheAuthoredPolylineLoop() started.
+􀟈  Test omittedCapStillRefusesTheOriginalPolylineLaw() started.
+􀟈  Test actualPlanarLineCoedgeRetainsTheWholeDirectedCorrespondence(_:) started.
+􀟈  Test pointCancellationBeforeEntryAndFinalPublicationReturnsNoPoint() started.
+􀟈  Test pointDistancePreservesValuesAndCumulativeWorkAndBytes() started.
+􀟈  Test surfaceConstructionControlUsesItsOriginalSourceAndCaller() started.
+􀟈  Test selectedAndAmbientCoefficientDepthRemainIndependent() started.
+􀟈  Test entryAndTerminalCancellationCannotPublishTheAffineLaw() started.
+􀟈  Test admittedDistanceRetainsControlAndSketchFallbackSemantics() started.
+􀟈  Test invalidOrUncoveredSourcesKeepTypedRefusal() started.
+􀟈  Test cancellationRefusesBeforeDomainPublication() started.
+􀟈  Test workBoundaryIncludesPriorCallerWork() started.
+􀟈  Test exactWorkAndBytesRemainCumulativeAtTheCallerBoundary() started.
+􀟈  Test cancellationCannotPublishAnUnwrappedLoop() started.
+􀟈  Test aThirdAuthoredPointStillRequiresTheOriginalJoinProof() started.
+􀟈  Test planarAffineContinuityReceiptRetainsItsSourceAndRefusesForeignReadPremises() started.
+􀟈  Test zeroBytesRefusesBeforeDomainPublication() started.
+􀟈  Test case passing 1 argument reversed → true (Swift.Bool) to actualPlanarLineCoedgeRetainsTheWholeDirectedCorrespondence(_:) started.
+􀟈  Test case passing 1 argument reversed → false (Swift.Bool) to irrationalSegmentLengthCancelsBeforeOriginalFractionEvaluation(_:) started.
+􀟈  Test case passing 1 argument reversed → true (Swift.Bool) to irrationalSegmentLengthCancelsBeforeOriginalFractionEvaluation(_:) started.
+􀟈  Test case passing 1 argument reversed → false (Swift.Bool) to actualPlanarLineCoedgeRetainsTheWholeDirectedCorrespondence(_:) started.
+􁁛  Test case passing 1 argument reversed → false (Swift.Bool) to irrationalSegmentLengthCancelsBeforeOriginalFractionEvaluation(_:) passed after 0.019 seconds.
+􁁛  Test terminalCheckpointFollowsActualQuantityValidationBeforePublication() passed after 0.020 seconds.
+􁁛  Test compoundUnitAwareExpressionsUseTheRequiredWitnessAndOriginalMath() passed after 0.020 seconds.
+􁁛  Test expressionValueDepthIsIndependentOfSourceGeometryAndCoefficientDepth() passed after 0.020 seconds.
+􁁛  Test case passing 1 argument reversed → true (Swift.Bool) to actualPlanarLineCoedgeRetainsTheWholeDirectedCorrespondence(_:) passed after 0.019 seconds.
+􁁛  Test omittedCapStillRefusesTheOriginalPolylineLaw() passed after 0.020 seconds.
+􁁛  Test originalUnitDomainAndReferenceFailuresRemainTypedAndOrdered() passed after 0.020 seconds.
+􁁛  Test lowerLoopCallerCancellationKeepsItsCause() passed after 0.020 seconds.
+􁁛  Test lowerLoopWorkRefusalPreservesItsOriginalClassificationAndContext() passed after 0.020 seconds.
+􁁛  Test compoundSketchExpressionsConsumeTheSameCallerAtTheirActualNodes() passed after 0.020 seconds.
+􁁛  Test supportBoundLoopBorrowsAdmissionAndPreservesClosure() passed after 0.020 seconds.
+􁁛  Test cancellationRefusesBeforeDomainPublication() passed after 0.020 seconds.
+􁁛  Test pointDistancePreservesValuesAndCumulativeWorkAndBytes() passed after 0.020 seconds.
+􁁛  Test entryAndTerminalCancellationCannotPublishTheAffineLaw() passed after 0.020 seconds.
+􁁛  Test authoredRectanglePreparesAndClassifiesItsOriginalUV() passed after 0.020 seconds.
+􁁛  Test admittedDistanceRetainsControlAndSketchFallbackSemantics() passed after 0.020 seconds.
+􁁛  Test invalidOrUncoveredSourcesKeepTypedRefusal() passed after 0.020 seconds.
+􁁛  Test surfaceConstructionControlUsesItsOriginalSourceAndCaller() passed after 0.020 seconds.
+􁁛  Test directPointPreservesControlKnotAndSketchValues() passed after 0.020 seconds.
+􁁛  Test eachSelectorHonorsExactWorkAndSelectedZeroLimits() passed after 0.020 seconds.
+􁁛  Test pointCancellationBeforeEntryAndFinalPublicationReturnsNoPoint() passed after 0.020 seconds.
+􁁛  Test exactWorkAndBytesRemainCumulativeAtTheCallerBoundary() passed after 0.020 seconds.
+􁁛  Test cancellationCannotPublishAnUnwrappedLoop() passed after 0.020 seconds.
+􁁛  Test selectedCapPreservesTheAuthoredPolylineLoop() passed after 0.020 seconds.
+􁁛  Test zeroBytesRefusesBeforeDomainPublication() passed after 0.020 seconds.
+􁁛  Suite "Face containment loop failure classification" (aka 'FaceContainmentLoopFailureClassificationTests') passed after 0.020 seconds.
+􁁛  Suite "Native dependency callback and pcurve contracts" (aka 'NativeDependencyContractTests') passed after 0.020 seconds.
+􁁛  Suite "Distance domain lifetime" (aka 'DistanceDomainLifetimeTests') passed after 0.020 seconds.
+􁁛  Test case passing 1 argument reversed → true (Swift.Bool) to irrationalSegmentLengthCancelsBeforeOriginalFractionEvaluation(_:) passed after 0.021 seconds.
+􁁛  Test planarAffineContinuityReceiptRetainsItsSourceAndRefusesForeignReadPremises() passed after 0.021 seconds.
+􁁛  Test irrationalSegmentLengthCancelsBeforeOriginalFractionEvaluation(_:) with 2 test cases passed after 0.021 seconds.
+􁁛  Test selectedAndAmbientCoefficientDepthRemainIndependent() passed after 0.021 seconds.
+􁁛  Test aThirdAuthoredPointStillRequiresTheOriginalJoinProof() passed after 0.022 seconds.
+􁁛  Test case passing 1 argument reversed → false (Swift.Bool) to actualPlanarLineCoedgeRetainsTheWholeDirectedCorrespondence(_:) passed after 0.022 seconds.
+􁁛  Test actualPlanarLineCoedgeRetainsTheWholeDirectedCorrespondence(_:) with 2 test cases passed after 0.023 seconds.
+􁁛  Suite "Original two-point polyline bounds" (aka 'OriginalTwoPointPolylineBoundsTests') passed after 0.023 seconds.
+􁁛  Test surfaceSpanPointRetainsItsStationAndExactCallerCeiling() passed after 0.024 seconds.
+􁁛  Suite "Direct selection point execution" (aka 'SelectionPointDirectExecutionTests') passed after 0.024 seconds.
+􁁛  Test workBoundaryIncludesPriorCallerWork() passed after 0.032 seconds.
+􁁛  Suite "Loop chart algebra admission" (aka 'SurfaceParameterLoopAlgebraAdmissionTests') passed after 0.033 seconds.
+􁁛  Test finiteWorkPublishesTheOriginalPlanarSheetGraph() passed after 0.049 seconds.
+􁁛  Suite "Planar sewing caller admission" (aka 'PlanarSewingAdmissionTests') passed after 0.050 seconds.
+􁁛  Test ordinarySelectionDoesNotReplaceExplicitNilOrAuthorizeInvalidSource() passed after 0.053 seconds.
+􁁛  Test repeatedQueriesAndCancellationKeepTheSameCallerBudgetBeforeOutput() passed after 0.127 seconds.
+􁁛  Test allBezierExpressionProducersRetainTheOriginalContinuationLaws() passed after 0.155 seconds.
+􁁛  Test selectedConveniencesKeepIndependentCoefficientWorkBytesSourceAndCancellationLimits() passed after 0.191 seconds.
+􁁛  Suite "Feature validation algebra admission" (aka 'FeatureValidationAlgebraAdmissionTests') passed after 0.192 seconds.
+􁁛  Test actualBezierWorkAndStorageHaveExactCumulativeBoundaries() passed after 0.223 seconds.
+􁁛  Suite "Parameter expression admission" (aka 'ParameterExpressionAdmissionTests') passed after 0.223 seconds.
+􁁛  Test run with 36 tests in 9 suites passed after 0.223 seconds.

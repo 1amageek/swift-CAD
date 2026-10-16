@@ -1,0 +1,16 @@
+􀟈  Test run started.
+􀄵  Swift Standard Library Version: 6.4
+􀄵  Swift Compiler Version: 6.4
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀄵  OS Version: 27.0.1 (26A434)
+􀟈  Suite "Planar sewing finite-work source regression" (aka 'PlanarSewerBoundedDiagnosticTests') started.
+􀟈  Test finiteWorkPublishesTheOriginalPlanarSheetGraph() started.
+SEWER_PHASE authoring.begin work=0 bytes=0
+SEWER_PHASE authoring.end work=0 bytes=0
+SEWER_PHASE query.sew.begin work=0 bytes=0
+SEWER_RESULT success work=21989 bytes=182160 faces=1 edges=4
+SEWER_PHASE query.sew.end work=21989 bytes=182160
+􁁛  Test finiteWorkPublishesTheOriginalPlanarSheetGraph() passed after 0.064 seconds.
+􁁛  Suite "Planar sewing finite-work source regression" (aka 'PlanarSewerBoundedDiagnosticTests') passed after 0.064 seconds.
+􁁛  Test run with 1 test in 1 suite passed after 0.065 seconds.

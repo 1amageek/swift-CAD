@@ -55,6 +55,7 @@ resource admission and canonical ordering without reflection.
 | [Portable Identity](PortableIdentity/DESIGN.md) | child | Foundation-free 128-bit identity and strict UUID text codec | Supplies the storage and textual identity contract used by tagged persistent IDs; `TaggedID` owns explicit Native UUID/Codable adapters | CADExchange owns strict Native/STEP wire and schema admission; Embedded does not claim Codable support |
 | [Current Task Cancellation](CurrentTaskCancellation/DESIGN.md) | child | Foundation-free current-task cancellation check | Preserves typed `CancellationError` across supported targets | Consumer placement and domain mapping remain outside this component |
 | [Native Codec Capability](NativeCodecCapability/DESIGN.md) | child | Common Core values and explicit Native/normal codec adapters | Separates genuinely unavailable Embedded codec capability without changing value storage or meaning | Complete CADCore target proof is required; full document/A2 portability remains separate |
+| [Numeric Work Admission](NumericWorkAdmission/DESIGN.md) | child | Caller-owned work, typed storage and checkpoint requirements | Connects the existing three Bezier producers to the same incoming execution | Ordinary unbounded authoring is explicit; direct calls never fall back to it |
 
 ## Architecture
 
@@ -112,6 +113,13 @@ resolution, references, units, zero/nonfinite cases and serialization. Expressio
 text readers/formatters and all visitors must handle the new binary case.
 
 ## Natural Bezier expression contract
+
+Natural, Shaped and CurvatureProfile producers use the
+[Numeric Work Admission](NumericWorkAdmission/DESIGN.md) contract. Their
+ordinary wrappers and direct `using:` APIs execute one generic numeric body.
+The existing ordinary no-resource-limit/no-cancellation authoring policy is
+explicit; admitted expression evaluation forwards the caller's admission
+through validation, quadrature, Newton, blossom and array publication.
 
 CADCore owns pure numeric Bezier polynomial continuation and the persistent `bezierNaturalExtension` expression. Its interleaved coordinates and distance all have length kind; its coordinate index selects one of the degree new points in the oriented end span. It returns a length and discovers every input dependency. The degree is bounded to 1...11 and coordinates/index/distance are validated before numeric work. Both CADIR and CADModeling evaluate the same numeric implementation. CADKernel retains its public continuation adapter and delegates to CADCore. Invalid tangent, non-finite data, nonpositive distance and nonconvergence throw explicit errors; no cached coordinate fallback is allowed. JSON and Rupa editable text retain all operands. Tests cover parameter changes, units, both evaluators, round trips and invalid data.
 

@@ -433,11 +433,11 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
           tolerance: tolerance
         , using: &execution)
       } catch {
-        let wrapped = KernelError.wrapping(
-          error,
-          phase: .classification,
-          tolerance: tolerance
-        )
+        let published = OriginalQueryFailure.published(error,
+          context: execution.context, tolerance: tolerance)
+        guard let wrapped = OriginalQueryFailure.classification(of: published) else {
+          throw published
+        }
         let classification = KernelError(
           phase: wrapped.phase,
           code: wrapped.code,
@@ -448,7 +448,7 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
           message:
             "Trimmed-face containment could not parameterize loop \(loopID) on face \(faceID): \(wrapped.message)"
         )
-        throw OriginalQueryFailure.contextualizing(error, classification: classification)
+        throw OriginalQueryFailure.contextualizing(published, classification: classification)
       }
       regions.append(FacePointContainmentPreparationCache.LoopRegion(
         role: loop.role,

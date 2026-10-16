@@ -166,6 +166,25 @@ Bounded surface-lift Taylor composition forwards optional byte admission through
 
 Exact Euclidean polyline bounds consume the shared retained square-root/prefix law under an explicit optional algebra cap, independent of source and subdivision depth. Value-only queries union every original intersecting segment endpoint; derivative queries require exact equality of adjacent directed first derivatives before publishing a common higher law. A missing bounded algebra capability refuses this exact producer; legacy numerical point representatives remain candidates until their uncapped outward-length evaluator is connected.
 
+For exactly two distinct finite authored points, the sole positive segment has
+total length equal to its own length. Its normalized source law is therefore
+exactly `P0 + (P1 - P0) * f`, independently of whether that length is rational.
+The bounds owner evaluates this original affine law with exact binary-source
+rational coefficients and converts only the final value and first derivative
+to outward intervals. Higher Taylor coefficients are exactly zero. This is a
+source-law reduction, not a tolerance-based replacement or a numerical length
+ratio. It intersects the requested range with the original closed `[0, 1]`
+support, refuses an empty intersection and duplicate endpoints, and keeps the
+explicit algebra capability, span admission and same caller execution. All
+rational scratch and result tables remain caller-paid. Polylines with more
+than two points retain the general Euclidean length and join proof unchanged.
+Focused verification is owned by
+`Tests/CADGeometryTests/OriginalTwoPointPolylineBoundsTests.swift`: closed and
+clipped ranges, reversed and irrational-length diagonal sources, exact higher
+zeros, duplicate/outside refusal, resource and cancellation boundaries, and
+the genuine planar coedge correspondence caller. The complete planar Sewer
+and offset integration remain upper-level behavioral checks.
+
 Implicit requested-order zero through three consumes the localized original coordinate jet directly; it does not allocate an unnecessary fourth-order solve. Bounded localization reserves each actual parameter/Jacobian/preconditioner/derivative buffer before allocation or COW mutation and forwards byte admission into both retained support queries. Higher orders preserve the original Jacobian recurrence and requested continuity; separate owning cells remain separate source laws.
 
 ### Plane-Constrained Generated Sources

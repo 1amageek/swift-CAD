@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="TestResults" errors="0" tests="36" failures="0" skipped="0" time="0.223882334">
+    <testcase classname="FocusedTests.ParameterExpressionAdmissionTests" name="expressionValueDepthIsIndependentOfSourceGeometryAndCoefficientDepth()" time="0.020195" />
+    <testcase classname="FocusedTests.ParameterExpressionAdmissionTests" name="originalUnitDomainAndReferenceFailuresRemainTypedAndOrdered()" time="0.020334375" />
+    <testcase classname="FocusedTests.ParameterExpressionAdmissionTests" name="allBezierExpressionProducersRetainTheOriginalContinuationLaws()" time="0.155706916" />
+    <testcase classname="FocusedTests.ParameterExpressionAdmissionTests" name="actualBezierWorkAndStorageHaveExactCumulativeBoundaries()" time="0.223376541" />
+    <testcase classname="FocusedTests.ParameterExpressionAdmissionTests" name="compoundUnitAwareExpressionsUseTheRequiredWitnessAndOriginalMath()" time="0.020314291" />
+    <testcase classname="FocusedTests.ParameterExpressionAdmissionTests" name="repeatedQueriesAndCancellationKeepTheSameCallerBudgetBeforeOutput()" time="0.127739125" />
+    <testcase classname="FocusedTests.ParameterExpressionAdmissionTests" name="terminalCheckpointFollowsActualQuantityValidationBeforePublication()" time="0.020140709" />
+    <testcase classname="FocusedTests.DistanceDomainLifetimeTests" name="pointDistancePreservesValuesAndCumulativeWorkAndBytes()" time="0.020277291" />
+    <testcase classname="FocusedTests.DistanceDomainLifetimeTests" name="zeroBytesRefusesBeforeDomainPublication()" time="0.020372083" />
+    <testcase classname="FocusedTests.DistanceDomainLifetimeTests" name="cancellationRefusesBeforeDomainPublication()" time="0.020182666" />
+    <testcase classname="FocusedTests.FeatureValidationAlgebraAdmissionTests" name="ordinarySelectionDoesNotReplaceExplicitNilOrAuthorizeInvalidSource()" time="0.05304125" />
+    <testcase classname="FocusedTests.FeatureValidationAlgebraAdmissionTests" name="selectedConveniencesKeepIndependentCoefficientWorkBytesSourceAndCancellationLimits()" time="0.19195825" />
+    <testcase classname="FocusedTests.OriginalTwoPointPolylineBoundsTests" name="invalidOrUncoveredSourcesKeepTypedRefusal()" time="0.020336208" />
+    <testcase classname="FocusedTests.OriginalTwoPointPolylineBoundsTests" name="exactWorkAndBytesRemainCumulativeAtTheCallerBoundary()" time="0.020296083" />
+    <testcase classname="FocusedTests.OriginalTwoPointPolylineBoundsTests" name="planarAffineContinuityReceiptRetainsItsSourceAndRefusesForeignReadPremises()" time="0.021378417" />
+    <testcase classname="FocusedTests.OriginalTwoPointPolylineBoundsTests" name="entryAndTerminalCancellationCannotPublishTheAffineLaw()" time="0.020310041" />
+    <testcase classname="FocusedTests.OriginalTwoPointPolylineBoundsTests" name="irrationalSegmentLengthCancelsBeforeOriginalFractionEvaluation(_:)" time="0.021541792" />
+    <testcase classname="FocusedTests.OriginalTwoPointPolylineBoundsTests" name="actualPlanarLineCoedgeRetainsTheWholeDirectedCorrespondence(_:)" time="0.023189" />
+    <testcase classname="FocusedTests.OriginalTwoPointPolylineBoundsTests" name="aThirdAuthoredPointStillRequiresTheOriginalJoinProof()" time="0.022133291" />
+    <testcase classname="FocusedTests.SelectionPointDirectExecutionTests" name="admittedDistanceRetainsControlAndSketchFallbackSemantics()" time="0.020283834" />
+    <testcase classname="FocusedTests.SelectionPointDirectExecutionTests" name="compoundSketchExpressionsConsumeTheSameCallerAtTheirActualNodes()" time="0.020243625" />
+    <testcase classname="FocusedTests.SelectionPointDirectExecutionTests" name="surfaceConstructionControlUsesItsOriginalSourceAndCaller()" time="0.020345958" />
+    <testcase classname="FocusedTests.SelectionPointDirectExecutionTests" name="directPointPreservesControlKnotAndSketchValues()" time="0.020467667" />
+    <testcase classname="FocusedTests.SelectionPointDirectExecutionTests" name="eachSelectorHonorsExactWorkAndSelectedZeroLimits()" time="0.020458584" />
+    <testcase classname="FocusedTests.SelectionPointDirectExecutionTests" name="pointCancellationBeforeEntryAndFinalPublicationReturnsNoPoint()" time="0.020491208" />
+    <testcase classname="FocusedTests.SelectionPointDirectExecutionTests" name="surfaceSpanPointRetainsItsStationAndExactCallerCeiling()" time="0.024118" />
+    <testcase classname="FocusedTests.SurfaceParameterLoopAlgebraAdmissionTests" name="selectedCapPreservesTheAuthoredPolylineLoop()" time="0.020479667" />
+    <testcase classname="FocusedTests.SurfaceParameterLoopAlgebraAdmissionTests" name="omittedCapStillRefusesTheOriginalPolylineLaw()" time="0.020139417" />
+    <testcase classname="FocusedTests.SurfaceParameterLoopAlgebraAdmissionTests" name="selectedAndAmbientCoefficientDepthRemainIndependent()" time="0.021931542" />
+    <testcase classname="FocusedTests.SurfaceParameterLoopAlgebraAdmissionTests" name="cancellationCannotPublishAnUnwrappedLoop()" time="0.02036525" />
+    <testcase classname="FocusedTests.SurfaceParameterLoopAlgebraAdmissionTests" name="workBoundaryIncludesPriorCallerWork()" time="0.032771375" />
+    <testcase classname="FocusedTests.PlanarSewingAdmissionTests" name="finiteWorkPublishesTheOriginalPlanarSheetGraph()" time="0.049926791" />
+    <testcase classname="FocusedTests.FaceContainmentLoopFailureClassificationTests" name="authoredRectanglePreparesAndClassifiesItsOriginalUV()" time="0.020460084" />
+    <testcase classname="FocusedTests.FaceContainmentLoopFailureClassificationTests" name="lowerLoopCallerCancellationKeepsItsCause()" time="0.020315666" />
+    <testcase classname="FocusedTests.FaceContainmentLoopFailureClassificationTests" name="lowerLoopWorkRefusalPreservesItsOriginalClassificationAndContext()" time="0.020314209" />
+    <testcase classname="FocusedTests.NativeDependencyContractTests" name="supportBoundLoopBorrowsAdmissionAndPreservesClosure()" time="0.020414042" />
+  </testsuite>
+</testsuites>

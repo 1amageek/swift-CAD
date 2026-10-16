@@ -1,5 +1,6 @@
 import CADCore
 import CADIR
+import CADGeometry
 
 /// Resolves document parameters and evaluates unit-aware feature expressions.
 public protocol ParameterResolving: Sendable {
@@ -10,4 +11,12 @@ public protocol ParameterResolving: Sendable {
         parameters: ResolvedParameterTable,
         variables: [String: Quantity]
     ) throws -> Quantity
+
+    func evaluate(
+        _ expression: CADExpression,
+        parameters: ResolvedParameterTable,
+        variables: [String: Quantity],
+        using execution: inout OriginalQueryExecution
+    ) throws -> Quantity
+
 }

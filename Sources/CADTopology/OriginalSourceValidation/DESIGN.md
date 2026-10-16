@@ -33,6 +33,19 @@ addition to source recursion and geometric subdivision. The optional legacy
 policy remains absent; a selected ceiling is forwarded unchanged into original
 coefficient proofs and prepared sources. Optional byte accounting remains the
 same callback throughout classification and trim/endpoint admission.
+
+The `BRepModel` public validation conveniences and `ValidatedBRepModel`
+ordinary/using conveniences explicitly select the existing local producer
+algebra maximum of 32. This is a producer policy, not a requested proof depth:
+actual operations remain constrained independently by the same execution's
+value-depth and coefficient-depth ceilings, work, bytes and cancellation. No
+ceiling is raised and neither scalar axis determines the other. Explicit
+bounded overloads retain their optional argument unchanged, including `nil`;
+the lower original polyline producer still refuses a genuinely unselected
+algebra capability. Modeling composes these contracts as described in
+[CADModeling](../../CADModeling/DESIGN.md#retained-validity-comparison-admission).
+The regression owner is
+[Feature validation algebra admission](../../../Tests/CADModelingTests/FeatureValidationAlgebraAdmissionTests.swift).
 Binary, ratio, product and difference gains compose their exact original rational coefficients. Directed endpoint subtraction occurs before image transport; offsets cancel exactly. Absolute native span and period comparisons use exact rational differences. Exact word work and allocation are charged before the lower operation; no new private allowance is created. Legacy entry points retain cancellation checks. Bounded consumers supply their invocation callback and preserve its typed failures.
 
 An invertible original affine operation word preserves edge closure and collapse
@@ -154,6 +167,35 @@ flag and invalidInput classification remain unchanged.
 Original incidence, periodic seam and receipt validation use the common
 [execution](../../CADGeometry/OriginalQueryExecution/DESIGN.md) for actual source
 preparation and every later query. The existing model and immutable policy stay
-separate from execution ownership. This binding preserves the existing optional
-algebra capability semantics and source/subdivision caps; it does not incorporate
-the separately drafted loop-algebra capability-forwarding correction.
+separate from execution ownership.
+
+### Loop-area algebra capability forwarding
+
+Bounded receipt validation forwards its selected optional algebra ceiling into
+both bounded loop-unwrapping overloads. Unwrapping passes that same value to
+support preparation, collapsed-connector classification and continuous chart
+lift. Those operations borrow the original execution; no new allowance or
+replacement source owner is created. An omitted ceiling remains `nil`, including
+for unrelated callers. The existing source/subdivision ceilings, winding order,
+junction predicates and missing-endpoint-box `invalidInput` failure are unchanged.
+The period-lattice proof retains its existing API and the same execution.
+
+```text
+ValidatedBRepModel selected algebra ceiling
+  -> OriginalBRepValidationInvocation.loopParameterAreaBounds
+    -> SurfaceParameterLoopUnwrapper
+      -> prepared support / connector classifier / continuous chart lift
+```
+
+The concrete regression input is the four two-point Euclidean UV polylines in
+[PlanarSheetTestFixture](../../../Tests/CADKernelTests/PlanarSheetTestFixture.swift).
+Sewing already selects an algebra ceiling; losing it before the chart lift makes
+the original polyline law refuse bounds if validation reaches this phase.
+The forwarding contract does not establish completion of sewing or offset:
+their existing correspondence work ceiling and runtime limits remain independent.
+
+| Verification owner | Invariant |
+|---|---|
+| [Native dependency contracts](../../../Tests/CADTopologyTests/NativeDependencyContractTests.swift) | Existing unselected-cap constant-chart closure and admission failure remain unchanged. |
+| [Loop algebra admission](../../../Tests/CADTopologyTests/SurfaceParameterLoopAlgebraAdmissionTests.swift) | Selected cap reaches original polyline bounds; unselected cap, zero coefficient depth, exact N/N−1 cumulative work and cancellation retain their explicit contracts on the same execution. |
+| [Offset pcurve integration](../../../Tests/CADKernelTests/OffsetSurfaceParameterCurveImageIntegrationTests.swift) | The authentic sewn planar-sheet input reaches the existing offset feature and retains its geometry/source assertions. |

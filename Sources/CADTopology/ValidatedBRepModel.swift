@@ -12,7 +12,8 @@ public struct ValidatedBRepModel: Sendable {
         validationLevel: BRepValidationLevel = .exact) throws {
         var execution = try BRepModel.originalValidationExecution()
         try self.init(model, tolerance: tolerance, validationLevel: validationLevel,
-            maximumSubdivisionDepth: 32, remainingSourceDepth: 16, using: &execution)
+            maximumSubdivisionDepth: 32, remainingSourceDepth: 16,
+            maximumAlgebraicDepth: 32, using: &execution)
     }
 
     public init(_ model: BRepModel, tolerance: ModelingTolerance,
@@ -22,7 +23,7 @@ public struct ValidatedBRepModel: Sendable {
         try self.init(model, tolerance: tolerance, validationLevel: validationLevel,
             maximumSubdivisionDepth: limits.maximumSubdivisionDepth,
             remainingSourceDepth: limits.remainingSourceDepth,
-            maximumAlgebraicDepth: nil,
+            maximumAlgebraicDepth: 32,
             using: &execution)
     }
 

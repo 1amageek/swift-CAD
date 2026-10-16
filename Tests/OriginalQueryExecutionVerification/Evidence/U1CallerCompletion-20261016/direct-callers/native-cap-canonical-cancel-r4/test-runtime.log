@@ -1,0 +1,13 @@
+􀟈  Test run started.
+􀄵  Swift Standard Library Version: 6.4
+􀄵  Swift Compiler Version: 6.4
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀄵  OS Version: 27.0.1 (26A434)
+􀟈  Suite "Feature validation algebra admission" (aka 'FeatureValidationAlgebraAdmissionTests') started.
+􀟈  Test selectedConveniencesKeepIndependentCoefficientWorkBytesSourceAndCancellationLimits() started.
+􀟈  Test ordinarySelectionDoesNotReplaceExplicitNilOrAuthorizeInvalidSource() started.
+􁁛  Test ordinarySelectionDoesNotReplaceExplicitNilOrAuthorizeInvalidSource() passed after 0.023 seconds.
+􁁛  Test selectedConveniencesKeepIndependentCoefficientWorkBytesSourceAndCancellationLimits() passed after 0.111 seconds.
+􁁛  Suite "Feature validation algebra admission" (aka 'FeatureValidationAlgebraAdmissionTests') passed after 0.112 seconds.
+􁁛  Test run with 2 tests in 1 suite passed after 0.112 seconds.

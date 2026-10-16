@@ -65,7 +65,8 @@ package struct ValidatedFeatureEvaluation: Sendable {
         tolerance: ModelingTolerance
     , using execution: inout OriginalQueryExecution) throws {
         try FeatureTopologyLineageValidator().validate(result, featureID: featureID, using: &execution)
-        try result.brep.validate(level: .exact, tolerance: tolerance, maximumSubdivisionDepth: 32, remainingSourceDepth: 16, using: &execution)
+        try result.brep.validate(level: .exact, tolerance: tolerance, maximumSubdivisionDepth: 32, remainingSourceDepth: 16,
+            maximumAlgebraicDepth: 32, using: &execution)
         self.result = result
         brep = try Self.validatedBRep(
             for: result,
@@ -100,7 +101,8 @@ package struct ValidatedFeatureEvaluation: Sendable {
         return try ValidatedBRepModel(
             result.brep,
             tolerance: tolerance,
-            validationLevel: .exact, maximumSubdivisionDepth: 32, remainingSourceDepth: 16
+            validationLevel: .exact, maximumSubdivisionDepth: 32, remainingSourceDepth: 16,
+            maximumAlgebraicDepth: 32
         , using: &execution)
     }
 }

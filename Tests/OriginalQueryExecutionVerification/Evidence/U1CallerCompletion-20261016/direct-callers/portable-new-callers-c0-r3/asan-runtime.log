@@ -1,0 +1,13 @@
+PASS Core Bezier original numeric laws
+PASS Core Bezier ordinary and admitted parity
+CORE_BEZIER law=0 work=1876 bytes=18712
+CORE_BEZIER law=1 work=14946 bytes=6880
+CORE_BEZIER law=2 work=14946 bytes=6880
+CORE_BEZIER law=3 work=3004 bytes=31344
+PASS Core Bezier cumulative work and storage
+PASS Core Bezier exact work and storage boundaries
+PASS Core Bezier cancellation within numeric iteration
+PASS Core Bezier invalid units and numeric errors
+PASS two-point-polyline actual-planar-correspondence directed-valid distant-refusal
+PASS two-point-polyline original-affine reversed D2-D3-zero algebra0 exact-N N-minus-1 bytes0 entry-terminal-cancel work=328 bytes=5244
+PASS Core Bezier portable all

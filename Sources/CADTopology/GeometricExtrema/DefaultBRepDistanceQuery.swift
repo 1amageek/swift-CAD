@@ -3,17 +3,64 @@ import CADCore
 import CADGeometry
 
 public struct DefaultBRepDistanceQuery: BRepDistanceQuerying {
-    private struct Domain {
+    private final class Domain: Sendable {
+        private struct Payload {
+            let support: BRepDistanceSelection
+            let curve: Curve3D?
+            let surface: Surface3D?
+            let point: Point3D?
+            let intervals: [ScalarInterval]
+            let trimPredicates: [(LoopRole, CertifiedSurfaceParameterLoopPredicate)]
+            let boundaryBoxes: [SurfaceParameterCurveEnclosure]
+            let preparedSurface: PreparedSurfaceDifferentialEncloser?
+            let preparedCurve: PreparedCurveDifferentialEncloser?
+            let depth: Int
+        }
         let support: BRepDistanceSelection
         let curve: Curve3D?
         let surface: Surface3D?
         let point: Point3D?
         let intervals: [ScalarInterval]
         let trimPredicates: [(LoopRole, CertifiedSurfaceParameterLoopPredicate)]
-        var boundaryBoxes: [SurfaceParameterCurveEnclosure] = []
-        var preparedSurface: PreparedSurfaceDifferentialEncloser? = nil
-        var preparedCurve: PreparedCurveDifferentialEncloser? = nil
-        var depth: Int = 0
+        let boundaryBoxes: [SurfaceParameterCurveEnclosure]
+        let preparedSurface: PreparedSurfaceDifferentialEncloser?
+        let preparedCurve: PreparedCurveDifferentialEncloser?
+        let depth: Int
+
+        private init(support: BRepDistanceSelection, curve: Curve3D?, surface: Surface3D?,
+            point: Point3D?, intervals: [ScalarInterval],
+            trimPredicates: [(LoopRole, CertifiedSurfaceParameterLoopPredicate)],
+            boundaryBoxes: [SurfaceParameterCurveEnclosure],
+            preparedSurface: PreparedSurfaceDifferentialEncloser?,
+            preparedCurve: PreparedCurveDifferentialEncloser?, depth: Int) {
+            self.support = support; self.curve = curve; self.surface = surface; self.point = point
+            self.intervals = intervals; self.trimPredicates = trimPredicates
+            self.boundaryBoxes = boundaryBoxes; self.preparedSurface = preparedSurface
+            self.preparedCurve = preparedCurve; self.depth = depth
+        }
+
+        static func make(support: BRepDistanceSelection, curve: Curve3D?, surface: Surface3D?,
+            point: Point3D?, intervals: [ScalarInterval],
+            trimPredicates: [(LoopRole, CertifiedSurfaceParameterLoopPredicate)],
+            boundaryBoxes: [SurfaceParameterCurveEnclosure] = [],
+            preparedSurface: PreparedSurfaceDifferentialEncloser? = nil,
+            preparedCurve: PreparedCurveDifferentialEncloser? = nil, depth: Int = 0,
+            using execution: inout OriginalQueryExecution) throws -> Domain {
+            // Swift 6.4 heap headers have two pointer-sized words on every selected target.
+            let header = MemoryLayout<UnsafeRawPointer>.stride.multipliedReportingOverflow(by: 2)
+            let alignment = MemoryLayout<Payload>.alignment
+            let padding = (alignment - header.partialValue % alignment) % alignment
+            let alignedHeader = header.partialValue.addingReportingOverflow(padding)
+            let bytes = alignedHeader.partialValue.addingReportingOverflow(MemoryLayout<Payload>.stride)
+            guard !header.overflow, !alignedHeader.overflow, !bytes.overflow else {
+                throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
+                    tolerance: nil, message: "Original distance domain allocation byte count overflowed.")
+            }
+            try DistanceQueryStorage.charge(bytes.partialValue, of: UInt8.self, using: &execution)
+            return Domain(support: support, curve: curve, surface: surface, point: point,
+                intervals: intervals, trimPredicates: trimPredicates, boundaryBoxes: boundaryBoxes,
+                preparedSurface: preparedSurface, preparedCurve: preparedCurve, depth: depth)
+        }
     }
     private struct Cell {
         let first: Domain
@@ -148,8 +195,8 @@ public struct DefaultBRepDistanceQuery: BRepDistanceQuerying {
                 try execution.consumeWork(1)
                 try DistanceQueryStorage.charge(source.intervals.capacity,of: ScalarInterval.self,using: &execution)
                 var intervals = source.intervals; intervals[axis] = range
-                let child = Domain(support: source.support, curve: source.curve, surface: source.surface,
-                    point: source.point, intervals: intervals, trimPredicates: source.trimPredicates, boundaryBoxes: source.boundaryBoxes, preparedSurface: source.preparedSurface, preparedCurve: source.preparedCurve, depth: cell.depth + 1)
+                let child = try Domain.make(support: source.support, curve: source.curve, surface: source.surface,
+                    point: source.point, intervals: intervals, trimPredicates: source.trimPredicates, boundaryBoxes: source.boundaryBoxes, preparedSurface: source.preparedSurface, preparedCurve: source.preparedCurve, depth: cell.depth + 1, using: &execution)
                 let a = splitFirst ? child : cell.first, b = splitFirst ? cell.second : child
                 let next = try makeCell(a, b, depth: cell.depth + 1, tolerance: tolerance, using: &execution)
                 try retainWitnesses(a, b, accuracy: accuracy, upper: &upper, witnesses: &witnesses, tolerance: tolerance, using: &execution)
@@ -218,16 +265,16 @@ public struct DefaultBRepDistanceQuery: BRepDistanceQuerying {
         case .point(let point):
             try DistanceQueryStorage.charge(1,of: Domain.self,using: &execution)
             try point.validate()
-            return [Domain(support: selection, curve: nil, surface: nil, point: point, intervals: [], trimPredicates: [])]
+            return [try Domain.make(support: selection, curve: nil, surface: nil, point: point, intervals: [], trimPredicates: [], using: &execution)]
         case .curve(let curve, let start, let end):
             try DistanceQueryStorage.charge(1,of: Domain.self,using: &execution)
             try DistanceQueryStorage.charge(1,of: ScalarInterval.self,using: &execution)
             try curve.validate(tolerance: tolerance, remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
                 maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth, maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth, using: &execution)
-            return [Domain(support: selection, curve: curve, surface: nil, point: nil,
+            return [try Domain.make(support: selection, curve: curve, surface: nil, point: nil,
                 intervals: [try ScalarInterval(lower: min(start, end), upper: max(start, end))], trimPredicates: [],
                 preparedCurve: try PreparedCurveDifferentialEncloser(curve: curve, tolerance: tolerance,
-                    remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth, maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth, maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth, using: &execution))]
+                    remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth, maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth, maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth, using: &execution), using: &execution)]
         case .surfaceStation(let surface, let parameter):
             try DistanceQueryStorage.charge(1, of: Domain.self, using: &execution)
             try DistanceQueryStorage.charge(2, of: ScalarInterval.self, using: &execution)
@@ -238,15 +285,15 @@ public struct DefaultBRepDistanceQuery: BRepDistanceQuerying {
                 try surface.vDomain.contains(parameter.v, tolerance: tolerance) else {
                 throw failure("Original surface station is outside its authored support domain.", tolerance)
             }
-            return [Domain(support: selection, curve: nil, surface: surface, point: nil,
+            return [try Domain.make(support: selection, curve: nil, surface: surface, point: nil,
                 intervals: [try ScalarInterval(lower: parameter.u, upper: parameter.u),
                     try ScalarInterval(lower: parameter.v, upper: parameter.v)], trimPredicates: [],
                 preparedSurface: try PreparedSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance,
-                    remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth, maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth, maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth, using: &execution))]
+                    remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth, maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth, maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth, using: &execution), using: &execution)]
         case .vertex(let id):
             try DistanceQueryStorage.charge(1,of: Domain.self,using: &execution)
             guard let point = model.vertices[id]?.point else { throw TopologyError.missingReference("Missing distance vertex.") }
-            return [Domain(support: selection, curve: nil, surface: nil, point: point, intervals: [], trimPredicates: [])]
+            return [try Domain.make(support: selection, curve: nil, surface: nil, point: point, intervals: [], trimPredicates: [], using: &execution)]
         case .edge(let id):
             try DistanceQueryStorage.charge(1,of: Domain.self,using: &execution)
             try DistanceQueryStorage.charge(1,of: ScalarInterval.self,using: &execution)
@@ -258,10 +305,10 @@ public struct DefaultBRepDistanceQuery: BRepDistanceQuerying {
                 start = try curve.parameterProjection(of: a, tolerance: tolerance, using: &execution).parameter
                 end = try curve.parameterProjection(of: b, tolerance: tolerance, using: &execution).parameter
             }
-            return [Domain(support: selection, curve: curve, surface: nil, point: nil,
+            return [try Domain.make(support: selection, curve: curve, surface: nil, point: nil,
                 intervals: [try ScalarInterval(lower: min(start, end), upper: max(start, end))], trimPredicates: [],
                 preparedCurve: try PreparedCurveDifferentialEncloser(curve: curve, tolerance: tolerance,
-                    remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth, maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth, maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth, using: &execution))]
+                    remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth, maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth, maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth, using: &execution), using: &execution)]
         case .faceRegion(let id, let requested):
             let original = try domains(.face(id), model: model, tolerance: tolerance, using: &execution, validatedModel: validatedModel)
             guard let face = original.first(where: { $0.surface != nil }) else {
@@ -276,11 +323,11 @@ public struct DefaultBRepDistanceQuery: BRepDistanceQuerying {
             }
             try DistanceQueryStorage.charge(1,of: Domain.self,using: &execution)
             try DistanceQueryStorage.charge(2,of: ScalarInterval.self,using: &execution)
-            return [Domain(support: selection, curve: nil, surface: face.surface, point: nil,
+            return [try Domain.make(support: selection, curve: nil, surface: face.surface, point: nil,
                 intervals: [try ScalarInterval(lower: lowerU, upper: upperU),
                     try ScalarInterval(lower: lowerV, upper: upperV)],
                 trimPredicates: face.trimPredicates, boundaryBoxes: face.boundaryBoxes,
-                preparedSurface: face.preparedSurface)]
+                preparedSurface: face.preparedSurface, using: &execution)]
         case .face(let id):
             guard let face = model.faces[id], let surface = model.geometry.surfaces[face.surfaceID] else { throw TopologyError.missingReference("Missing distance face support.") }
             let box = try DefaultFaceParameterBoundsResolver(maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth, remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
@@ -317,8 +364,8 @@ public struct DefaultBRepDistanceQuery: BRepDistanceQuerying {
             try DistanceQueryStorage.charge(1,of: Domain.self,using: &execution)
             try DistanceQueryStorage.charge(2,of: ScalarInterval.self,using: &execution)
             try DistanceQueryStorage.charge(boundaries.count+1,of: Domain.self,using: &execution)
-            return [Domain(support: selection, curve: nil, surface: surface, point: nil, intervals: [box.u, box.v], trimPredicates: predicates, boundaryBoxes: boundaryBoxes, preparedSurface: try PreparedSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance,
-                remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth, maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth, maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth, using: &execution))] + boundaries
+            return [try Domain.make(support: selection, curve: nil, surface: surface, point: nil, intervals: [box.u, box.v], trimPredicates: predicates, boundaryBoxes: boundaryBoxes, preparedSurface: try PreparedSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance,
+                remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth, maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth, maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth, using: &execution), using: &execution)] + boundaries
         case .body(let id):
             guard let body = model.bodies[id] else { throw TopologyError.missingReference("Missing distance body.") }
             var result: [Domain] = []
@@ -557,9 +604,9 @@ public struct DefaultBRepDistanceQuery: BRepDistanceQuerying {
         }
         try DistanceQueryStorage.charge(parameters.count,of: ScalarInterval.self,using: &execution)
         let ranges = try parameters.map { try ScalarInterval(lower: $0, upper: $0) }
-        let station = Domain(support: domain.support, curve: domain.curve, surface: domain.surface,
+        let station = try Domain.make(support: domain.support, curve: domain.curve, surface: domain.surface,
             point: nil, intervals: ranges, trimPredicates: [], preparedSurface: domain.preparedSurface,
-            preparedCurve: domain.preparedCurve, depth: domain.depth)
+            preparedCurve: domain.preparedCurve, depth: domain.depth, using: &execution)
         return try positionBounds(station, tolerance: tolerance, using: &execution)
     }
 

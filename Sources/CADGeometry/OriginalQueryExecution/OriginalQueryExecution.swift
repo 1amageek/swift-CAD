@@ -1,7 +1,7 @@
 import CADCore
 
 /// Direct admission with a shared cumulative owner and exclusive proof/policy state.
-public struct OriginalQueryExecution: ~Copyable, ExactScalarAdmission, Sendable {
+public struct OriginalQueryExecution: ~Copyable, ExactScalarAdmission, NumericWorkAdmission, Sendable {
     private struct ConversionScope: Sendable {
         let ordinal: Int
         let maximumWork: Int

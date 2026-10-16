@@ -30,23 +30,42 @@ public struct SelectionMeasurementEvaluator: Sendable {
         for selection: SelectionReference,
         in document: EvaluatedDocument
     ) throws -> SelectionMeasurementPoint {
-        try selection.validate()
-        switch selection {
-        case let .subshape(reference):
-            return try topologyPoint(
-                for: try document.topologyReference(for: reference),
-                stableReference: reference,
-                selection: selection,
-                in: document
-            )
-        case let .edge(reference):
-            return try edgePoint(for: reference, selection: selection, in: document)
-        case let .curve(reference):
-            return try curvePoint(for: reference, selection: selection, in: document)
-        case let .sketchPoint(reference):
-            return try sketchPoint(for: reference, selection: selection, in: document)
-        case let .surface(reference):
-            return try surfacePoint(for: reference, selection: selection, in: document)
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try point(for: selection, in: document, using: &execution)
+    }
+
+    public func point(
+        for selection: SelectionReference,
+        in document: EvaluatedDocument,
+        using execution: inout OriginalQueryExecution
+    ) throws -> SelectionMeasurementPoint {
+        do {
+            execution.context = execution.context.at(stage: .source)
+            try execution.consumeWork(1)
+            try validatePointSelection(selection, using: &execution)
+            let result: SelectionMeasurementPoint
+            switch selection {
+            case let .subshape(reference):
+                let topology = try document.originalTopologyReference(for: reference,
+                    tolerance: tolerance, maximumSubdivisionDepth: min(32, execution.effectiveLimits.maximumSubdivisionDepth),
+                    remainingSourceDepth: min(16, execution.effectiveLimits.remainingSourceDepth),
+                    maximumAlgebraicDepth: min(32, execution.effectiveLimits.maximumValueDepth), using: &execution)
+                result = try topologyPoint(for: topology, stableReference: reference,
+                    selection: selection, in: document, using: &execution)
+            case let .edge(reference):
+                result = try edgePoint(for: reference, selection: selection, in: document, using: &execution)
+            case let .curve(reference):
+                result = try curvePoint(for: reference, selection: selection, in: document, using: &execution)
+            case let .sketchPoint(reference):
+                result = try sketchPoint(for: reference, selection: selection, in: document, using: &execution)
+            case let .surface(reference):
+                result = try surfacePoint(for: reference, selection: selection, in: document, using: &execution)
+            }
+            execution.context = execution.context.at(stage: .publication)
+            try execution.checkpoint()
+            return result
+        } catch {
+            throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance)
         }
     }
 
@@ -463,7 +482,7 @@ public struct SelectionMeasurementEvaluator: Sendable {
 
     private func distanceSelection(_ selection: SelectionReference,
         in document: EvaluatedDocument, using execution: inout OriginalQueryExecution) throws -> BRepDistanceSelection {
-        try selection.validate()
+        try validatePointSelection(selection, using: &execution)
         let stable: StableSubshapeReference?
         switch selection {
         case .subshape(let reference): stable = reference
@@ -585,11 +604,7 @@ public struct SelectionMeasurementEvaluator: Sendable {
             case .vertex(let id): return .vertex(id)
             }
         }
-        // FIXME(INCOMPLETE_IMPLEMENTATION): General sketch/control-point distance
-        // selectors still consume the existing ordinary point provider here.
-        // Production distanceSelection preserves that selector's behavior, but
-        // full cumulative query accounting requires its genuine direct witness.
-        return .point(try point(for: selection, in: document).point)
+        return .point(try point(for: selection, in: document, using: &execution).point)
     }
 
     public func angle(
@@ -857,32 +872,98 @@ public struct SelectionMeasurementEvaluator: Sendable {
             message: "Selection angle measurement requires an original nonzero tangent or normal direction at the selected station.")
     }
 
+    private func validatePointSelection(_ selection: SelectionReference,
+        using execution: inout OriginalQueryExecution) throws {
+        switch selection {
+        case .subshape(let reference):
+            try reference.validate(using: &execution)
+        case .edge(.whole(let reference)):
+            try reference.subshape.validate(using: &execution)
+        case .edge(.parameter(let reference)):
+            try reference.edge.subshape.validate(using: &execution)
+            guard reference.parameter.isFinite else { throw GeometryError.invalidCoordinate(reference.parameter) }
+        case .curve(let reference):
+            try reference.validate()
+        case .sketchPoint(let reference):
+            try reference.validate()
+        case .surface(let reference):
+            switch reference {
+            case .whole(let surface):
+                try surface.subshape.validate(using: &execution)
+            case .parameter(let parameter):
+                try parameter.surface.subshape.validate(using: &execution)
+                guard parameter.u.isFinite else { throw GeometryError.invalidCoordinate(parameter.u) }
+                guard parameter.v.isFinite else { throw GeometryError.invalidCoordinate(parameter.v) }
+            case .span(let span):
+                try span.surface.subshape.validate(using: &execution)
+                guard span.spanIndex >= 0 else {
+                    throw FeatureEvaluationError.invalidGraph("Surface span reference index must not be negative.")
+                }
+            case .controlPoint(let point):
+                try point.surface.subshape.validate(using: &execution)
+                guard point.uIndex >= 0 else {
+                    throw FeatureEvaluationError.invalidGraph("Surface control point U index must not be negative.")
+                }
+                guard point.vIndex >= 0 else {
+                    throw FeatureEvaluationError.invalidGraph("Surface control point V index must not be negative.")
+                }
+            case .knot(let knot):
+                try knot.surface.subshape.validate(using: &execution)
+                guard knot.knotIndex >= 0 else {
+                    throw FeatureEvaluationError.invalidGraph("Surface knot reference index must not be negative.")
+                }
+            case .trim(let trim):
+                try validatePointTrim(trim, using: &execution)
+            case .trimSpan(let span):
+                try validatePointTrim(span.trim, using: &execution)
+                guard span.spanIndex >= 0 else {
+                    throw FeatureEvaluationError.invalidGraph("Surface trim span reference index must not be negative.")
+                }
+            case .trimKnot(let knot):
+                try validatePointTrim(knot.trim, using: &execution)
+                guard knot.knotIndex >= 0 else {
+                    throw FeatureEvaluationError.invalidGraph("Surface trim knot reference index must not be negative.")
+                }
+            }
+        }
+    }
+
+    private func validatePointTrim(_ reference: SurfaceTrimReference,
+        using execution: inout OriginalQueryExecution) throws {
+        try reference.surface.subshape.validate(using: &execution)
+        guard reference.loopIndex >= 0 else {
+            throw FeatureEvaluationError.invalidGraph("Surface trim loop index must not be negative.")
+        }
+        guard reference.edgeIndex >= 0 else {
+            throw FeatureEvaluationError.invalidGraph("Surface trim edge index must not be negative.")
+        }
+    }
+
     private func topologyPoint(
         for reference: TopologyReference,
         stableReference: StableSubshapeReference,
         selection: SelectionReference,
-        in document: EvaluatedDocument
+        in document: EvaluatedDocument,
+        using execution: inout OriginalQueryExecution
     ) throws -> SelectionMeasurementPoint {
+        try execution.consumeWork(1)
         switch reference {
         case let .body(bodyID):
             let bounds = try BRepBodyBoundingBoxBuilder().bounds(
                 for: bodyID,
                 in: document.brep,
-                tolerance: tolerance
-            )
+                tolerance: tolerance, using: &execution)
             return SelectionMeasurementPoint(selection: selection, point: bounds.center)
         case .face:
             return try surfacePoint(
                 for: .whole(SurfaceReference(subshape: stableReference)),
                 selection: selection,
-                in: document
-            )
+                in: document, using: &execution)
         case .edge:
             return try edgePoint(
                 for: .whole(EdgeReference(subshape: stableReference)),
                 selection: selection,
-                in: document
-            )
+                in: document, using: &execution)
         case let .vertex(vertexID):
             guard let vertex = document.brep.vertices[vertexID] else {
                 throw FeatureEvaluationError.missingInput("Selection vertex could not be resolved.")
@@ -894,14 +975,16 @@ public struct SelectionMeasurementEvaluator: Sendable {
     private func edgePoint(
         for reference: EdgeSubobjectReference,
         selection: SelectionReference,
-        in document: EvaluatedDocument
+        in document: EvaluatedDocument,
+        using execution: inout OriginalQueryExecution
     ) throws -> SelectionMeasurementPoint {
+        try execution.consumeWork(1)
         let frame: EdgeQueryFrame
         switch reference {
         case let .whole(edge):
-            frame = try edgeQueryEvaluator.midpoint(of: edge, in: document)
+            frame = try edgeQueryEvaluator.midpoint(of: edge, in: document, using: &execution)
         case let .parameter(parameter):
-            frame = try edgeQueryEvaluator.frame(at: parameter, in: document)
+            frame = try edgeQueryEvaluator.frame(at: parameter, in: document, using: &execution)
         }
         return SelectionMeasurementPoint(
             selection: selection,
@@ -914,46 +997,46 @@ public struct SelectionMeasurementEvaluator: Sendable {
     private func curvePoint(
         for reference: CurveSubobjectReference,
         selection: SelectionReference,
-        in document: EvaluatedDocument
+        in document: EvaluatedDocument,
+        using execution: inout OriginalQueryExecution
     ) throws -> SelectionMeasurementPoint {
+        try execution.consumeWork(1)
         switch reference {
         case let .whole(curve):
             return try measurementPoint(
-                from: curveQueryEvaluator.midpoint(of: curve, in: document),
+                from: curveQueryEvaluator.midpoint(of: curve, in: document, using: &execution),
                 selection: selection
             )
         case let .parameter(parameter):
             return try measurementPoint(
-                from: curveQueryEvaluator.point(at: parameter, in: document),
+                from: curveQueryEvaluator.point(at: parameter, in: document, using: &execution),
                 selection: selection
             )
         case let .center(center):
             return SelectionMeasurementPoint(
                 selection: selection,
-                point: try curveQueryEvaluator.center(center, in: document)
+                point: try curveQueryEvaluator.center(center, in: document, using: &execution)
             )
         case let .span(span):
-            let spanResult = try curveQueryEvaluator.span(span, in: document)
+            let spanResult = try curveQueryEvaluator.span(span, in: document, using: &execution)
             let parameter = (spanResult.lowerParameter + spanResult.upperParameter) * 0.5
             return try measurementPoint(
                 from: curveQueryEvaluator.point(
                     at: CurveParameterReference(curve: span.curve, parameter: parameter),
-                    in: document
-                ),
+                    in: document, using: &execution),
                 selection: selection
             )
         case let .controlPoint(controlPoint):
             return SelectionMeasurementPoint(
                 selection: selection,
-                point: try curveQueryEvaluator.controlPoint(controlPoint, in: document)
+                point: try curveQueryEvaluator.controlPoint(controlPoint, in: document, using: &execution)
             )
         case let .knot(knot):
-            let parameter = try curveQueryEvaluator.knot(knot, in: document)
+            let parameter = try curveQueryEvaluator.knot(knot, in: document, using: &execution)
             return try measurementPoint(
                 from: curveQueryEvaluator.point(
                     at: CurveParameterReference(curve: knot.curve, parameter: parameter),
-                    in: document
-                ),
+                    in: document, using: &execution),
                 selection: selection
             )
         }
@@ -962,8 +1045,10 @@ public struct SelectionMeasurementEvaluator: Sendable {
     private func sketchPoint(
         for reference: SketchPointSelectionReference,
         selection: SelectionReference,
-        in document: EvaluatedDocument
+        in document: EvaluatedDocument,
+        using execution: inout OriginalQueryExecution
     ) throws -> SelectionMeasurementPoint {
+        try execution.consumeWork(1)
         guard let feature = document.document.designGraph.nodes[reference.featureID],
               case let .sketch(sketch) = feature.operation else {
             throw FeatureEvaluationError.missingInput("Sketch point selection feature could not be resolved.")
@@ -979,54 +1064,58 @@ public struct SelectionMeasurementEvaluator: Sendable {
                 message: "Sketch point selection reference must target a sketch point entity."
             )
         }
-        let resolvedPoint = try resolveSketchPoint(point, parameters: document.parameters)
+        let resolvedPoint = try resolveSketchPoint(point, parameters: document.parameters, using: &execution)
         return SelectionMeasurementPoint(
             selection: selection,
-            point: try mapTo3D(resolvedPoint, on: sketch.plane)
+            point: try mapTo3D(resolvedPoint, on: sketch.plane, using: &execution)
         )
     }
 
     private func surfacePoint(
         for reference: SurfaceSubobjectReference,
         selection: SelectionReference,
-        in document: EvaluatedDocument
+        in document: EvaluatedDocument,
+        using execution: inout OriginalQueryExecution
     ) throws -> SelectionMeasurementPoint {
+        try execution.consumeWork(1)
         switch reference {
         case let .whole(surface):
             return try measurementPoint(
-                from: representativeFrame(for: surface, in: document),
+                from: representativeFrame(for: surface, in: document, using: &execution),
                 selection: selection
             )
         case let .parameter(parameter):
             return try measurementPoint(
-                from: surfaceQueryEvaluator.frame(at: parameter, in: document),
+                from: surfaceQueryEvaluator.frame(at: parameter, in: document, using: &execution),
                 selection: selection
             )
         case let .span(span):
-            return try surfaceSpanPoint(for: span, selection: selection, in: document)
+            return try surfaceSpanPoint(for: span, selection: selection, in: document, using: &execution)
         case let .controlPoint(controlPoint):
             return SelectionMeasurementPoint(
                 selection: selection,
-                point: try surfaceQueryEvaluator.controlPoint(controlPoint, in: document)
+                point: try surfaceQueryEvaluator.controlPoint(controlPoint, in: document, using: &execution)
             )
         case let .knot(knot):
-            return try surfaceKnotPoint(for: knot, selection: selection, in: document)
+            return try surfaceKnotPoint(for: knot, selection: selection, in: document, using: &execution)
         case let .trim(trim):
-            return try surfaceTrimPoint(for: trim, selection: selection, in: document)
+            return try surfaceTrimPoint(for: trim, selection: selection, in: document, using: &execution)
         case let .trimSpan(span):
-            return try surfaceTrimSpanPoint(for: span, selection: selection, in: document)
+            return try surfaceTrimSpanPoint(for: span, selection: selection, in: document, using: &execution)
         case let .trimKnot(knot):
-            return try surfaceTrimKnotPoint(for: knot, selection: selection, in: document)
+            return try surfaceTrimKnotPoint(for: knot, selection: selection, in: document, using: &execution)
         }
     }
 
     private func surfaceSpanPoint(
         for span: SurfaceSpanReference,
         selection: SelectionReference,
-        in document: EvaluatedDocument
+        in document: EvaluatedDocument,
+        using execution: inout OriginalQueryExecution
     ) throws -> SelectionMeasurementPoint {
-        let representative = try representativeFrame(for: span.surface, in: document)
-        let spanResult = try surfaceQueryEvaluator.span(span, in: document)
+        try execution.consumeWork(1)
+        let representative = try representativeFrame(for: span.surface, in: document, using: &execution)
+        let spanResult = try surfaceQueryEvaluator.span(span, in: document, using: &execution)
         let spanParameter = (spanResult.lowerParameter + spanResult.upperParameter) * 0.5
         let parameter: SurfaceParameterReference
         switch span.direction {
@@ -1044,7 +1133,7 @@ public struct SelectionMeasurementEvaluator: Sendable {
             )
         }
         return try measurementPoint(
-            from: surfaceQueryEvaluator.frame(at: parameter, in: document),
+            from: surfaceQueryEvaluator.frame(at: parameter, in: document, using: &execution),
             selection: selection
         )
     }
@@ -1052,10 +1141,12 @@ public struct SelectionMeasurementEvaluator: Sendable {
     private func surfaceKnotPoint(
         for knot: SurfaceKnotReference,
         selection: SelectionReference,
-        in document: EvaluatedDocument
+        in document: EvaluatedDocument,
+        using execution: inout OriginalQueryExecution
     ) throws -> SelectionMeasurementPoint {
-        let representative = try representativeFrame(for: knot.surface, in: document)
-        let knotParameter = try surfaceQueryEvaluator.knot(knot, in: document)
+        try execution.consumeWork(1)
+        let representative = try representativeFrame(for: knot.surface, in: document, using: &execution)
+        let knotParameter = try surfaceQueryEvaluator.knot(knot, in: document, using: &execution)
         let parameter: SurfaceParameterReference
         switch knot.direction {
         case .u:
@@ -1072,7 +1163,7 @@ public struct SelectionMeasurementEvaluator: Sendable {
             )
         }
         return try measurementPoint(
-            from: surfaceQueryEvaluator.frame(at: parameter, in: document),
+            from: surfaceQueryEvaluator.frame(at: parameter, in: document, using: &execution),
             selection: selection
         )
     }
@@ -1080,12 +1171,14 @@ public struct SelectionMeasurementEvaluator: Sendable {
     private func surfaceTrimPoint(
         for trim: SurfaceTrimReference,
         selection: SelectionReference,
-        in document: EvaluatedDocument
+        in document: EvaluatedDocument,
+        using execution: inout OriginalQueryExecution
     ) throws -> SelectionMeasurementPoint {
-        let result = try surfaceQueryEvaluator.trimCurve(trim, in: document)
-        let parameter = try result.parameterCurve.parameter(atNormalizedFraction: 0.5, tolerance: tolerance)
-        let frame = try surfaceFrame(for: parameter, on: trim.surface, in: document)
-        let tangent = try trimTangent(from: result.parameterCurve, on: trim.surface, in: document)
+        try execution.consumeWork(1)
+        let result = try surfaceQueryEvaluator.trimCurve(trim, in: document, using: &execution)
+        let parameter = try result.parameterCurve.parameter(atNormalizedFraction: 0.5, tolerance: tolerance, using: &execution)
+        let frame = try surfaceFrame(for: parameter, on: trim.surface, in: document, using: &execution)
+        let tangent = try trimTangent(from: result.parameterCurve, on: trim.surface, in: document, using: &execution)
         return SelectionMeasurementPoint(
             selection: selection,
             point: frame.point,
@@ -1098,9 +1191,11 @@ public struct SelectionMeasurementEvaluator: Sendable {
     private func surfaceTrimSpanPoint(
         for span: SurfaceTrimSpanReference,
         selection: SelectionReference,
-        in document: EvaluatedDocument
+        in document: EvaluatedDocument,
+        using execution: inout OriginalQueryExecution
     ) throws -> SelectionMeasurementPoint {
-        let result = try surfaceQueryEvaluator.trimCurve(span.trim, in: document)
+        try execution.consumeWork(1)
+        let result = try surfaceQueryEvaluator.trimCurve(span.trim, in: document, using: &execution)
         guard case let .bSpline(curve) = result.parameterCurve else {
             throw KernelError(
                 phase: .validation,
@@ -1109,22 +1204,23 @@ public struct SelectionMeasurementEvaluator: Sendable {
                 message: "Surface trim p-curve span selection requires a B-spline parameter curve."
             )
         }
-        let curveParameter = try trimSpanParameter(span.spanIndex, on: curve)
+        let curveParameter = try trimSpanParameter(span.spanIndex, on: curve, using: &execution)
         return try surfaceTrimParameterPoint(
             curveParameter: curveParameter,
             curve: curve,
             trim: span.trim,
             selection: selection,
-            in: document
-        )
+            in: document, using: &execution)
     }
 
     private func surfaceTrimKnotPoint(
         for knot: SurfaceTrimKnotReference,
         selection: SelectionReference,
-        in document: EvaluatedDocument
+        in document: EvaluatedDocument,
+        using execution: inout OriginalQueryExecution
     ) throws -> SelectionMeasurementPoint {
-        let result = try surfaceQueryEvaluator.trimCurve(knot.trim, in: document)
+        try execution.consumeWork(1)
+        let result = try surfaceQueryEvaluator.trimCurve(knot.trim, in: document, using: &execution)
         guard case let .bSpline(curve) = result.parameterCurve else {
             throw KernelError(
                 phase: .validation,
@@ -1145,8 +1241,7 @@ public struct SelectionMeasurementEvaluator: Sendable {
             curve: curve,
             trim: knot.trim,
             selection: selection,
-            in: document
-        )
+            in: document, using: &execution)
     }
 
     private func surfaceTrimParameterPoint(
@@ -1154,12 +1249,14 @@ public struct SelectionMeasurementEvaluator: Sendable {
         curve: BSplineCurve2D,
         trim: SurfaceTrimReference,
         selection: SelectionReference,
-        in document: EvaluatedDocument
+        in document: EvaluatedDocument,
+        using execution: inout OriginalQueryExecution
     ) throws -> SelectionMeasurementPoint {
-        let point = try curve.point(at: curveParameter, tolerance: tolerance)
+        try execution.consumeWork(1)
+        let point = try curve.point(at: curveParameter, tolerance: tolerance, using: &execution)
         let parameter = SurfaceParameter(u: point.x, v: point.y)
-        let frame = try surfaceFrame(for: parameter, on: trim.surface, in: document)
-        let tangent = try surfaceTrimTangent(from: curve, at: curveParameter, using: frame)
+        let frame = try surfaceFrame(for: parameter, on: trim.surface, in: document, using: &execution)
+        let tangent = try surfaceTrimTangent(from: curve, at: curveParameter, frame: frame, using: &execution)
         return SelectionMeasurementPoint(
             selection: selection,
             point: frame.point,
@@ -1191,12 +1288,18 @@ public struct SelectionMeasurementEvaluator: Sendable {
         throw FeatureEvaluationError.missingInput("Surface trim pcurve span index could not be resolved.")
     }
 
-    private func trimSpanParameter(_ spanIndex: Int, on curve: BSplineCurve2D) throws -> Double {
-        try trimSpanBounds(spanIndex, on: curve).midpoint
+    private func trimSpanParameter(_ spanIndex: Int, on curve: BSplineCurve2D,
+        using execution: inout OriginalQueryExecution
+    ) throws -> Double {
+        try execution.consumeWork(1)
+        return try trimSpanBounds(spanIndex, on: curve, using: &execution).midpoint
     }
 
-    private func trimSpanBounds(_ spanIndex: Int, on curve: BSplineCurve2D) throws -> ScalarInterval {
-        try curve.validate(tolerance: tolerance)
+    private func trimSpanBounds(_ spanIndex: Int, on curve: BSplineCurve2D,
+        using execution: inout OriginalQueryExecution
+    ) throws -> ScalarInterval {
+        try execution.consumeWork(1)
+        try curve.validate(tolerance: tolerance, using: &execution)
         let lowerIndex = curve.degree
         let upperIndex = curve.knots.count - curve.degree - 1
         guard lowerIndex < upperIndex else {
@@ -1204,6 +1307,7 @@ public struct SelectionMeasurementEvaluator: Sendable {
         }
         var ordinal = 0
         for index in lowerIndex..<upperIndex {
+            try execution.consumeWork(1)
             let lower = curve.knots[index], upper = curve.knots[index + 1]
             guard upper - lower > tolerance.distance else { continue }
             if ordinal == spanIndex { return try ScalarInterval(lower: lower, upper: upper) }
@@ -1215,20 +1319,23 @@ public struct SelectionMeasurementEvaluator: Sendable {
     private func surfaceFrame(
         for parameter: SurfaceParameter,
         on surface: SurfaceReference,
-        in document: EvaluatedDocument
+        in document: EvaluatedDocument,
+        using execution: inout OriginalQueryExecution
     ) throws -> SurfaceQueryFrame {
-        try surfaceQueryEvaluator.frame(
+        try execution.consumeWork(1)
+        return try surfaceQueryEvaluator.frame(
             at: SurfaceParameterReference(surface: surface, u: parameter.u, v: parameter.v),
-            in: document
-        )
+            in: document, using: &execution)
     }
 
     private func surfaceTrimTangent(
         from curve: BSplineCurve2D,
         at curveParameter: Double,
-        using frame: SurfaceQueryFrame
+        frame: SurfaceQueryFrame,
+        using execution: inout OriginalQueryExecution
     ) throws -> Vector3D? {
-        let geometry = try curve.differentialGeometry(at: curveParameter, tolerance: tolerance)
+        try execution.consumeWork(1)
+        let geometry = try curve.differentialGeometry(at: curveParameter, tolerance: tolerance, using: &execution)
         let tangent = (frame.tangentU * geometry.firstDerivative.x)
             + (frame.tangentV * geometry.firstDerivative.y)
         try tangent.validate()
@@ -1292,30 +1399,36 @@ public struct SelectionMeasurementEvaluator: Sendable {
 
     private func representativeFrame(
         for reference: SurfaceReference,
-        in document: EvaluatedDocument
+        in document: EvaluatedDocument,
+        using execution: inout OriginalQueryExecution
     ) throws -> SurfaceQueryFrame {
-        let resolved = try surfaceQueryEvaluator.resolve(reference, in: document)
-        if let centroid = centroidOfFace(resolved.faceID, in: document) {
+        try execution.consumeWork(1)
+        let resolved = try surfaceQueryEvaluator.resolve(reference, in: document, using: &execution)
+        if let centroid = try centroidOfFace(resolved.faceID, in: document, using: &execution) {
             return try surfaceQueryEvaluator.closestPoint(
                 to: centroid,
                 on: reference,
-                in: document
-            ).frame
+                in: document, using: &execution).frame
         }
         let parameter = try midpointParameter(on: resolved.surface, reference: reference)
-        return try surfaceQueryEvaluator.frame(at: parameter, in: document)
+        return try surfaceQueryEvaluator.frame(at: parameter, in: document, using: &execution)
     }
 
-    private func centroidOfFace(_ faceID: FaceID, in document: EvaluatedDocument) -> Point3D? {
+    private func centroidOfFace(_ faceID: FaceID, in document: EvaluatedDocument,
+        using execution: inout OriginalQueryExecution
+    ) throws -> Point3D? {
+        try execution.consumeWork(1)
         guard let face = document.brep.faces[faceID] else {
             return nil
         }
         var points: [Point3D] = []
         for loopID in face.loops {
+            try execution.consumeWork(1)
             guard let loop = document.brep.loops[loopID] else {
                 continue
             }
             for orientedEdge in loop.edges {
+                try execution.consumeWork(1)
                 guard let edge = document.brep.edges[orientedEdge.edgeID] else {
                     continue
                 }
@@ -1323,6 +1436,7 @@ public struct SelectionMeasurementEvaluator: Sendable {
                 guard let vertex = document.brep.vertices[vertexID] else {
                     continue
                 }
+                try DistanceQueryStorage.reserveForAppend(&points, using: &execution)
                 points.append(vertex.point)
             }
         }
@@ -1330,12 +1444,12 @@ public struct SelectionMeasurementEvaluator: Sendable {
             return nil
         }
         let scale = 1.0 / Double(points.count)
-        let sum = points.reduce((x: 0.0, y: 0.0, z: 0.0)) { partial, point in
-            (
-                x: partial.x + point.x,
-                y: partial.y + point.y,
-                z: partial.z + point.z
-            )
+        var sum = (x: 0.0, y: 0.0, z: 0.0)
+        for point in points {
+            try execution.consumeWork(1)
+            sum.x += point.x
+            sum.y += point.y
+            sum.z += point.z
         }
         return Point3D(x: sum.x * scale, y: sum.y * scale, z: sum.z * scale)
     }
@@ -1365,20 +1479,20 @@ public struct SelectionMeasurementEvaluator: Sendable {
     private func trimTangent(
         from parameterCurve: SurfaceParameterCurve,
         on surface: SurfaceReference,
-        in document: EvaluatedDocument
+        in document: EvaluatedDocument,
+        using execution: inout OriginalQueryExecution
     ) throws -> Vector3D {
+        try execution.consumeWork(1)
         let lowerFraction = 0.5 - 1.0e-5
         let upperFraction = 0.5 + 1.0e-5
-        let lower = try parameterCurve.parameter(atNormalizedFraction: lowerFraction, tolerance: tolerance)
-        let upper = try parameterCurve.parameter(atNormalizedFraction: upperFraction, tolerance: tolerance)
+        let lower = try parameterCurve.parameter(atNormalizedFraction: lowerFraction, tolerance: tolerance, using: &execution)
+        let upper = try parameterCurve.parameter(atNormalizedFraction: upperFraction, tolerance: tolerance, using: &execution)
         let lowerFrame = try surfaceQueryEvaluator.frame(
             at: SurfaceParameterReference(surface: surface, u: lower.u, v: lower.v),
-            in: document
-        )
+            in: document, using: &execution)
         let upperFrame = try surfaceQueryEvaluator.frame(
             at: SurfaceParameterReference(surface: surface, u: upper.u, v: upper.v),
-            in: document
-        )
+            in: document, using: &execution)
         return try (upperFrame.point - lowerFrame.point).normalized(tolerance: tolerance.distance)
     }
 
@@ -1441,11 +1555,13 @@ public struct SelectionMeasurementEvaluator: Sendable {
 
     private func resolveSketchPoint(
         _ point: SketchPoint,
-        parameters: ResolvedParameterTable
+        parameters: ResolvedParameterTable,
+        using execution: inout OriginalQueryExecution
     ) throws -> Point2D {
+        try execution.consumeWork(1)
         let resolver = ParameterResolver()
-        let x = try resolver.evaluate(point.x, parameters: parameters, variables: [:])
-        let y = try resolver.evaluate(point.y, parameters: parameters, variables: [:])
+        let x = try resolver.evaluate(point.x, parameters: parameters, variables: [:], using: &execution)
+        let y = try resolver.evaluate(point.y, parameters: parameters, variables: [:], using: &execution)
         guard x.kind == .length else {
             throw UnitError.expectedQuantity(
                 operation: "selection.sketchPoint.x",
@@ -1469,7 +1585,10 @@ public struct SelectionMeasurementEvaluator: Sendable {
         return Point2D(x: x.value, y: y.value)
     }
 
-    private func mapTo3D(_ point: Point2D, on plane: SketchPlane) throws -> Point3D {
+    private func mapTo3D(_ point: Point2D, on plane: SketchPlane,
+        using execution: inout OriginalQueryExecution
+    ) throws -> Point3D {
+        try execution.consumeWork(1)
         switch plane {
         case .xy:
             return Point3D(x: point.x, y: point.y, z: 0.0)

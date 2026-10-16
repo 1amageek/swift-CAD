@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="TestResults" errors="0" tests="2" failures="0" skipped="0" time="0.11232475">
+    <testcase classname="FocusedTests.FeatureValidationAlgebraAdmissionTests" name="selectedConveniencesKeepIndependentCoefficientWorkBytesSourceAndCancellationLimits()" time="0.111932666" />
+    <testcase classname="FocusedTests.FeatureValidationAlgebraAdmissionTests" name="ordinarySelectionDoesNotReplaceExplicitNilOrAuthorizeInvalidSource()" time="0.023447167" />
+  </testsuite>
+</testsuites>

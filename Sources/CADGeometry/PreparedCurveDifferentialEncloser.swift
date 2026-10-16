@@ -73,6 +73,25 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
       maximumSubdivisionDepth >= 0, remainingSourceDepth >= 0 else {
       throw GeometryConversionError.invalidInput("Original continuity requires its retained preparation and caller domain.")
     }
+    if case .callerLift(let prepared) = storage,
+      case .plane = prepared.lift.surface,
+      case .polyline(let points) = prepared.lift.parameterCurve, points.count == 2 {
+      try execution.consumeWork(4)
+      guard parameters.lower >= 0, parameters.upper <= 1,
+        points[0].u.isFinite, points[0].v.isFinite, points[1].u.isFinite, points[1].v.isFinite,
+        points[0].u != points[1].u || points[0].v != points[1].v else {
+        throw GeometryConversionError.invalidInput("Original affine lift continuity requires its finite positive segment and normalized source domain.")
+      }
+      guard remainingSourceDepth > 0 else {
+        throw GeometryConversionError.resourceLimitExceeded("Original affine lift continuity exhausted caller source depth.")
+      }
+      try execution.admitSourceDepth(1)
+      // A sole positive Euclidean segment has normalized gain one. Its original
+      // affine UV law composed with its validated authored plane is continuous.
+      try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: ContinuousFirstOrderSource.self))
+      try execution.checkpoint()
+      return .init(prepared: self, parameters: parameters)
+    }
     if case .direct(.originalPolyline(let original)) = storage {
       guard parameters.lower >= 0, parameters.upper <= 1 else {
         throw GeometryConversionError.invalidInput("Original polyline continuity requires its normalized source domain.")

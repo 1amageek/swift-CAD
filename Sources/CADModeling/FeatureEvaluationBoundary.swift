@@ -103,7 +103,8 @@ package enum FeatureEvaluationBoundary {
             execution.context = execution.context.at(stage: .source)
             try execution.consumeWork(1)
             try model.validate(level: .exact, tolerance: tolerance,
-                maximumSubdivisionDepth: 32, remainingSourceDepth: 16, using: &execution)
+                maximumSubdivisionDepth: 32, remainingSourceDepth: 16,
+                maximumAlgebraicDepth: 32, using: &execution)
         } catch {
             throw publishedFailure(error, phase: .topology, featureID: featureID,
                 tolerance: tolerance, context: execution.context)

@@ -26,6 +26,7 @@ create their budget once; admitted entries receive the actual execution.
 |---|---|---|---|---|
 | [CADGeometry](../DESIGN.md#u1-direct-execution-ownership) | parent | Direct execution ownership | Defines migration and public lifetime | Compatibility wrappers do not complete migration |
 | [ExactScalar](../RationalBivariateAlgebra/ExactScalar/DESIGN.md#direct-local-proof-scopes) | depends on | Direct admission and local proof scopes | Arithmetic receives the original execution | Scope storage never crosses concurrent queries |
+| [Numeric Work Admission](../../CADCore/NumericWorkAdmission/DESIGN.md) | depends on | Generic work, typed-storage and cancellation requirements | Existing Core Bezier producers consume this execution directly | No adapter, child budget or additional depth axis |
 | [CS](../CurveSurfaceQueryAdmission/DESIGN.md) | used by | Original curve/surface query | Direct public invocation | Geometric depth is not work units |
 | [SSI](../SurfaceSurfaceQueryAdmission/DESIGN.md) | used by | Original surface pair query | Prepared and ordinary invocation | Prepared queries preserve the cumulative owner |
 
@@ -48,6 +49,14 @@ rounds the byte total again. Allocation owners that materialize an eight-byte
 word capacity for a five-byte payload explicitly request eight bytes. Source
 text/authoring retains its distinct exact byte request. Cell visits and source, transport, geometric, value and coefficient depths
 retain distinct policy meanings. Forwarding does not repeat an operation's debit.
+
+`OriginalQueryExecution` also conforms to Core's `NumericWorkAdmission` through
+its existing `checkpoint`, `consumeWork` and `retainStorage(count:stride:)`
+methods. The conformance adds no state or billing layer. Core numerical work
+uses the same cumulative budget, active contribution scopes and original failure
+causes as its expression or geometry caller. Expression recursion remains the
+Modeling owner's value-depth decision; finite numerical iterations do not acquire
+source, coefficient or geometric depth.
 
 All concurrent executions may share the budget owner, but each owns independent
 local counters and `ExactScalarProofScopes`. Counter mutations and ceiling checks
