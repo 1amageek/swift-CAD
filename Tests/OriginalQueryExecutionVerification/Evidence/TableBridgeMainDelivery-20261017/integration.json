@@ -1,0 +1,138 @@
+{
+  "status": "passed",
+  "scope": "Two responsibility units: whole-table caller admission and Bridge error classification/publication. Not complete U1-U4 or seven requirements.",
+  "mainCommit": "44b126f471cf39a239915ef122c777a82338adc6",
+  "commits": [
+    "6d006983",
+    "44b126f4"
+  ],
+  "productionReceiptSHA256": "8cf99191258e344956f8291adbf0f891fce0af95ea93ce8e34a0d38cb90361a3",
+  "runtimeReceiptSHA256": "e241b248d377c0eb1c2a1daa8339e08f64bb43835c06cc9a2663193569d42d1f",
+  "sourceCount": 3928,
+  "ownedFiles": {
+    "Sources/CADModeling/ParameterResolver.swift": "c3db29120bb8e5ba80aa8a9081e88cf1bcc1f0b6405311011d79992a4455f880",
+    "Sources/CADModeling/ParameterResolving.swift": "5183d4c7122ef8969137e1f995d46c652f5f7c12d9d98f4e1ee36930118c490f",
+    "Sources/CADModeling/DESIGN.md": "2b58f4a2d688d69660f25474dcfd7dd8b370b7d850c7c8bf66d5e050e3525ba3",
+    "Tests/CADModelingTests/WholeTableAdmissionChecks.swift": "e0356909202ae42b35836ff1615731faec82e293adf5a089b9bca308613b2dcb",
+    "Tests/CADModelingTests/WholeTableAdmissionTests.swift": "5f6b89d28ab19eb3cf5e6d17e64f270625e55ee128a9aaae74a1ea47f8148f4e",
+    "Tests/OriginalQueryExecutionVerification/WholeTableAdmissionPortable.swift": "fbec11394841af9af46df59b610ad31d261bee6c68681cec6aa3db29442d527b",
+    "Sources/CADModeling/BridgeSurface/BridgeSurfaceFeatureEvaluator.swift": "84b54fbc6771b8eba83b835f0c65b9378a4b3a2a91f937239f533c30eede1725",
+    "Sources/CADModeling/ExactBoundaryCurveResolver.swift": "228007096386d8a7d7154718c34b8c5a9858d746ffcf354dd98ad7265ca0d122",
+    "Sources/CADModeling/BridgeSurface/DESIGN.md": "ffe692b80a11e7a9c5714d80df600b36ce81cfe899c4fbc0bae0338a1db231d6",
+    "Tests/CADModelingTests/BridgeSurfaceFailureClassificationChecks.swift": "3cf36b8a0e4e9d39ca573fcdb5a3fe6d8b1f242006204e52fc85da745023c916",
+    "Tests/CADModelingTests/BridgeSurfaceFailureClassificationTests.swift": "7c94fe51f14122c50ff7d260db4b7a0535585aecf0c22d0d118eb371e1d469d8",
+    "Tests/OriginalQueryExecutionVerification/BridgeSurfaceFailureClassificationPortable.swift": "833e57da72af879acd4b361a8089f66fae9bab6ca80aa0b80603e331caa20ebd"
+  },
+  "products": [
+    {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-core-r1/modules/CADCore.swiftmodule",
+      "sha256": "f4564ffd218a7cdf271c50c867bf1a89795057a487703ca732630914768c5ab0"
+    },
+    {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-core-r1/modules/CADCore.o",
+      "sha256": "c626ed933b49e854358bb7ded2620ad4a0eecb22dea0e3d93613e765fa9877d8"
+    },
+    {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-current-geometry-r2/modules/CADGeometry.swiftmodule",
+      "sha256": "a102966a34bb635ba9f93989ce9f646a1ba94c1c39eb05188f34c12f428da1ff"
+    },
+    {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-current-geometry-r2/modules/CADGeometry.o",
+      "sha256": "eb4b24a8e4b3a871837983d0f72641a4351ee42d9fcf0ea2a7396b36a20cc1a4"
+    },
+    {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-full-r1/modules/CADTopology.swiftmodule",
+      "sha256": "82916e677480cb29b65f61adba488261f371645d4871f3e8caea121a3c916e9f"
+    },
+    {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-full-r1/modules/CADTopology.o",
+      "sha256": "a47b0e9e070956abb63857372699ad45fa26d8ba35d4a6a5854cc07d55f39033"
+    },
+    {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-full-r3/modules/CADIR.swiftmodule",
+      "sha256": "d2fbfde5f8c03c9029606cab262aa3a39f31841bfcf7d2feec212f775920865b"
+    },
+    {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-full-r3/modules/CADIR.o",
+      "sha256": "3e9f89f8f8c20f29557198c1b88593dabdf074bcd646e5a992d0f8049ed42a95"
+    },
+    {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/main-table-bridge-full-r1/modules/CADModeling.swiftmodule",
+      "sha256": "44efe346bf3668c89c917312a79624612c1c76e6cd13d97ce8f188d0187f39c5"
+    },
+    {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/main-table-bridge-full-r1/modules/CADModeling.o",
+      "sha256": "442148e895f3bab9f607d66dfe5886b37001cb376a58622f2a3b5486da409567"
+    },
+    {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/main-table-bridge-full-r1/modules/CADKernel.swiftmodule",
+      "sha256": "6408d7adb793af251d68c4454ade0fab7d4cb040b73aee8a8754908144d1366b"
+    },
+    {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/main-table-bridge-full-r1/modules/CADKernel.o",
+      "sha256": "5c8a31a9d4ab45fc2c1b65cb50403f25f57d01981b35a12fd026fca14ee76645"
+    }
+  ],
+  "mainSourcesEqualVerifiedCandidate": true,
+  "actualFunctions": 20,
+  "suiteCounts": {
+    "wholeTable": 8,
+    "expressionRegression": 7,
+    "bridge": 5
+  },
+  "freshModules": [
+    "CADModeling333",
+    "CADKernel397"
+  ],
+  "lowerModuleRegeneration": 0,
+  "oldMainClassifierAccepted": true,
+  "runtimeSeconds": 0.6918625830003293,
+  "verificationReuse": "The single fresh combined 20-function runtime was executed on the byte-identical Main candidate before fast-forward. All 3928 committed Main source and selected product premises match; do not relabel this as an additional Main test execution.",
+  "files": [
+    {
+      "file": "main-table-bridge-full-r1/resume-source-receipt.json.gz",
+      "sha256": "236667d6830b22df86b7cc7c3546206a591e9230680a878ea75dcb04d74c2a02",
+      "uncompressedSHA256": "b2a6fd9938a6d5f8e9c9a2ed70c7683f431f033f7c1d39d31e53386e52aba473"
+    },
+    {
+      "file": "main-table-bridge-full-r1/CADModeling.log.gz",
+      "sha256": "aa68710a31f744d56a48bfb0cc51ec5b71c49e5080d55635b4f5580b9703bb5f",
+      "uncompressedSHA256": "e4c411f814d25beefa6f2c4d47c3ff7d646390aac66ee330f8549907f722d0f3"
+    },
+    {
+      "file": "main-table-bridge-full-r1/CADKernel.log.gz",
+      "sha256": "b8ce796ec52107470963049797f427e9553f7e1eda0a6df0a10cc0e35f67bad7",
+      "uncompressedSHA256": "1ef6260b6cffd733bdfe0643d6d1ea8ca7a393f284921a765891d9fded020756"
+    },
+    {
+      "file": "main-table-bridge-full-r1/receipt.json.gz",
+      "sha256": "39ed0896c9aa5e444d5272c4d6ebdd2ed920a928c33562d49fed5abc4595c4c6",
+      "uncompressedSHA256": "8cf99191258e344956f8291adbf0f891fce0af95ea93ce8e34a0d38cb90361a3"
+    },
+    {
+      "file": "main-table-bridge-interactions-r1/test-build-and-list.log.gz",
+      "sha256": "55c963e20f1075ea8ee100398dfc94c0ded3c7a3d4d174bdf5b8190aca10d954",
+      "uncompressedSHA256": "ee322948173d68b46637e0f01c92667bfc0885999a9c90dc5ebbcb88f2755b0b"
+    },
+    {
+      "file": "main-table-bridge-interactions-r1/results.xml.gz",
+      "sha256": "11969ba9365970399a9eb728fcc028f76495b22226cbf03ee3f050a830ac7251",
+      "uncompressedSHA256": "199c9b382449f7e7e972e94e85eba2d372918843e0762b489afe958b8d15681f"
+    },
+    {
+      "file": "main-table-bridge-interactions-r1/test-runtime.log.gz",
+      "sha256": "9fa37245a2cf113bdf2262e2e191e408e45db0b6f04cc6938e734ba9a782cfc0",
+      "uncompressedSHA256": "a96afea05cd721a445630240a09edc681709a68d21ae1af7eaf4e2869e531bd7"
+    },
+    {
+      "file": "main-table-bridge-interactions-r1/compiler-version.log.gz",
+      "sha256": "b6524373dc005cdb1fe16a933bd67e4fa44458a0c3b9f6e40aeee5efc52681f9",
+      "uncompressedSHA256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c"
+    },
+    {
+      "file": "main-table-bridge-interactions-r1/receipt.json.gz",
+      "sha256": "82578d00f0e84e1e114ef7c7f2936d8e44e9cfc9f03f4ab7eb9a444ff0113d96",
+      "uncompressedSHA256": "e241b248d377c0eb1c2a1daa8339e08f64bb43835c06cc9a2663193569d42d1f"
+    }
+  ]
+}
