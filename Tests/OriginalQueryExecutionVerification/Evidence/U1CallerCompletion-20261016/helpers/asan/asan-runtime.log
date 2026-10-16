@@ -1,0 +1,12 @@
+USAGE Geometry delivery elevation work=2906 bytes=8488
+USAGE Geometry delivery elevation work=3001 bytes=8864
+PASS Geometry delivery degree elevation laws
+PASS Geometry delivery degree elevation resources
+PASS Geometry delivery support ownership
+USAGE Geometry delivery support work=22 bytes=168
+PASS Geometry delivery support resources
+PASS Geometry delivery natural continuation laws
+USAGE Geometry delivery natural work=83 bytes=912
+PASS Geometry delivery natural continuation resources
+PASS Geometry delivery natural continuation lifecycle
+PASS Geometry delivery helpers all

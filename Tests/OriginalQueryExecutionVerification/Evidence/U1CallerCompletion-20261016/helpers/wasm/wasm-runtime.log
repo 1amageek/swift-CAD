@@ -1,0 +1,14 @@
+(node:59521) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+USAGE Geometry delivery elevation work=2906 bytes=8076
+USAGE Geometry delivery elevation work=3001 bytes=8436
+PASS Geometry delivery degree elevation laws
+PASS Geometry delivery degree elevation resources
+PASS Geometry delivery support ownership
+USAGE Geometry delivery support work=22 bytes=84
+PASS Geometry delivery support resources
+PASS Geometry delivery natural continuation laws
+USAGE Geometry delivery natural work=83 bytes=692
+PASS Geometry delivery natural continuation resources
+PASS Geometry delivery natural continuation lifecycle
+PASS Geometry delivery helpers all

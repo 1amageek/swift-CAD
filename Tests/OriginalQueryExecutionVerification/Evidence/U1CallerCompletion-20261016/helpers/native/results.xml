@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="TestResults" errors="0" tests="11" failures="0" skipped="0" time="0.264025041">
+    <testcase classname="FocusedTests.CurveIntersectionSupportTests" name="lookupKeepsCallerWorkAndCancellation()" time="0.003719416" />
+    <testcase classname="FocusedTests.CurveIntersectionSupportTests" name="retainedHostsSurviveSourceLifetimeButNearbyHostsDecline()" time="0.004254209" />
+    <testcase classname="FocusedTests.CurveIntersectionSupportTests" name="rigidSupportTransferKeepsOriginalHostAndSourceDepth()" time="0.003691792" />
+    <testcase classname="FocusedTests.BSplineSurfaceNaturalContinuationTests" name="coldPreparationAndReadUseMeasuredCumulativeLimits()" time="0.003745375" />
+    <testcase classname="FocusedTests.BSplineSurfaceNaturalContinuationTests" name="entryAndTerminalCancellationPublishNoPoint()" time="0.002597167" />
+    <testcase classname="FocusedTests.BSplineSurfaceNaturalContinuationTests" name="independentLawAndRetainedCOWSource()" time="0.006523792" />
+    <testcase classname="FocusedTests.BSplineSurfaceNaturalContinuationTests" name="mappedDepthRefusalPrecedesRetainedContributionCharges()" time="0.001968125" />
+    <testcase classname="FocusedTests.BSplineSurfaceDegreeElevationTests" name="theDenseRaisedControlLimitIsUnchanged()" time="0.015469125" />
+    <testcase classname="FocusedTests.BSplineSurfaceDegreeElevationTests" name="anUnclampedDirectionIsRefused()" time="0.002091459" />
+    <testcase classname="FocusedTests.BSplineSurfaceDegreeElevationTests" name="theRaisedSurfaceIsTheSameSurface(direction:)" time="0.263530625" />
+    <testcase classname="FocusedTests.BSplineSurfaceDegreeElevationTests" name="directElevationKeepsGeometryAndCallerResources(direction:)" time="0.030274291" />
+  </testsuite>
+</testsuites>
