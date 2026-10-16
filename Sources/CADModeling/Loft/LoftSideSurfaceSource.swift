@@ -6,14 +6,14 @@ package enum LoftSideSurfaceSource {
     case native(BSplineSurface3D)
     case originalCoons(OriginalCoonsSurface3D)
     case originalBoundaryCorrected(OriginalBoundaryCorrectedSurface3D)
-    case originalPlaneDerivative(OriginalPlaneDerivativeSurface3D, ProceduralSurface3D, GeometryConversionGuarantee)
+    indirect case originalPlaneDerivative(OriginalPlaneDerivativeSurface3D, ProceduralSurface3D, GeometryConversionGuarantee)
 
     package static func admittingOriginalPlaneDerivative(
         _ source: OriginalPlaneDerivativeSurface3D, usage: inout OriginalQueryExecution,
         certify: (Surface3D, inout OriginalQueryExecution) throws -> GeometryConversionGuarantee
     ) throws -> Self {
         try RationalAlgebraStorage.retain(1, of: OriginalPlaneDerivativeSurface3D.self, usage: &usage)
-        try RationalAlgebraStorage.retain(1, of: ProceduralSurface3D.self, usage: &usage)
+        try RationalAlgebraStorage.retain(1, of: (OriginalPlaneDerivativeSurface3D, ProceduralSurface3D, GeometryConversionGuarantee).self, usage: &usage)
         let procedural = ProceduralSurface3D.originalPlaneDerivative(source)
         let guarantee = try certify(.procedural(procedural), &usage)
         return .originalPlaneDerivative(source, procedural, guarantee)

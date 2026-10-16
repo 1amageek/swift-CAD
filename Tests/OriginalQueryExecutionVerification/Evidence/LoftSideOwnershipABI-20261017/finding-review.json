@@ -1,0 +1,31 @@
+{
+  "kind": "finding-only-confirmation",
+  "reviewer": "Root",
+  "scope": "LoftSideSurfaceSource oversized normal-WASM copy/consume ABI and paid immutable ownership",
+  "productionSHA256": {
+    "Sources/CADModeling/Loft/LoftSideSurfaceSource.swift": "ae3e63a76d5c165284dee311fd5f6d4f82dac8b98130ced502de75f7f9cdedcb",
+    "Sources/CADModeling/Loft/DESIGN.md": "3b27dac2df498303d8807e8b461236027f446def8ce486f0bb419ec1acfe9492",
+    "Tests/CADModelingTests/LoftPlaneDerivativeOwnershipChecks.swift": "dc6cb7db5ad849fdc2e6ee49982e999a8a833df0e467281532e21dc4a2828694",
+    "Tests/CADModelingTests/LoftPlaneDerivativeOwnershipTests.swift": "873df571d2bb523db3929e56721de7d6fa39c21ddc51053e72ac2e5c4340b0a3",
+    "Tests/OriginalQueryExecutionVerification/LoftPlaneDerivativeOwnershipPortable.swift": "2e891f0affc0079bc6ba78777ba7afcae5364ea97d7ebd6bc2e44611da03bb8b"
+  },
+  "confirmed": [
+    "Only originalPlaneDerivative becomes indirect; the other three cases, patterns, original mathematical source, retained procedural owner and guarantee remain unchanged.",
+    "Both typed reservations precede construction/certification on the same caller. The full outer tuple now owns its actual source/procedural/guarantee payload instead of charging only the procedural field.",
+    "This follows the existing checked UInt32-rounded typed-payload policy; it does not claim allocator-header measurement or add an independent quota.",
+    "Native original five oracles remain accepted; the added cancellation oracle recognizes the existing typed ExactScalarFailure.cancelled contract after a fixture-only correction. No production cancellation policy changed.",
+    "Actual ASAN, normal WASM and Embedded each execute the same six groups with N/N-1, independent source/guarantee lifetime and original source validity after failed publication.",
+    "Full actual writer WASM integration demonstrates outlined arity1091 to43, whole artifact maximum782 and six public groups passing. This is not whole Modeling/Exchange/U1 acceptance.",
+    "No shared mutable state, target-specific Sendable/isolation branch, unchecked concurrency or new solver is introduced."
+  ],
+  "evidenceSHA256": {
+    "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-findings-r1/receipt.json": "1fde01b1972bd38102e38b5e095cf542428f95b305b17c76cce6a3835430e6c4",
+    "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-loft-shared-r1/receipt.json": "5d31b2b622ed5b1ecd024e4274b6105ca09136991bc74e919992d164d81f025d",
+    "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-loft-cancel-finding-r1/receipt.json": "e85cc91e179f650f50f1f895599c36a3810fc5ef46813ba374b77199017333ef",
+    "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/loft-ownership-clients-r1/asan/receipt.json": "ec471adff3b2ee8bd4298eb911266ee512f545062a753faf1036447b860f997f",
+    "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/loft-ownership-clients-r1/wasm/receipt.json": "231570334e5335ca87bcb6f8f2f7e9267df22ed9fe9ba4e920fa96b4753b05b1",
+    "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/loft-ownership-clients-r1/embedded/receipt.json": "eec11cc06b71679d1be8e0d67bf8d2b42c24ece1d422046e45313a5063f33826"
+  },
+  "findings": [],
+  "reviewBoundary": "Concrete ABI finding confirmation only. No repeat comprehensive review; unsupported wider source/caller families remain open."
+}

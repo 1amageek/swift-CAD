@@ -37,19 +37,27 @@ triangle inequality. A contact residual within model tolerance is not subject
 to the fitting quarter tolerance as source-contact admission.
 
 The body builder retains one canonical connector image per connection/vertex.
-For an original plane-derivative side it admits one immutable payload and the
-new retained procedural field's typed capacity before
-constructing the common indirect `ProceduralSurface3D` case. The internal side
-source retains that same procedural value alongside the payload used by bounds
-and its final guarantee. Repeated surface publication shares this inner owner;
-it does not construct another plane-derivative box. The existing outer
-`Surface3D.procedural` wrapper and caller-authored source lifetime are unchanged.
+For an original plane-derivative side it admits the immutable source payload
+for the existing indirect `ProceduralSurface3D` case and the full typed tuple
+`(OriginalPlaneDerivativeSurface3D, ProceduralSurface3D, GeometryConversionGuarantee)`
+for the indirect `LoftSideSurfaceSource.originalPlaneDerivative` case before
+either owner is constructed. Both reservations use the same caller execution
+and the existing checked UInt32 payload rounding. The latter case retains the
+unchanged source used by bounds, that same procedural value and its final
+guarantee. Its indirect representation avoids flattening the combined large
+value payload into normal-WASM copy/consume function parameters; the other
+three source cases and all original source laws remain unchanged. Copies retain
+immutable owners on every target, with no mutable state or new isolation rule.
+Repeated surface publication shares the inner owner and does not construct
+another plane-derivative box. The existing outer `Surface3D.procedural` wrapper
+and caller-authored source lifetime are unchanged.
 The package-only `admittingOriginalPlaneDerivative` factory owns this sequence:
-reserve both new capacities, construct the inner owner once, invoke final
-certification with that exact surface, and publish the paired side source only
-after certification succeeds. Storage refusal prevents certification and
-publication. The production body builder and focused ownership test use this
-same factory; no test-only publication path exists.
+reserve both typed capacities, construct the inner owner once, invoke final
+certification with that exact surface, and construct/publish the indirect side
+source only after certification succeeds. Storage refusal prevents certification
+and publication; certification failure or cancellation publishes no side source.
+The production body builder and focused ownership test use this same factory;
+no test-only publication path exists.
 Native Hermite construction resolves every connector of a connection to a
 shared basis before shared edges and both neighboring sides consume those
 images. Original Coons construction retains each connector basis independently
@@ -196,8 +204,12 @@ arrangement gaps remain incomplete until their actual producers are connected.
 [LoftPlaneDerivativeOwnershipTests](../../../Tests/CADModelingTests/LoftPlaneDerivativeOwnershipTests.swift)
 exercises the production publication factory with the real surface converter.
 It checks finite admitted success, each retained capacity boundary before
-certification, converter failure without publication, and repeated surface
-evaluation after the constructing scope releases its original payload.
+certification, actual cumulative storage N/N-1 with the real converter, converter
+failure without publication, and copied/repeated surface evaluation and retained
+guarantee values after the constructing scope releases its original payload.
+Normal-WASM acceptance additionally requires actual generated copy/consume ABI
+inspection and Node load plus the affected public drawing runtime; Native source
+or type checks alone do not establish that function-parameter boundary.
 
 Deferred behavioral checks must exercise the public evaluator with unique and
 ambiguous seam/direction paths, reordered holes, unequal vertex counts,

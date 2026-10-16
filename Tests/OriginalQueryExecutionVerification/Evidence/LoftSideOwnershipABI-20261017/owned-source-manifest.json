@@ -1,0 +1,35 @@
+{
+  "scope": "Exact five files owned by the Loft side ABI/paid-ownership unit. Production algorithm delta is one indirect enum case and the actual full-tuple typed retention only.",
+  "files": [
+    {
+      "path": "Sources/CADModeling/Loft/LoftSideSurfaceSource.swift",
+      "sha256": "ae3e63a76d5c165284dee311fd5f6d4f82dac8b98130ced502de75f7f9cdedcb",
+      "bytes": 4594,
+      "lines": 77
+    },
+    {
+      "path": "Sources/CADModeling/Loft/DESIGN.md",
+      "sha256": "3b27dac2df498303d8807e8b461236027f446def8ce486f0bb419ec1acfe9492",
+      "bytes": 23040,
+      "lines": 343
+    },
+    {
+      "path": "Tests/CADModelingTests/LoftPlaneDerivativeOwnershipChecks.swift",
+      "sha256": "dc6cb7db5ad849fdc2e6ee49982e999a8a833df0e467281532e21dc4a2828694",
+      "bytes": 16301,
+      "lines": 233
+    },
+    {
+      "path": "Tests/CADModelingTests/LoftPlaneDerivativeOwnershipTests.swift",
+      "sha256": "873df571d2bb523db3929e56721de7d6fa39c21ddc51053e72ac2e5c4340b0a3",
+      "bytes": 1460,
+      "lines": 34
+    },
+    {
+      "path": "Tests/OriginalQueryExecutionVerification/LoftPlaneDerivativeOwnershipPortable.swift",
+      "sha256": "2e891f0affc0079bc6ba78777ba7afcae5364ea97d7ebd6bc2e44611da03bb8b",
+      "bytes": 1360,
+      "lines": 19
+    }
+  ]
+}

@@ -1,0 +1,552 @@
+{
+  "scope": "LoftSideSurfaceSource one-case indirect ABI and paid immutable payload ownership. No whole Loft feature, Modeling, Kernel, Exchange, or U1 completion claim.",
+  "ownedManifest": {
+    "path": "owned-source-manifest.json",
+    "sha256": "71bb191b70b544a6cf5182c8e1bd71e84da0d9333b5401bef7535387839ded0c"
+  },
+  "nativeEvidence": "Five original shared methods pass in native-loft-shared-r1; its sixth cancelled correctly but the old fixture failed to recognize raw ExactScalarFailure.cancelled. Only that classifier case changed; native-loft-cancel-finding-r1 then passes. Preserve both receipts/logs.",
+  "portable": [
+    {
+      "lane": "asan",
+      "receiptSHA256": "ec471adff3b2ee8bd4298eb911266ee512f545062a753faf1036447b860f997f",
+      "oracles": 6,
+      "moduleSourceCount": 1,
+      "lowerSourceCount": 2238,
+      "steps": {
+        "CADModeling": {
+          "exitCode": 0,
+          "elapsedSeconds": 0.7002472090098308,
+          "sampledPeakProcessTreeRSSBytes": 169836544,
+          "stopReason": null
+        },
+        "client-link": {
+          "exitCode": 0,
+          "elapsedSeconds": 2.322068291992764,
+          "sampledPeakProcessTreeRSSBytes": 759480320,
+          "stopReason": null
+        },
+        "runtime": {
+          "exitCode": 0,
+          "elapsedSeconds": 1.423484291008208,
+          "sampledPeakProcessTreeRSSBytes": 102006784,
+          "stopReason": null
+        }
+      },
+      "priorCoreGeometryCompileSeconds": 125.1399392089952,
+      "drift": [],
+      "linkStrategy": "Actual lower and one-source Modeling modules and objects"
+    },
+    {
+      "lane": "wasm",
+      "receiptSHA256": "231570334e5335ca87bcb6f8f2f7e9267df22ed9fe9ba4e920fa96b4753b05b1",
+      "oracles": 6,
+      "moduleSourceCount": 1,
+      "lowerSourceCount": 2238,
+      "steps": {
+        "CADModeling": {
+          "exitCode": 0,
+          "elapsedSeconds": 0.6914497500110883,
+          "sampledPeakProcessTreeRSSBytes": 148242432,
+          "stopReason": null
+        },
+        "client-link": {
+          "exitCode": 0,
+          "elapsedSeconds": 1.619196750005358,
+          "sampledPeakProcessTreeRSSBytes": 895221760,
+          "stopReason": null
+        },
+        "runtime": {
+          "exitCode": 0,
+          "elapsedSeconds": 0.4645310409978265,
+          "sampledPeakProcessTreeRSSBytes": 454279168,
+          "stopReason": null
+        }
+      },
+      "priorCoreGeometryCompileSeconds": 112.75988491599855,
+      "drift": [],
+      "linkStrategy": "Actual lower and one-source Modeling modules and objects"
+    },
+    {
+      "lane": "embedded",
+      "receiptSHA256": "eec11cc06b71679d1be8e0d67bf8d2b42c24ece1d422046e45313a5063f33826",
+      "oracles": 6,
+      "moduleSourceCount": 1,
+      "lowerSourceCount": 2238,
+      "steps": {
+        "CADModeling": {
+          "exitCode": 0,
+          "elapsedSeconds": 5.979351874993881,
+          "sampledPeakProcessTreeRSSBytes": 766377984,
+          "stopReason": null
+        },
+        "client-link": {
+          "exitCode": 0,
+          "elapsedSeconds": 42.74202945800789,
+          "sampledPeakProcessTreeRSSBytes": 5088133120,
+          "stopReason": null
+        },
+        "runtime": {
+          "exitCode": 0,
+          "elapsedSeconds": 0.23800679099804256,
+          "sampledPeakProcessTreeRSSBytes": 933888,
+          "stopReason": null
+        }
+      },
+      "priorCoreGeometryCompileSeconds": 60.95286291697994,
+      "drift": [],
+      "linkStrategy": "Embedded serialized lower and Modeling modules; no Swift objects"
+    }
+  ],
+  "nativeAuthorityScope": "Current exact Core67/Geometry2171 + Loft1 subset of Native r6 d195; other Modeling import difference is explicit in authority/native-r6-exact-subset.json.gz.",
+  "outsideUnitModelingDifferences": [
+    {
+      "path": "Sources/CADModeling/SourceFacePatch/SourceBRepFacePatchBuilder.swift",
+      "nativeR6SHA256": "18ff7b8e9bf91769bc50fd3a8b5679980981a2cf5d400731f237deb0d78410f0",
+      "currentSHA256": "a8f0293a8e308b1cbfccb3bfbf9e7f70441691c92dd10e8edb0fe48dbbfe371f",
+      "delta": "One explicit import HashTreeCollections line; outside this Loft unit.",
+      "inverseRemovalExactlyMatchesNativeR6": true
+    }
+  ],
+  "integration": "Same enum source ae3e in full public writer normal-WASM six-group PASS. Original outlined copy/consume 1091 parameters becomes 43; maximum final module type parameter count 782, no invalid types. This is integration evidence only, not full writer/family completion.",
+  "artifacts": [
+    {
+      "path": "sources/owned-source-snapshot.json.gz",
+      "sha256": "ac19e03e3509a9ea8eadfaaf6cda7a245063f8ea0c20ba78cf3912e1724e91d7",
+      "bytes": 13070,
+      "uncompressedSHA256": "bc5a4d4e3d317488216e323594ed846aaf8e4b2941ffe7c34e4a3c9688e88ea6",
+      "uncompressedBytes": 48541,
+      "origin": "Current exact owned source snapshot",
+      "scope": "Owned source/design/fixture authoring only; behavioral proof is in the actual run receipts."
+    },
+    {
+      "path": "authority/native-r6-exact-subset.json.gz",
+      "sha256": "b4ed99de36fefc0f9361c8da5e84de1fedc1ed7c1fa3dc81bfc69aeb30d9d4be",
+      "bytes": 110111,
+      "uncompressedSHA256": "8597e8de3152129fd6116c556c50c460e884e40e495aa5be3ff221117a0d6ffa",
+      "uncompressedBytes": 356342,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-full-r6/receipt.json",
+      "scope": "Native exact source-subset authority and explicit outside-unit source delta."
+    },
+    {
+      "path": "authority/native-full-r6-receipt.json.gz",
+      "sha256": "bb308d3e41cc11db9850afc546bb26c34d8b06df9d7fd2b26185703929ce67bd",
+      "bytes": 229034,
+      "uncompressedSHA256": "d19500908ae949676d9ef7cd9eeff6eec6b800f86046b510aa43b79538dca05c",
+      "uncompressedBytes": 1402435,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-full-r6/receipt.json",
+      "scope": "Historical full Native compile receipt; this unit relies only on its 2238 lower plus Loft1 source subset."
+    },
+    {
+      "path": "authority/current-geometry-products.json.gz",
+      "sha256": "65b73c1d926418595bbf4527dfc2ab027b3fda595b4aaefc1fba0061f79eb870",
+      "bytes": 2266,
+      "uncompressedSHA256": "d09b7659aca7757e57f16805d1a1a637d5327b023d99b688a70133c5fc93b0d8",
+      "uncompressedBytes": 12265,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/products.json",
+      "scope": "Accepted current lower product-map chain; only Core/Geometry products are used by the one-source Loft client."
+    },
+    {
+      "path": "authority/ir-prefix-clients-r2-products.json.gz",
+      "sha256": "f84ddf4702483ccee8568b52205af65414cbe6e4dc25408565444f209c16d4f2",
+      "bytes": 3088,
+      "uncompressedSHA256": "4f9c08841532da5cfb48480dc602fefce9597f063f12b8a6191ebf23b38bf74d",
+      "uncompressedBytes": 24509,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/ir-prefix-clients-r2/products.json",
+      "scope": "Accepted current lower product-map chain; only Core/Geometry products are used by the one-source Loft client."
+    },
+    {
+      "path": "native-loft-shared-r1/receipt.json.gz",
+      "sha256": "ea376e5bd16081bece20fed86c055ed6cf3d33b155572992f6b5858d952789f5",
+      "bytes": 175953,
+      "uncompressedSHA256": "5d31b2b622ed5b1ecd024e4274b6105ca09136991bc74e919992d164d81f025d",
+      "uncompressedBytes": 551864,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-loft-shared-r1/receipt.json",
+      "scope": "Actual Native five preserved controls plus diagnostic cancellation failure."
+    },
+    {
+      "path": "native-loft-shared-r1/compiler-version.log.gz",
+      "sha256": "b6524373dc005cdb1fe16a933bd67e4fa44458a0c3b9f6e40aeee5efc52681f9",
+      "bytes": 91,
+      "uncompressedSHA256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c",
+      "uncompressedBytes": 77,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-loft-shared-r1/compiler-version.log",
+      "scope": "Actual Native five preserved controls plus diagnostic cancellation failure."
+    },
+    {
+      "path": "native-loft-shared-r1/test-build-and-list.log.gz",
+      "sha256": "550bcedd2b2e694c99fd5c28550246c75682d8ac45c28ded71b343e5fe83b7b9",
+      "bytes": 4347,
+      "uncompressedSHA256": "2f92f31271e1e6ae166f62716ff0172927cfef3eaecbfd9b3501226207c3a684",
+      "uncompressedBytes": 44888,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-loft-shared-r1/test-build-and-list.log",
+      "scope": "Actual Native five preserved controls plus diagnostic cancellation failure."
+    },
+    {
+      "path": "native-loft-shared-r1/test-runtime.log.gz",
+      "sha256": "c412921542c125c2512716ac6893f1d3cf63dc58e8078eddff89e7190a50ffcd",
+      "bytes": 754,
+      "uncompressedSHA256": "be2e0c717d21a0dcd8401f9e57187f531d033c2c4008ec97a8b17a77d6bd1071",
+      "uncompressedBytes": 2563,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-loft-shared-r1/test-runtime.log",
+      "scope": "Actual Native five preserved controls plus diagnostic cancellation failure."
+    },
+    {
+      "path": "native-loft-shared-r1/source-snapshot.json.gz",
+      "sha256": "42ef2bde80d781acb94deedabf81efea7797fafa2c803ae185e666bd83b282ca",
+      "bytes": 3774,
+      "uncompressedSHA256": "824e625e51e46143c0457d53528eb1506d57f70f405ca4526ece7e53fc1d70d5",
+      "uncompressedBytes": 18576,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-loft-shared-r1/receipt.json",
+      "scope": "Exact source snapshots used by this Native run, including the retained failed classifier version."
+    },
+    {
+      "path": "native-loft-shared-r1/commands.json.gz",
+      "sha256": "f911e193f3fece1b325157740f48111c1836c02b17c3dadf3535ca49230a1527",
+      "bytes": 482,
+      "uncompressedSHA256": "90393c5b542a9121c0daebf3788a8ee261836108697833c392b14497dca21abd",
+      "uncompressedBytes": 2164,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-loft-shared-r1/receipt.json",
+      "scope": "Exact actual compile/test command lines from the receipt."
+    },
+    {
+      "path": "native-loft-cancel-finding-r1/receipt.json.gz",
+      "sha256": "cf73f20a8828a400f9f1da16e2863370e22768361abb5d30919b6dec02f7683e",
+      "bytes": 176002,
+      "uncompressedSHA256": "e85cc91e179f650f50f1f895599c36a3810fc5ef46813ba374b77199017333ef",
+      "uncompressedBytes": 552005,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-loft-cancel-finding-r1/receipt.json",
+      "scope": "Finding-only corrected typed cancellation classifier control; real production unchanged."
+    },
+    {
+      "path": "native-loft-cancel-finding-r1/compiler-version.log.gz",
+      "sha256": "b6524373dc005cdb1fe16a933bd67e4fa44458a0c3b9f6e40aeee5efc52681f9",
+      "bytes": 91,
+      "uncompressedSHA256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c",
+      "uncompressedBytes": 77,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-loft-cancel-finding-r1/compiler-version.log",
+      "scope": "Finding-only corrected typed cancellation classifier control; real production unchanged."
+    },
+    {
+      "path": "native-loft-cancel-finding-r1/test-build-and-list.log.gz",
+      "sha256": "dacfacfc2c6d5747c778c05f8673e893d13029ce284cbf634187dbd4f5fa6f80",
+      "bytes": 4346,
+      "uncompressedSHA256": "b416aa90c90d6aeda7872e10b1a1f538af501b6d887f3bdba63b95b06d18259c",
+      "uncompressedBytes": 46102,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-loft-cancel-finding-r1/test-build-and-list.log",
+      "scope": "Finding-only corrected typed cancellation classifier control; real production unchanged."
+    },
+    {
+      "path": "native-loft-cancel-finding-r1/test-runtime.log.gz",
+      "sha256": "5b78538992c8dae871cf3706a81c975198d9937bebe819163627ee9b327a2a7c",
+      "bytes": 319,
+      "uncompressedSHA256": "59bd5cd41e37d99f51d898d204c94ad8b2cfc848ce7855f4ff9eb4500cb315be",
+      "uncompressedBytes": 682,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-loft-cancel-finding-r1/test-runtime.log",
+      "scope": "Finding-only corrected typed cancellation classifier control; real production unchanged."
+    },
+    {
+      "path": "native-loft-cancel-finding-r1/source-snapshot.json.gz",
+      "sha256": "108f430e7c4a2acdb959a2c591925866d9b677581a981f44adad0bd8ad4e2420",
+      "bytes": 3786,
+      "uncompressedSHA256": "3e16c3f301d1c9536bca20a7ec534758c3c742832ffc2b068cfc6cf2d00fa090",
+      "uncompressedBytes": 18673,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-loft-cancel-finding-r1/receipt.json",
+      "scope": "Exact source snapshots used by this Native run, including the retained failed classifier version."
+    },
+    {
+      "path": "native-loft-cancel-finding-r1/commands.json.gz",
+      "sha256": "bc8683587224d6d57acf198e3232587734cad3352b63d4296c3266699b21c703",
+      "bytes": 512,
+      "uncompressedSHA256": "6febc8446dcd0499b6406a3429cb99741bac1d6c8103473d7d5dc3c21b6eb7ca",
+      "uncompressedBytes": 2271,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-loft-cancel-finding-r1/receipt.json",
+      "scope": "Exact actual compile/test command lines from the receipt."
+    },
+    {
+      "path": "portable/run.py.gz",
+      "sha256": "2958adf5e15e06b5677e6342bd4954fdb7f230b9efbc762fa026d77444736375",
+      "bytes": 4847,
+      "uncompressedSHA256": "ec8e1c9eb591bf7409597f3e34656d4b914c4929e9f27c23d2007c75c5ab6753",
+      "uncompressedBytes": 16119,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/loft-ownership-clients-r1/run.py",
+      "scope": "Actual private leaf driver reusing canonical native_tests.run; no new process controller."
+    },
+    {
+      "path": "portable/asan/receipt.json.gz",
+      "sha256": "142aa145551c56b46fd7f9a900844aa54cee697dadbdbf22e34ead925c0df2e2",
+      "bytes": 337381,
+      "uncompressedSHA256": "ec471adff3b2ee8bd4298eb911266ee512f545062a753faf1036447b860f997f",
+      "uncompressedBytes": 1516381,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/loft-ownership-clients-r1/asan/receipt.json",
+      "scope": "Actual one-source Modeling plus six shared ownership controls; no whole Modeling/Kernel/Exchange acceptance."
+    },
+    {
+      "path": "portable/asan/plan.json.gz",
+      "sha256": "53cf4fd63b4978a74e4e851091d1bbfbbb19c6f7f2c9cbe6d8d17b669e483fb3",
+      "bytes": 335980,
+      "uncompressedSHA256": "09dd097da3437c2b4b538aaabbe034bc7415950ff62332e49e2029cbf2e17f1c",
+      "uncompressedBytes": 1508176,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/loft-ownership-clients-r1/asan/plan.json",
+      "scope": "Actual one-source Modeling plus six shared ownership controls; no whole Modeling/Kernel/Exchange acceptance."
+    },
+    {
+      "path": "portable/asan/CADModeling.log.gz",
+      "sha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "bytes": 20,
+      "uncompressedSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressedBytes": 0,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/loft-ownership-clients-r1/asan/CADModeling.log",
+      "scope": "Actual one-source Modeling plus six shared ownership controls; no whole Modeling/Kernel/Exchange acceptance."
+    },
+    {
+      "path": "portable/asan/client-link.log.gz",
+      "sha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "bytes": 20,
+      "uncompressedSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressedBytes": 0,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/loft-ownership-clients-r1/asan/client-link.log",
+      "scope": "Actual one-source Modeling plus six shared ownership controls; no whole Modeling/Kernel/Exchange acceptance."
+    },
+    {
+      "path": "portable/asan/runtime.log.gz",
+      "sha256": "9656a798b956ea49c136d98bf60bf3abf33bd3088a411f97a768dafe55b56626",
+      "bytes": 291,
+      "uncompressedSHA256": "db5aef76997da1aacf748e95ab789c58e4564916b1e13f361c8fb1c3b9dd827e",
+      "uncompressedBytes": 471,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/loft-ownership-clients-r1/asan/runtime.log",
+      "scope": "Actual one-source Modeling plus six shared ownership controls; no whole Modeling/Kernel/Exchange acceptance."
+    },
+    {
+      "path": "portable/asan/commands.json.gz",
+      "sha256": "1a6689baef7f0c496112a6a0472e487484bf137b93ef895c0b6724c5c0c7f3b1",
+      "bytes": 737,
+      "uncompressedSHA256": "a1ee70ec506e2ff41caca14a477dd7740ce9f0951241a0075650dc5d0922018c",
+      "uncompressedBytes": 4526,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/loft-ownership-clients-r1/asan/receipt.json",
+      "scope": "Actual fixed-toolchain module, link and runtime commands."
+    },
+    {
+      "path": "portable/asan/source-snapshot.json.gz",
+      "sha256": "41ae5c5cded8dc5bf3ef1a098b6f94ccf259228b295ce9bffe899722d8dd31ef",
+      "bytes": 4646,
+      "uncompressedSHA256": "39f318c5cdb34927426bbee9877426b25964614179c1f5a35548e5500bfa7dd7",
+      "uncompressedBytes": 23302,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/loft-ownership-clients-r1/asan/receipt.json",
+      "scope": "Exactly one real production source and two exact fixture sources compiled for this lane; no replacement declarations."
+    },
+    {
+      "path": "authority/asan-core-geometry-receipt.json.gz",
+      "sha256": "1aec03faa577fcbf586639d5af0f94a9fd531b1f8b3d3d58b752fba32759c1b8",
+      "bytes": 361664,
+      "uncompressedSHA256": "c7aa43ec09e43d41f2651ddbc54db27a0c5debf60cff2cd7a4faa77294c5b6d1",
+      "uncompressedBytes": 1913877,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/asan/receipt.json",
+      "scope": "Actual accepted lower compiler commands, source inventories, product/tool/SDK hashes and phase costs, retained by this lane."
+    },
+    {
+      "path": "portable/wasm/receipt.json.gz",
+      "sha256": "7b79f0e7d5161f4468f3dba1164b5fcd01018d7c69e2bd202800bfc7fe987aea",
+      "bytes": 337659,
+      "uncompressedSHA256": "231570334e5335ca87bcb6f8f2f7e9267df22ed9fe9ba4e920fa96b4753b05b1",
+      "uncompressedBytes": 1519323,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/loft-ownership-clients-r1/wasm/receipt.json",
+      "scope": "Actual one-source Modeling plus six shared ownership controls; no whole Modeling/Kernel/Exchange acceptance."
+    },
+    {
+      "path": "portable/wasm/plan.json.gz",
+      "sha256": "69cbe7447aa23a4894cb3030987b62740998daf22d3f6e5298184c0f87a10331",
+      "bytes": 336165,
+      "uncompressedSHA256": "41020c34889cb000456e130ab3f807a34153eb26cc11f206e9ff150c1e76314b",
+      "uncompressedBytes": 1510005,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/loft-ownership-clients-r1/wasm/plan.json",
+      "scope": "Actual one-source Modeling plus six shared ownership controls; no whole Modeling/Kernel/Exchange acceptance."
+    },
+    {
+      "path": "portable/wasm/CADModeling.log.gz",
+      "sha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "bytes": 20,
+      "uncompressedSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressedBytes": 0,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/loft-ownership-clients-r1/wasm/CADModeling.log",
+      "scope": "Actual one-source Modeling plus six shared ownership controls; no whole Modeling/Kernel/Exchange acceptance."
+    },
+    {
+      "path": "portable/wasm/client-link.log.gz",
+      "sha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "bytes": 20,
+      "uncompressedSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressedBytes": 0,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/loft-ownership-clients-r1/wasm/client-link.log",
+      "scope": "Actual one-source Modeling plus six shared ownership controls; no whole Modeling/Kernel/Exchange acceptance."
+    },
+    {
+      "path": "portable/wasm/runtime.log.gz",
+      "sha256": "3c740ce1b500e57918c3583d05c504e4db37eea3a8d5728d80c686300a661c8a",
+      "bytes": 392,
+      "uncompressedSHA256": "858671f8de563d333f5f7296d6baac0e601f31a6f874f7a28ebf989d5e163a0e",
+      "uncompressedBytes": 638,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/loft-ownership-clients-r1/wasm/runtime.log",
+      "scope": "Actual one-source Modeling plus six shared ownership controls; no whole Modeling/Kernel/Exchange acceptance."
+    },
+    {
+      "path": "portable/wasm/commands.json.gz",
+      "sha256": "c8a72d18682c9773001b1db7c8730325c9149cabdf0efadd9af594074ca9b74a",
+      "bytes": 807,
+      "uncompressedSHA256": "d04aec9dbf244b2e6687d7a7f127befcfc49aff4f56110639095cc06c86cd696",
+      "uncompressedBytes": 5577,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/loft-ownership-clients-r1/wasm/receipt.json",
+      "scope": "Actual fixed-toolchain module, link and runtime commands."
+    },
+    {
+      "path": "portable/wasm/source-snapshot.json.gz",
+      "sha256": "41ae5c5cded8dc5bf3ef1a098b6f94ccf259228b295ce9bffe899722d8dd31ef",
+      "bytes": 4646,
+      "uncompressedSHA256": "39f318c5cdb34927426bbee9877426b25964614179c1f5a35548e5500bfa7dd7",
+      "uncompressedBytes": 23302,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/loft-ownership-clients-r1/wasm/receipt.json",
+      "scope": "Exactly one real production source and two exact fixture sources compiled for this lane; no replacement declarations."
+    },
+    {
+      "path": "authority/wasm-core-geometry-receipt.json.gz",
+      "sha256": "8e5e1da2edb8478749aeb553767b63488f45ad50a2bdac0c5b5211af22e67631",
+      "bytes": 361761,
+      "uncompressedSHA256": "d04b079040028b1956331f40bfdffe579827efc844c392977736851c95dc7667",
+      "uncompressedBytes": 1916476,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/wasm/receipt.json",
+      "scope": "Actual accepted lower compiler commands, source inventories, product/tool/SDK hashes and phase costs, retained by this lane."
+    },
+    {
+      "path": "portable/embedded/receipt.json.gz",
+      "sha256": "538296e38e3bb386c0a161a6d9780f1c8c21f03917f9cdf510605a625569afd9",
+      "bytes": 337643,
+      "uncompressedSHA256": "eec11cc06b71679d1be8e0d67bf8d2b42c24ece1d422046e45313a5063f33826",
+      "uncompressedBytes": 1525824,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/loft-ownership-clients-r1/embedded/receipt.json",
+      "scope": "Actual one-source Modeling plus six shared ownership controls; no whole Modeling/Kernel/Exchange acceptance."
+    },
+    {
+      "path": "portable/embedded/plan.json.gz",
+      "sha256": "1761913cb433804910a02e518572ef5f28717b1ddf78ec15e6cccf44101c8b3c",
+      "bytes": 336169,
+      "uncompressedSHA256": "70bca8d918a16b585690cb2a1310a8b50d5e68fef5c09643b7d875704cdb7870",
+      "uncompressedBytes": 1517320,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/loft-ownership-clients-r1/embedded/plan.json",
+      "scope": "Actual one-source Modeling plus six shared ownership controls; no whole Modeling/Kernel/Exchange acceptance."
+    },
+    {
+      "path": "portable/embedded/CADModeling.log.gz",
+      "sha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "bytes": 20,
+      "uncompressedSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressedBytes": 0,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/loft-ownership-clients-r1/embedded/CADModeling.log",
+      "scope": "Actual one-source Modeling plus six shared ownership controls; no whole Modeling/Kernel/Exchange acceptance."
+    },
+    {
+      "path": "portable/embedded/client-link.log.gz",
+      "sha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "bytes": 20,
+      "uncompressedSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressedBytes": 0,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/loft-ownership-clients-r1/embedded/client-link.log",
+      "scope": "Actual one-source Modeling plus six shared ownership controls; no whole Modeling/Kernel/Exchange acceptance."
+    },
+    {
+      "path": "portable/embedded/runtime.log.gz",
+      "sha256": "dc6fab3a80323a5306b769846c2c85e2747c3c594ff3544793ecba8fa08d71a9",
+      "bytes": 393,
+      "uncompressedSHA256": "f0714b9ca92fd1ec3ba4cd3d6f50154618d5ce6661bf9e77668bfaf174b26a93",
+      "uncompressedBytes": 638,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/loft-ownership-clients-r1/embedded/runtime.log",
+      "scope": "Actual one-source Modeling plus six shared ownership controls; no whole Modeling/Kernel/Exchange acceptance."
+    },
+    {
+      "path": "portable/embedded/commands.json.gz",
+      "sha256": "88d33dc624e30fec5780c8018f58bfee3590da765f4d959ffd58d65a8fcff3cc",
+      "bytes": 810,
+      "uncompressedSHA256": "3bc7f72121de3c9009b00c9843e844d02de51e155627f4f53a0e06fe89a1832c",
+      "uncompressedBytes": 5159,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/loft-ownership-clients-r1/embedded/receipt.json",
+      "scope": "Actual fixed-toolchain module, link and runtime commands."
+    },
+    {
+      "path": "portable/embedded/source-snapshot.json.gz",
+      "sha256": "41ae5c5cded8dc5bf3ef1a098b6f94ccf259228b295ce9bffe899722d8dd31ef",
+      "bytes": 4646,
+      "uncompressedSHA256": "39f318c5cdb34927426bbee9877426b25964614179c1f5a35548e5500bfa7dd7",
+      "uncompressedBytes": 23302,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/loft-ownership-clients-r1/embedded/receipt.json",
+      "scope": "Exactly one real production source and two exact fixture sources compiled for this lane; no replacement declarations."
+    },
+    {
+      "path": "authority/embedded-core-geometry-receipt.json.gz",
+      "sha256": "7bf9c9b92aae0bce448f6efa215c2808240fe01d24046f6346afbbf48c7d0275",
+      "bytes": 361689,
+      "uncompressedSHA256": "68aa17d0f6da4e4b41a7869fb85e0acb5f01148e4ebf0184edbfc0590287d671",
+      "uncompressedBytes": 1923683,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/current-geometry/embedded/receipt.json",
+      "scope": "Actual accepted lower compiler commands, source inventories, product/tool/SDK hashes and phase costs, retained by this lane."
+    },
+    {
+      "path": "integration/wasm-abi-limit-r1.json.gz",
+      "sha256": "6ba7ee25a1377abfa1956f821a58313c68aefb622699a0484f7e5bf2972b4f07",
+      "bytes": 533,
+      "uncompressedSHA256": "df5a54a64e9e793b2453d1e9a6ef3131b0dd6100f5c7b050c158801899be7523",
+      "uncompressedBytes": 1143,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-exchange-20261017/wasm-abi-limit-r1.json",
+      "scope": "Read-only raw WASM copy/consume type inspection of the full public drawing client; integration scope distinct from Loft ownership proof."
+    },
+    {
+      "path": "integration/wasm-abi-after-loft-fix-r1.json.gz",
+      "sha256": "856d4f40d28a21f751bc7bb81079bbcbbe5629b5b7c44636aa5190c00c082b2f",
+      "bytes": 649,
+      "uncompressedSHA256": "a14e5e59c0383deef9d591425f41289db2e56a58233f6bf4166674f3ac3a9b66",
+      "uncompressedBytes": 1414,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-exchange-20261017/wasm-abi-after-loft-fix-r1.json",
+      "scope": "Read-only raw WASM copy/consume type inspection of the full public drawing client; integration scope distinct from Loft ownership proof."
+    },
+    {
+      "path": "integration/public-drawing-wasm-receipt.json.gz",
+      "sha256": "b2c573d50dd2ed73b99de294aec781d637fc65f74b08fd24868d8cb414c07ad0",
+      "bytes": 271843,
+      "uncompressedSHA256": "4abf3b69712598df502647c20b9013c83fdd1b9e220ceb6c3faf9086c13c6df2",
+      "uncompressedBytes": 2143462,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-exchange-20261017/portable-loft-abi-r1/wasm/receipt.json",
+      "scope": "External full public writer six-group integration using the same Loft enum; does not establish all Exchange capability completion."
+    },
+    {
+      "path": "integration/public-drawing-wasm-runtime.log.gz",
+      "sha256": "8866d0fc1e82f87495efde9415bcb9fcfdb3fe5de1f10b13ccd71a4ca8f476c5",
+      "bytes": 311,
+      "uncompressedSHA256": "10955a9a14ecbcbef54af1228f2ecd39f88dcdf8beeaff0d393a52bf3ad37981",
+      "uncompressedBytes": 512,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-exchange-20261017/portable-loft-abi-r1/wasm/runtime.log",
+      "scope": "External full public writer six-group integration using the same Loft enum; does not establish all Exchange capability completion."
+    },
+    {
+      "path": "integration/public-drawing-source-delta-authority.json.gz",
+      "sha256": "3cb2dedde416ebf65d3d2f01d782ca37ba3ad12c535dd3030497ad1d7fae7899",
+      "bytes": 901,
+      "uncompressedSHA256": "6b83afe630887b2eb8fe1ec1973a7d9be036f6441d237bf25150934bcca8fc40",
+      "uncompressedBytes": 1862,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-exchange-20261017/portable-loft-abi-preparation-r1/source-freeze-r1.json",
+      "scope": "External integration snapshot includes its own separate two-source changes; not part of this five-file commit unit."
+    }
+  ],
+  "constraints": {
+    "compilerRunDuringPackaging": false,
+    "productionDesignTestsProgressEdited": false,
+    "moduleObjectBinaryCopied": false,
+    "originalArtifactsDeleted": false,
+    "gzip": "Deterministic mtime=0; both compressed and exact decompressed bytes are hashed."
+  },
+  "verification": {
+    "path": "VERIFICATION.md",
+    "sha256": "299cf4ce8b2684b7e0c2f1c0dad3f6dfdd693a3d95ebea975e037eccae5e8db8"
+  },
+  "findingReview": {
+    "path": "finding-review.json",
+    "sha256": "e218763ca55c5543233fb2874e30ffff21eb917d132284869735af9decafbade",
+    "scope": "Root concrete ABI finding-only confirmation; no repeated comprehensive review"
+  }
+}
