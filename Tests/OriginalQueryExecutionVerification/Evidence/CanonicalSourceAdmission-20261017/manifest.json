@@ -1,6 +1,6 @@
 {
   "scope": "Canonical generic Core source admission, all IR writers/SHA/memo, sole actual Kernel codec witness",
-  "status": "focused-source-witness-gates-passed-main-integration-pending",
+  "status": "focused-source-witness-gates-passed-and-main-source-integrated",
   "sourceRoot": "/Users/1amageek/.codex/worktrees/u1-section-validation-20261017/swift-CAD",
   "baseMainForSeparateIntegration": "d6cca5ea",
   "acceptedIndexes": {
@@ -716,8 +716,16 @@
   ],
   "integration": {
     "owner": "Root",
-    "status": "not performed here",
-    "required": "Match current source/target against Main d6cca5ea and bind original compiler origins/products using exact before/after pins; ABI compatibility alone is insufficient"
+    "status": "main-fast-forward-and-source-generation-parity-verified",
+    "record": "integration.json",
+    "recordSHA256": "3c8b81b2413f71fce232a5f31c3fbd96dd76fa63cc88aace4dc875bb10aef2d8",
+    "implementationCommit": "1fa00aa300a0c006e9200f7be3fdf280cf031d18",
+    "productionGenerationInputsMatched": 3199,
+    "ownedInputsMatched": 526,
+    "protectedFilesMatched": 3,
+    "newProductionBuilds": 0,
+    "newRuntimeReplay": 0,
+    "wholeSectionOrU1Accepted": false
   },
   "retiredProducts": "These records preserve historical proof. If any pinned product, tool, SDK or required snapshot is retired, the old command is not represented as runnable/reusable; reconstruct and verify a matching closure before a future run.",
   "packaging": {
@@ -730,12 +738,12 @@
   "totalExecutedGroups": 44,
   "documentation": {
     "VERIFICATION.md": {
-      "sha256": "ea92cb9b3698bc359644b2d5f797ab7a78b692d9a9a5acf848ce4bcd56596354",
-      "bytes": 6520
+      "sha256": "ce00adc585a5fb3124992c3e4211553858a1bbaa9b80102766eb2a6b3fcd4ccb",
+      "bytes": 6727
     },
     "REVIEW.md": {
-      "sha256": "784144cdaab8a8d139a41c37c3b26aef99b534aaf15aa9431a1a650140daaf0c",
-      "bytes": 2006
+      "sha256": "a443d0f68399e0f246e3b14a3746830e9cb944a9f2e0b752e21809e78316067c",
+      "bytes": 2077
     }
   }
 }

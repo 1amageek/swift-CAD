@@ -97,10 +97,13 @@ DocumentEvaluator/box execution, Section P+1 failure-before-stale ordering and
 empty sink, positive nonempty SVG, UI, full Kernel, or all seven U1 requirements.
 Those caller gates are separate from this source-witness unit.
 
-Main integration is pending and owned by Root. It must match current source and
-target inputs to Main `d6cca5ea`, preserve actual compiler/product origins, and
-check exact pre/post pins. No Main build, binding, commit or push was performed by
-this packaging task. If cache products, tools, SDKs or required snapshots are
+Root fast-forwarded Main from `d6cca5ea` to implementation `1fa00aa3`.
+[Integration](integration.json) matches all 3199 production generation inputs,
+526 owned source/fixture/design/evidence files and three protected files against
+the accepted snapshot. This is source and dependency parity of the already
+executed 44 groups, with no new production build or unchanged runtime replay.
+The accompanying delivery record updates task progress; whole Section/U1 remains
+open. If cache products, tools, SDKs or required snapshots are
 retired later, the records retain historical proof only; they do not promise that
 the old commands are runnable or that a missing prefix can be silently replaced.
 A future run requires a newly verified matching dependency closure.

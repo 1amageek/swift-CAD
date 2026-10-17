@@ -20,5 +20,6 @@ Accepted index authority:
 - Codec: `617325b767b771d64624975092abefa709feb10800a92668f2aa6d23d2520e32`.
 
 The reviews and actual behavioral gates close this finite encoding/witness unit.
-They do not upgrade the pending Section/evaluator/UI/full-Kernel/Main integration
-work identified in [VERIFICATION.md](VERIFICATION.md).
+Main source integration is recorded separately in [integration.json](integration.json).
+They do not upgrade the pending Section/evaluator/UI/full-Kernel work identified
+in [VERIFICATION.md](VERIFICATION.md).
