@@ -629,6 +629,73 @@ polynomial over a parameter already proved fixed, without a second solve or a
 larger admission. The existing identity-domain restriction is reused rather than
 duplicated, and non-singleton queries do not allocate a substitution array.
 
+### Shared original graph / plane preimage restriction
+
+`OriginalAffinePlaneParameterRestriction` factors the existing lift/plane
+restriction arithmetic into one internal one-parameter graph operation. It
+consumes an issued graph, its original request and the issued plane basis. The
+lift caller retains its existing public restriction layout; the line caller
+seals the same result in its own immutable restriction owner. Each caller keeps
+its original proof scope, typed retained payload charge and terminal checkpoint.
+The helper does not issue a contact or replace a relation solver.
+
+The original homogeneous law supplies `q(T) = N dot (Hxyz - origin * Hw)`.
+Identity authored-T transport is proved in the original coefficient field.
+Identically zero `q` keeps the whole request; a nonzero constant excludes it;
+affine `q` restricts to its unique exact root intersected with the original
+request and original support endpoint policy. The existing homogeneous-weight
+exact-division rule is unchanged. Unsupported higher-degree reduction keeps the
+original complete request. Every selected binding remains on the original
+source/frame and retains the original equation, plane owner and causal depth.
+
+For finite line / plane composition, the complete original family remains
+retained together with one restriction and one actually compiled selected graph
+per original graph ordinal. The existing graph compiler substitutes positions
+and guards only on a proved closed singleton domain. Empty selected requests
+retain their complete source exclusion instead of manufacturing an unproved
+empty result; zero equations preserve the contained whole-T path. Pair ordinals
+continue to index the retained original template, and L6/public transport reads
+the actual selected graph's original transport. The original plane request remains
+retained separately from its necessary selected UV subset. L5 and L6 remain
+responsible for contact, exclusion, components and image/fibre correspondence.
+
+For a nonempty affine singleton T, the existing curve endpoint issuer evaluates
+the retained original line chart, verifies its authored parameter transport and
+nonzero weight, and retains its exact XYZ. The existing plane basis inverse
+checks original normal incidence and returns the unique authored U,V by exact
+dot products against the same verified orthonormal basis. This is an inverse on
+the original plane, not a numerical projection. Consequently every intersection
+in the original product has this T and this U,V; the complement is excluded by
+the affine incidence and basis uniqueness theorems. The two exact UV singleton
+axes are intersected with the original plane request on its original frame.
+The existing plane domain issuer and compiler consume that selected request.
+An empty intersection excludes the whole original product; a zero incidence
+law preserves the original whole-T and UV path.
+
+The private restriction retains the original plane graph, the selected plane
+graph and the sealed endpoint evidence, in addition to the original line
+request and incidence equation. Their attained depth, source owners and typed
+storage are admitted by the same execution and retained preparation scope.
+Closed singleton axes specialize all plane polynomials through the existing
+polynomial substitution operation, while preserving parameter slots, domains,
+all predicates and guards. L5 solves the actual selected line and plane graphs;
+its pair retains the original line template ordinal and original plane ordinal
+zero. L6 receives the actual solved graph and selected line transport. No graph
+frame is relabeled, no UV search window is introduced, and no intersection is
+published solely from the source restriction.
+
+The shared affine restriction admits its temporary selection input before array
+construction, separately from the frame owner's retained output allocation. An
+excluded request owns one outer array element (an empty interval-array value,
+with no inner payload); a singleton owns that same outer element and one typed
+interval in the inner array. Both use the original caller admission. These
+scratch fees do not change the extracted Lift incidence proof or selection order.
+The owner's internal `selectionIntervals` factory constructs this real input for
+all three branches. Independent typed-size N/N-1/zero controls call that same
+factory, so removing a required debit cannot reduce the oracle's expected N.
+Full-query measured N/N-1 separately verifies composition with retained output
+fees; it is not the oracle for detecting omitted input fees.
+
 ## Symbolic Native Parameter Family
 
 The concrete acceptance input and stop are owned by
@@ -1216,3 +1283,30 @@ counters or a forwarding proof owner. Published `proofDepth` is read from actual
 operations inside that scope. Retained source/depth admission and child source
 edges remain with their original issuers. Failure unwinds the scope on the same
 owner and preserves the original error; it does not reset prior cumulative debits.
+
+## Finite Line and Whole Original Plane
+
+The line/plane bridge retains the actual `OriginalLinearCurveSnapshot` and
+`OriginalPlaneSnapshot`, finite closed authored T selection, and the plane's
+whole original UV support. Linear chart issuance and the existing rational graph
+family prepare the curve. The existing plane basis/domain/graph issuers prepare
+the target with unbounded UV axes unless the public request explicitly restricts
+them. Their graph product is compiled and resolved by the existing exact
+parametric relation domain. No finite face box, inverse projection, new solver,
+or sampled window replaces this product.
+
+The selector accepts finite positive T intervals and original stored-normal planes.
+Each positive basis length uses an exact rational square root when available;
+otherwise the existing Sturm issuer seals the unique positive root of x²-s on
+[0,max(1,s)]. The existing retained-root constructor adjoins that root on the
+coefficient axis. An exact rational ratio of the two squares reuses the same
+positive coefficient root rather than adjoining a duplicate. Subsequent basis checks and graph laws share the resulting
+original field. No rounded length supplies plane authority. Authored custom-U
+planes and other source families retain their previous explicit paths. This is a scoped
+source family, not whole CS/U1 completion.
+
+The immutable relation owns both source/DI preparations and every selected cell,
+component, T/UV tuple and auxiliary fibre. Proof reads re-admit source and attained
+scalar depth on the current execution; no new budget is created. The Kernel
+boundary-contact cache remains edge/support scoped, with finite material selection
+performed downstream.

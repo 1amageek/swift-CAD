@@ -62,62 +62,17 @@ public struct DefaultOriginalLiftPlaneRelationResolver: OriginalLiftPlaneRelatio
         _ binding: OriginalLiftPlaneParameterRestriction<S,P>.Member,plane: OriginalIssuedPlaneGraph<P>,
         limits: OriginalDomainIdentityLimits,using admission: inout A) throws -> OriginalLiftPlaneParameterRestriction<S,P> {
         try admission.withProofScope() { a in
-            try binding.admitProof(limits:limits,using:&a)
-            let g = binding.graph,f = g.field,r = g.polynomials,basis = plane.original.law
-            var equation = try r.constant(f.integer(0,using:&a),using:&a)
-            for axis in 0..<3 {
-                try a.consumeWork(1)
-                let offset = try r.scaled(g.homogeneous[3],by:f.importing(basis.origin[axis],using:&a),using:&a)
-                equation = try r.adding(equation,r.scaled(r.subtracting(g.homogeneous[axis],offset,using:&a),
-                    by:f.importing(basis.normal[axis],using:&a),using:&a),using:&a)
+            let restriction = try OriginalAffinePlaneParameterRestriction().select(binding,
+                plane: plane, limits: limits, using: &a)
+            let kind: OriginalLiftPlaneParameterRestriction<S,P>.Kind
+            switch restriction.kind {
+            case .unchanged: kind = .unchanged
+            case .excluded: kind = .excluded
+            case .singleton(let value): kind = .singleton(value)
             }
-            var kind: OriginalLiftPlaneParameterRestriction<S,P>.Kind = .unchanged
-            var request = binding.request
-            var candidate = equation
-            var degree = try r.degree(of:equation,in:0,using:&a)
-            let parameterRing = try ExactPolynomialDomain(field:f,variableCount:1,using:&a)
-            let identity = try parameterRing.equals(parameterRing.importing(g.parameterTransport.numerators[0],using:&a),parameterRing.variable(0,using:&a),using:&a)
-                && parameterRing.equals(parameterRing.importing(g.parameterTransport.denominators[0],using:&a),parameterRing.constant(f.integer(1,using:&a),using:&a),using:&a)
-            if identity,let originalDegree = degree,originalDegree > 1,
-                let weightDegree = try r.degree(of:g.homogeneous[3],in:0,using:&a),weightDegree > 0 {
-                // The existing L5 map retains Hw != 0; P = Hw * Q preserves its plane preimage.
-                let division = try r.divided(equation,by:g.homogeneous[3],using:&a)
-                if try r.isZero(division.remainder,using:&a),
-                    let quotientDegree = try r.degree(of:division.quotient,in:0,using:&a),quotientDegree <= 1 {
-                    candidate = division.quotient;degree = quotientDegree
-                }
-            }
-            if identity,let degree,degree <= 1 {
-                if degree == 0 {
-                    kind = .excluded
-                    request = try request.frame.selection(intervals:[[]],limits:limits,using:&a)
-                } else {
-                    var constant = try f.integer(0,using:&a),slope = try f.integer(0,using:&a)
-                    for term in candidate.terms {
-                        try a.consumeWork(1)
-                        guard term.powers.count == 1 else { throw NativeExactRelationFailure.invalidDomain }
-                        if term.powers[0] == 0 { constant = term.coefficient }
-                        else if term.powers[0] == 1 { slope = term.coefficient }
-                        else { throw NativeExactRelationFailure.invalidDomain }
-                    }
-                    let root = try f.dividing(f.negated(constant,using:&a),slope,using:&a)
-                    let lower = try f.compare(root,g.support[0].lower,using:&a),upper = try f.compare(root,g.support[0].upper,using:&a)
-                    if lower == .less || upper == .greater || (upper == .equal && !g.includesUpperBoundary[0]) {
-                        kind = .excluded
-                        request = try request.frame.selection(intervals:[[]],limits:limits,using:&a)
-                    } else {
-                        kind = .singleton(root)
-                        let interval = try ExactParameterInterval.checked(field:f,lower:.finite(root),upper:.finite(root),
-                            includesLower:true,includesUpper:true,depth:root.depth,using:&a)
-                        let candidate = try request.frame.selection(intervals:[[interval]],limits:limits,using:&a)
-                        request = try request.intersection(candidate,limits:limits,using:&a)
-                    }
-                }
-            }
-            let selected = try DefaultOriginalParametricGraphDomainBinder().bind(graph:g,request:request,limits:limits,using:&a)
             try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:OriginalLiftPlaneParameterRestriction<S,P>.self))
-            let result = OriginalLiftPlaneParameterRestriction(original:binding,selected:selected,plane:plane.original.source,
-                equation:equation,kind:kind,depth:try a.depth)
+            let result = OriginalLiftPlaneParameterRestriction(original:binding,selected:restriction.selected,plane:plane.original.source,
+                equation:restriction.equation,kind:kind,depth:try a.depth)
             try a.checkpoint(); return result
         }
     }

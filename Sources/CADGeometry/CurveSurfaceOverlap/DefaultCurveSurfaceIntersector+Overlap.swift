@@ -39,6 +39,8 @@ extension DefaultCurveSurfaceIntersector: CurveSurfaceIntersectionResolving {
   private func originalIntersectionResult(curve: Curve3D, surface: Surface3D,
     options: CurveSurfaceIntersectionOptions, tolerance: ModelingTolerance,
     using execution: inout OriginalQueryExecution) throws -> CurveSurfaceIntersectionResult {
+      if let linear = try OriginalLinearPlanePublicProducer().resolve(curve: curve, surface: surface,
+        options: options, tolerance: tolerance, using: &execution, retainingRelations: true) { return linear }
       if let periodic = try OriginalPeriodicOffsetCurvePublicProducer().resolve(
         curve: curve, surface: surface,
         options: options, tolerance: tolerance, using: &execution, retainingRelations: true)

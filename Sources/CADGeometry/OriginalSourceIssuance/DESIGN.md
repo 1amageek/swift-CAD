@@ -3407,3 +3407,13 @@ own complete requested coverage, boundary-root issuance and cut composition.
 They consume the [existing gauge contract](../SurfaceSurfaceQueryAdmission/DESIGN.md#original-source-boundary-gauges).
 Source issuance neither calls that solver nor publishes a root or whole-query
 coverage. Its local guard receipts alone cannot establish public SSI completion.
+
+### Linear Snapshot Fixed Validation Boundary
+
+The linear snapshot provider accepts only stored Line3D and analytic line fields.
+After its existing eight fixed work units, it delegates their identical tolerance,
+origin and unit-direction guards to the pure Line3D validator. It does not enter
+the general Curve3D ordinary validator or create a child query execution. The
+accepted fields, guard order, source depth zero, immutable snapshot and terminal
+checkpoint remain unchanged. Whole linear/plane composition uses this same caller
+source admission before its existing chart/DI issuers.

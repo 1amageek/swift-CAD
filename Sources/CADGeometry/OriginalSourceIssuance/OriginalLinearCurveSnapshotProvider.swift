@@ -2,6 +2,7 @@ import CADCore
 #if ORIGINAL_SOURCE_GEOMETRY_ADAPTER_VERIFICATION
 import enum CADGeometry.Curve3D
 import enum CADGeometry.AnalyticCurve3D
+import struct CADGeometry.Line3D
 import L0
 import SourceIssuer
 #endif
@@ -22,7 +23,7 @@ public struct OriginalLinearCurveSnapshotProvider: OriginalSourceSnapshotting {
             }
             // Both accepted families perform a fixed-size coordinate/direction check.
             try admission.consumeWork(8)
-            try input.validate(tolerance: tolerance)
+            try Line3D(origin: origin, direction: direction).validate(tolerance: tolerance)
             let snapshot = OriginalLinearCurveSnapshot(original: copy input, origin: origin, direction: direction)
             try admission.checkpoint(); return .init(original: snapshot, sourceDepth: 0)
         } catch let failure as OriginalSourceIssuanceFailure { throw failure }

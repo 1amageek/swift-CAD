@@ -1,0 +1,849 @@
+{
+  "scope": "Finite authored T x whole/selected original plane UV CS; R22 changed-three actual gates plus unchanged-five R20 assume-guarantee proof",
+  "sourceRoot": "/Users/1amageek/.codex/worktrees/u1-whole-plane-bridge-20261017/swift-CAD",
+  "predecessorR20OwnedSourceSHA256": {
+    "Sources/CADGeometry/NativeExactRelations/OriginalLinearPlaneRelations.swift": "7f99cacdff08547f3156ec72b4949dfc5b88932883b809f416157a5fdca532be",
+    "Sources/CADGeometry/NativeExactGeometricRelations/OriginalLinearPlaneGeometricRelations.swift": "9d70f2c44853d802847689ce04c59700ee000107c5c4b9c06655762fa56e2d1d",
+    "Sources/CADGeometry/NativeExactGeometricRelations/OriginalLinearPlanePointPublisher.swift": "dafe8923bfb50e9061d047182525e13a7ac00178149bcb0baa544a808c96e5f6",
+    "Sources/CADGeometry/NativeExactGeometricRelations/OriginalLinearPlanePublicProducer.swift": "45174d7e51b6d1b67e2e5f767c4056a80f64dd9bb238fe7f5da20f61d1b7e0eb",
+    "Sources/CADGeometry/DefaultCurveSurfaceIntersector.swift": "1bfad3c830ebfd272355ad76b18eb2ab5bf120cdedecf5965aa3369ce6f129ca",
+    "Sources/CADGeometry/CurveSurfaceOverlap/DefaultCurveSurfaceIntersector+Overlap.swift": "ac790d8453a01696fbdfcf398abb6ef2c7fcb31acdd5b2307907d207c1e93bc4",
+    "Sources/CADGeometry/OriginalSourceIssuance/OriginalLinearCurveSnapshotProvider.swift": "5dd1fc2c10c7e2677099f85cf62654d40fcc2dc7379ccf16e944f3ce8117c1b3",
+    "Sources/CADGeometry/NativeExactRelations/DESIGN.md": "c7d274c84ea2272c7e71dab577ebd112cb3f2463a9dc09d8e2ff38f264bbab46",
+    "Sources/CADGeometry/NativeExactGeometricRelations/DESIGN.md": "b397aec48676b4a486bc9ea072130307c173e42321087c6426b795b97b9435c3",
+    "Sources/CADGeometry/OriginalSourceIssuance/DESIGN.md": "02387d81ef5d850949fd84dd50626136970de7636e110a760741a7840dcbed27",
+    "Tests/CADGeometryTests/LinearPlaneWholeSupportChecks.swift": "24691cf0a0bb06dd15e64b52c761c75733cf36a8deb38842a44166a8bcbf6014",
+    "Tests/CADGeometryTests/LinearPlaneWholeSupportTests.swift": "1d7ab3eb58431543efbe9aed5e40beb540f0f2e102e35cba11f5ddd090e9ab05",
+    "Tests/OriginalQueryExecutionVerification/LinearPlaneWholeSupportPortable.swift": "0e2e98a842f2043ebd45b4b6ff90df80b76174529d0177a02148cff6c19d1df8",
+    "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/OriginalExactScalarDomain.swift": "c4ee94a22c08d44c5ed507a6c85586f97f1b949b6a6a60ded5012cade70c94ef",
+    "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/OriginalExactScalarDomain+RetainedRoot.swift": "62b509c7a551d92654b7ef0ae37715c749d3c40ed0ec57286c973e8f6a12c740",
+    "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/DESIGN.md": "16eff4710045217c65e423e8b2317cafb4a8461ed4b43e1029dedbfb87046346",
+    "Sources/CADGeometry/NativeExactRelations/DefaultOriginalLiftPlaneRelationResolver.swift": "5b81a9b2dd8769aa349b59b2b94a612feda897b92b7c7529bfdea6d1c0d94d09",
+    "Sources/CADGeometry/NativeExactRelations/OriginalAffinePlaneParameterRestriction.swift": "abdf7215b8d8e239452dcd529274b67fe42acdc040a353644f6e4ef5f9a75a9d",
+    "Sources/CADGeometry/NativeExactRelations/OriginalLinearPlaneParameterRestriction.swift": "be69929b178d6f6863eebfaebb027a37f685f4cc669d09b1c24dcc4b84b7e990",
+    "Sources/CADGeometry/NativeExactRelations/DefaultOriginalPlaneGraphCompiler.swift": "2491ddb68a2ef398f4979f487f7965b3c64ebdba1d302c6ede38f1ab2f7998fb"
+  },
+  "sourceCount": {
+    "CADCore": 67,
+    "CADGeometry": 2177
+  },
+  "expectedOutputLines": [
+    "PASS line whole-plane finite and ordinary parity",
+    "PASS line whole-plane endpoint empty and parallel",
+    "PASS line whole-plane contained and requested UV",
+    "PASS line whole-plane nonsquare normal and scale",
+    "PASS line whole-plane exact work and storage",
+    "PASS line whole-plane selected scope and independent axes",
+    "PASS line whole-plane entry interior publication cancellation",
+    "PASS line whole-plane retained source lifetime and COW"
+  ],
+  "archives": {
+    "proof-records.tar.gz": {
+      "bytes": 3041056,
+      "sha256": "edd35450d618b30c61faa26a4c8c3345850988fe8e21401dfba6b3944997e245",
+      "members": [
+        {
+          "member": "excluded-history/operation-attribution.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/native-operation-attribution-r1/attribution-summary.json",
+          "bytes": 2605,
+          "sha256": "ae1200838209914213e1d74df2531b2c950b3d509a8e2295fe4774f63f158f66"
+        },
+        {
+          "member": "excluded-history/special-attribution.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/native-special-attribution-r1/attribution-summary.json",
+          "bytes": 2677,
+          "sha256": "5724af5031e0a69b85bd85e80d8c32d34620adf2454c9de0ae3882e8635f44da"
+        },
+        {
+          "member": "final/aggregate.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/portable-storage-findings-r1/aggregate.json",
+          "bytes": 3812,
+          "sha256": "673a0d58275621140f5aef81871e65171b2d573e792de3c630f6806115a83d45"
+        },
+        {
+          "member": "final/asan-input-binding.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/portable-storage-findings-r1/asan-input-binding-final.json",
+          "bytes": 1788,
+          "sha256": "1ef7ad20e5d79f5b13043d0f8cb5b3995c3a1050f05cfec14eed8d1757248a78"
+        },
+        {
+          "member": "final/asan-receipt.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/portable-storage-findings-r1/asan/receipt.json",
+          "bytes": 1983329,
+          "sha256": "cda9cc1d05d75731a56fb328e43b5535db59dd5db85b69d91e6dd7ead5bf4b18"
+        },
+        {
+          "member": "final/binding.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/portable-storage-findings-r1/final-binding.json",
+          "bytes": 5657,
+          "sha256": "8721d6d0dbb04ffd048a0f8482e0fa4251f91c9c0aa1745742a6e4e677a42ec4"
+        },
+        {
+          "member": "final/embedded-input-binding.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/portable-storage-findings-r1/embedded-input-binding-final.json",
+          "bytes": 1796,
+          "sha256": "619da1689d27c35c8773dd5c17acf7df66e8d77a390a038cd964be5e52f1757c"
+        },
+        {
+          "member": "final/embedded-receipt.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/portable-storage-findings-r1/embedded/receipt.json",
+          "bytes": 1993271,
+          "sha256": "7de2ba7a58882984e52efadf6dde035fedf4f2bcce24703704029609a60a687a"
+        },
+        {
+          "member": "final/native-client-receipt.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/native-storage-findings-r1/receipt.json",
+          "bytes": 367318,
+          "sha256": "d84f74667099ebf83f335037ba3cdc23d820189cd20a8a16fc6ed326d47a2cc9"
+        },
+        {
+          "member": "final/native-geometry-receipt.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/native-geometry-r11/receipt.json",
+          "bytes": 835674,
+          "sha256": "d7bd8259566072c89ea0779fe09371998133a717eaa0410acb07e48f7a8a75d2"
+        },
+        {
+          "member": "final/native-results.xml",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/native-storage-findings-r1/results.xml",
+          "bytes": 568,
+          "sha256": "67b67e17d7eed22b764a0974a053b6cc988b30c919afcb8d04eb99a50202ef20"
+        },
+        {
+          "member": "final/source-freeze-r22.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/source-freeze-r22.json",
+          "bytes": 363853,
+          "sha256": "9f64b32a0cdc10bfdaee6c4431d547a7123d78a28ab677330a3c02d97a272333"
+        },
+        {
+          "member": "final/source-main-parity.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/latest-main-r22-composition-r1.json",
+          "bytes": 5220,
+          "sha256": "4426a37481288774769e43785d14a9f6d0adf273d36131a88615a3b4e900e4b6"
+        },
+        {
+          "member": "final/storage-inverse-r22.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/storage-inverse-r22.json",
+          "bytes": 3544,
+          "sha256": "9104abe3c38a5300089ecf78538ba74e63f21a8928218cadc0b426165e1d6ec2"
+        },
+        {
+          "member": "final/unexecuted-main-integration-plan.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/main-public-integration-r1-plan.json",
+          "bytes": 1978,
+          "sha256": "4fbc7c8ac791d4a6764c9fb4cfe6047e1089542de3d131d0a95dce5f3e87c8d0"
+        },
+        {
+          "member": "final/wasm-input-binding.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/portable-storage-findings-r1/wasm-input-binding-final.json",
+          "bytes": 1788,
+          "sha256": "7e54ff252a5270ef3fb021acc73b645e79229547c593ab04988ddb80d93db7f2"
+        },
+        {
+          "member": "final/wasm-receipt.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/portable-storage-findings-r1/wasm/receipt.json",
+          "bytes": 1987229,
+          "sha256": "e8acd9eab1f7e12d9787b228191431d6ce4a2d7d16660386a7eab1721fc66a84"
+        },
+        {
+          "member": "plans/portable-final.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/portable-final-r1/plan-final-r1.json",
+          "bytes": 1865,
+          "sha256": "71fa75c4958e2a004d996022e4ddbd8a7c630fa435211569c9f9e8cdf63eb59b"
+        },
+        {
+          "member": "proofs/lazy-root-inverse-r19.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/lazy-root-inverse-r19.json",
+          "bytes": 1991,
+          "sha256": "7d2d58a2a9d353861161f3db1e2570e561d47ecb8ee44d0fb8940b6d58dca29d"
+        },
+        {
+          "member": "proofs/lift-restriction-extraction.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/lift-restriction-extraction-r1.json",
+          "bytes": 8427,
+          "sha256": "2049de45e2ebe376eec9d6136c89c0de653498e7a29ec443dadc1a0f87d03f53"
+        },
+        {
+          "member": "receipts/asan.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/portable-final-r1/asan-r2/receipt.json",
+          "bytes": 1965600,
+          "sha256": "bb17c4b0cc6ddc22ee196fb63a9e8d6a0b3ad4caf048bd9204be506abe1f9ab2"
+        },
+        {
+          "member": "receipts/embedded.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/portable-final-r1/embedded/receipt.json",
+          "bytes": 1968762,
+          "sha256": "ac15e864f1c07f04726f77c187feba94bdeb6204fc120a4c8046158e16f268aa"
+        },
+        {
+          "member": "receipts/native-client.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/native-client-r15/receipt.json",
+          "bytes": 367057,
+          "sha256": "064db0015400230fb5b3c159e46f2ce4e11b4d0f966057acb54a361df0cb96bd"
+        },
+        {
+          "member": "receipts/native-geometry.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/native-geometry-r10/receipt.json",
+          "bytes": 835675,
+          "sha256": "521b06fc3848f14a6101b048388daf36bed88b71823b49b7814a5dc71bd4be1b"
+        },
+        {
+          "member": "receipts/wasm.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/portable-final-r1/wasm/receipt.json",
+          "bytes": 1962536,
+          "sha256": "26f913418926362bcc92480af27b6e30bc7d8534e7727b04419aa1c4a9141d50"
+        },
+        {
+          "member": "results/native.xml",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/native-client-r15/results.xml",
+          "bytes": 1208,
+          "sha256": "fb145ca0095f51f47e5ef8b41dbb48cd5330a0ad0d69d6dc1637d583ad5b5103"
+        },
+        {
+          "member": "reviews/comprehensive-final-r1.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/review-final-r1/review.json",
+          "bytes": 13647,
+          "sha256": "05b7eadfed46d72be9f092d0e65c8472265c37027637d54b5fbb35a2f2edd284"
+        },
+        {
+          "member": "reviews/finding-F2-R22.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/review-finding-r21/F2-R22.json",
+          "bytes": 4459,
+          "sha256": "d8c88aed591088c0c5885a9c62a9d758d616bcc45f83958c4b92c33b3c743952"
+        },
+        {
+          "member": "reviews/finding-only-r21.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/review-finding-r21/review.json",
+          "bytes": 4834,
+          "sha256": "432c3963b5fc6311c4d1e76ca7e3d7e2bc42e24f027b2c8bdd367feed581c5dd"
+        },
+        {
+          "member": "reviews/root-r14-r15.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/root-review-r14-r15.json",
+          "bytes": 1880,
+          "sha256": "c3818d01dd6b37b42f6bedc6727fb0ff9ca3214415ea2ed4a5e776b92d225558"
+        },
+        {
+          "member": "reviews/root-r16.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/root-review-r16.json",
+          "bytes": 1620,
+          "sha256": "438afc6834df63511318e0eafd215e2e2202e222a0ced197c9b877613df8de78"
+        },
+        {
+          "member": "reviews/root-r17-fixture.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/root-review-r17-fixture.json",
+          "bytes": 953,
+          "sha256": "6a34d8fbcd256fe50586553647c530a616114cd141b25295b1318f76b6549329"
+        },
+        {
+          "member": "reviews/root-r18-oracle.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/root-r18-oracle-confirmation.json",
+          "bytes": 1089,
+          "sha256": "979968d46977e3aaa445cf796fa384b7939a8a2450ca37801dd09363be41a9b7"
+        },
+        {
+          "member": "source-lists/asan-GeometrySources.rsp",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/portable-final-r1/asan-r2/asan/GeometrySources.rsp",
+          "bytes": 454254,
+          "sha256": "e9226490bc5dafa479b4f558014c4b65f26403db04c69d19ec360947ae0105f6"
+        },
+        {
+          "member": "source-lists/embedded-GeometrySources.rsp",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/portable-final-r1/embedded/embedded/GeometrySources.rsp",
+          "bytes": 456431,
+          "sha256": "dd032b6652ccb619250122da5f4b9936cf2c3dc9dcf0b5a5ea49f5f19aa434c7"
+        },
+        {
+          "member": "source-lists/final-asan-GeometrySources.rsp",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/portable-storage-findings-r1/asan/asan/GeometrySources.rsp",
+          "bytes": 471670,
+          "sha256": "30054ddd4794a6d6b059a49c5b56511c1dcfd24029f097bb46e7e3deb7b49954"
+        },
+        {
+          "member": "source-lists/final-embedded-GeometrySources.rsp",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/portable-storage-findings-r1/embedded/embedded/GeometrySources.rsp",
+          "bytes": 480378,
+          "sha256": "5872997f27a9b8173b27666e62e73bb2801914ef44d921ddf426a5e23a6e041a"
+        },
+        {
+          "member": "source-lists/final-wasm-GeometrySources.rsp",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/portable-storage-findings-r1/wasm/wasm/GeometrySources.rsp",
+          "bytes": 471670,
+          "sha256": "3210a0a3bffe713e9de19701c0ad7ccbe827770860d8582838be64f47208bca8"
+        },
+        {
+          "member": "source-lists/wasm-GeometrySources.rsp",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/portable-final-r1/wasm/wasm/GeometrySources.rsp",
+          "bytes": 447723,
+          "sha256": "0597ab0690c42d9f6821fab770e37de3e79a08961faaf5f107cb8b2f332206f4"
+        },
+        {
+          "member": "source/latest-main-source-composition-r1.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/latest-main-source-composition-r1.json",
+          "bytes": 5787,
+          "sha256": "486b809101f499ec369985efc28c41eeb232e7ad572041faa1527f0f08e34107"
+        },
+        {
+          "member": "source/main-core-r3-composition.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/main-core-r3-composition.json",
+          "bytes": 14659,
+          "sha256": "c6662d6a38fd11555573b8c11c1b15e45e4aebb7ae47ea39642878a0b896553e"
+        },
+        {
+          "member": "source/source-freeze-r20.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/source-freeze-r20.json",
+          "bytes": 367225,
+          "sha256": "2c0f5bbbfe22c4ebba45872fcf388a3e84119239052a783af61e39bb122b10ae"
+        }
+      ]
+    },
+    "runtime-logs.tar.gz": {
+      "bytes": 88485,
+      "sha256": "f6de41ebfcc417295daf49d9654a805d6528d9bdaec74bdfe3d65b3dca5e344e",
+      "members": [
+        {
+          "member": "accepted/asan-compile.log",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/portable-final-r1/asan-r2/asan-compile.log",
+          "bytes": 83123,
+          "sha256": "1ef90dbd2fcb1ea78d80ad619ed56185ec256962d0ad9c78484874eb9d48d5c8"
+        },
+        {
+          "member": "accepted/asan-link.log",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/portable-final-r1/asan-r2/asan-link.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "member": "accepted/asan-runtime.log",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/portable-final-r1/asan-r2/asan-runtime.log",
+          "bytes": 417,
+          "sha256": "e1d3f08cae3c3d545904e8b0dbdd503d1b6735646d9d334b30525813668e5174"
+        },
+        {
+          "member": "accepted/embedded-compile.log",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/portable-final-r1/embedded/embedded-compile.log",
+          "bytes": 82344,
+          "sha256": "ba99eec0296732ad63f8f361a9bfa562022ee6e8a87ac270e74cc96ca7781b75"
+        },
+        {
+          "member": "accepted/embedded-link.log",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/portable-final-r1/embedded/embedded-link.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "member": "accepted/embedded-runtime.log",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/portable-final-r1/embedded/embedded-runtime.log",
+          "bytes": 584,
+          "sha256": "70ce2faa14fe604520e4aa40c3ed35175b7d1a102fd9c043cc403b0eae4f522c"
+        },
+        {
+          "member": "accepted/native-client-build.log",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/native-client-r15/test-build-and-list.log",
+          "bytes": 43939,
+          "sha256": "d07fb6ed8eb730f903e06854ef7db3648da87bc6b683d65480b0e8150c51dd78"
+        },
+        {
+          "member": "accepted/native-geometry-compile.log",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/native-geometry-r10/CADGeometry.log",
+          "bytes": 82457,
+          "sha256": "961f41e2d61c1a43136a31240e0b9d9217e6619194e11e10c57bc7f9fa5c1186"
+        },
+        {
+          "member": "accepted/native-runtime.log",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/native-client-r15/test-runtime.log",
+          "bytes": 1480,
+          "sha256": "6ceadf7971c9d0e9676406ab126702153a348b2a22af4723d5fde7dd93ed87dc"
+        },
+        {
+          "member": "accepted/wasm-compile.log",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/portable-final-r1/wasm/wasm-compile.log",
+          "bytes": 82790,
+          "sha256": "62a0320eb838fa8157a460adb6bad20dec1c4d9d9e71d00aef7d0bc703be0714"
+        },
+        {
+          "member": "accepted/wasm-link.log",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/portable-final-r1/wasm/wasm-link.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "member": "accepted/wasm-runtime.log",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/portable-final-r1/wasm/wasm-runtime.log",
+          "bytes": 584,
+          "sha256": "aedae0462ddcbfd2ec1583cbb65eba0ac5da261df326fdc5329ed24ab8390462"
+        },
+        {
+          "member": "excluded-history/operation-runtime.log",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/native-operation-attribution-r1/client/test-runtime.log",
+          "bytes": 9898,
+          "sha256": "6a2ef393288c0844909ebf55b0075dcd435f895570938a91759bafddf9199949"
+        },
+        {
+          "member": "excluded-history/special-runtime.log",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/native-special-attribution-r1/client/test-runtime.log",
+          "bytes": 9947,
+          "sha256": "32b73abae72027d4152b2fecf03bfee121a495aaa27d797b21d77c20a998b8a5"
+        },
+        {
+          "member": "final/asan-compile.log",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/portable-storage-findings-r1/asan/asan-compile.log",
+          "bytes": 84011,
+          "sha256": "72aa9dcdd4fe0147924a32446086179a611c56da0d9caa86e0935c83c869ca9f"
+        },
+        {
+          "member": "final/asan-link.log",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/portable-storage-findings-r1/asan/asan-link.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "member": "final/asan-runtime.log",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/portable-storage-findings-r1/asan/asan-runtime.log",
+          "bytes": 156,
+          "sha256": "4e911885016237338f25351036c9f0932f78d7549850d2e52547ae6678fbe11d"
+        },
+        {
+          "member": "final/embedded-compile.log",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/portable-storage-findings-r1/embedded/embedded-compile.log",
+          "bytes": 83554,
+          "sha256": "0ee919dd8e3757deeabcce4989de0b67807315840979a735eb189b9063a9beb3"
+        },
+        {
+          "member": "final/embedded-link.log",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/portable-storage-findings-r1/embedded/embedded-link.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "member": "final/embedded-runtime.log",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/portable-storage-findings-r1/embedded/embedded-runtime.log",
+          "bytes": 323,
+          "sha256": "3d93aca39b3ced4316c1f07617e8f8020422bcaeda5bfdf9dbc37c2064f03943"
+        },
+        {
+          "member": "final/native-geometry-compile.log",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/native-geometry-r11/CADGeometry.log",
+          "bytes": 82457,
+          "sha256": "89e05bcf0c683ac65c1345d891df6faf94812874b04889041d02933709bb16ba"
+        },
+        {
+          "member": "final/native-test-build-and-list.log",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/native-storage-findings-r1/test-build-and-list.log",
+          "bytes": 45841,
+          "sha256": "61784c49194f3fdcfa6a14576b6b5670d67fbb73ffa56e6540bdc8c6a30cff4f"
+        },
+        {
+          "member": "final/native-test-runtime.log",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/native-storage-findings-r1/test-runtime.log",
+          "bytes": 895,
+          "sha256": "1cb0dab8bcc8e0e08be31bf08b9612d412be1fe82d38dba685fc84e1fb1afcea"
+        },
+        {
+          "member": "final/wasm-compile.log",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/portable-storage-findings-r1/wasm/wasm-compile.log",
+          "bytes": 84011,
+          "sha256": "77d6f45878291db7293c527501699d3dc88bd6f4aca5ad5a3e774e4d127986cc"
+        },
+        {
+          "member": "final/wasm-link.log",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/portable-storage-findings-r1/wasm/wasm-link.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "member": "final/wasm-runtime.log",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/portable-storage-findings-r1/wasm/wasm-runtime.log",
+          "bytes": 323,
+          "sha256": "9468a51d138f7d72e23557423c2828086c404c41b22aae1ce9bed45d8e11313d"
+        }
+      ]
+    }
+  },
+  "externalHistoryReferences": {
+    "operation-diagnostic-receipt": {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/native-operation-attribution-r1/client/receipt.json",
+      "sha256": "54bc4273aa44ff3de2dacd1c7bf935749417d1df2aea9e6ff82e15ca0bcd6b4f",
+      "accepted": false
+    },
+    "special-diagnostic-receipt": {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/native-special-attribution-r1/client/receipt.json",
+      "sha256": "22f88463b2a2c41838a7c094c214f480d51ed199de427a1dd4cdb4f0f6a8bf8f",
+      "accepted": false
+    }
+  },
+  "newPackagingCompilerRuns": 0,
+  "newPackagingRuntimeRuns": 0,
+  "newPackagingReviews": 0,
+  "integration": {
+    "status": "pending Root Main replay and integration metadata/commit",
+    "baseMain": "28d425ab0ff1d29616b5315fd4b20532ba6fd931",
+    "sourceParitySHA256": "4426a37481288774769e43785d14a9f6d0adf273d36131a88615a3b4e900e4b6",
+    "unexecutedPlanSHA256": "4fbc7c8ac791d4a6764c9fb4cfe6047e1089542de3d131d0a95dce5f3e87c8d0",
+    "owner": "Root"
+  },
+  "excludedCoverage": [
+    "All curve/surface families",
+    "PlanePair SSI",
+    "Whole CS",
+    "Real box Section and ordinary evaluator",
+    "Section P+1 failure-before-stale and sink-empty",
+    "Positive Section nonempty SVG",
+    "UI",
+    "All U1 requirements",
+    "Main product binding/runtime and commit"
+  ],
+  "retiredArtifactPolicy": "Historical acceptance is retained; missing/retired tools, SDKs, modules, snapshots or dependency products do not make old commands rerunnable. Verify a matching closure before future execution.",
+  "status": "finite-line-whole-plane-CS-R22-focused-gates-and-R20-unchanged-contract-reuse-passed",
+  "currentSourceFreeze": {
+    "member": "final/source-freeze-r22.json",
+    "sha256": "9f64b32a0cdc10bfdaee6c4431d547a7123d78a28ab677330a3c02d97a272333"
+  },
+  "currentOwnedSourceSHA256": {
+    "Sources/CADGeometry/NativeExactRelations/OriginalLinearPlaneRelations.swift": "7f99cacdff08547f3156ec72b4949dfc5b88932883b809f416157a5fdca532be",
+    "Sources/CADGeometry/NativeExactGeometricRelations/OriginalLinearPlaneGeometricRelations.swift": "7e51dfffee0876794770d3f1ab9955cf3758e46ee7fb41277c172939126720b1",
+    "Sources/CADGeometry/NativeExactGeometricRelations/OriginalLinearPlanePointPublisher.swift": "dafe8923bfb50e9061d047182525e13a7ac00178149bcb0baa544a808c96e5f6",
+    "Sources/CADGeometry/NativeExactGeometricRelations/OriginalLinearPlanePublicProducer.swift": "9a652132bfceb9c9e42531c667eb64b7952731ce34f0199b7eb8cf6d6ae4439f",
+    "Sources/CADGeometry/DefaultCurveSurfaceIntersector.swift": "1bfad3c830ebfd272355ad76b18eb2ab5bf120cdedecf5965aa3369ce6f129ca",
+    "Sources/CADGeometry/CurveSurfaceOverlap/DefaultCurveSurfaceIntersector+Overlap.swift": "ac790d8453a01696fbdfcf398abb6ef2c7fcb31acdd5b2307907d207c1e93bc4",
+    "Sources/CADGeometry/OriginalSourceIssuance/OriginalLinearCurveSnapshotProvider.swift": "5dd1fc2c10c7e2677099f85cf62654d40fcc2dc7379ccf16e944f3ce8117c1b3",
+    "Sources/CADGeometry/NativeExactRelations/DESIGN.md": "d9fa214b3dfca3ab13550f44694d58458b660644f4c92720f6b499ca9077bfa8",
+    "Sources/CADGeometry/NativeExactGeometricRelations/DESIGN.md": "e3e1fb484f2464774833c8697d37953ff133dace3b7fafb8ed0c3ba2297afb73",
+    "Sources/CADGeometry/OriginalSourceIssuance/DESIGN.md": "02387d81ef5d850949fd84dd50626136970de7636e110a760741a7840dcbed27",
+    "Tests/CADGeometryTests/LinearPlaneWholeSupportChecks.swift": "61dc972a9f9cb3486e59fced628a526d18937d9e414a7ae071f26f90e2157352",
+    "Tests/CADGeometryTests/LinearPlaneWholeSupportTests.swift": "1d7ab3eb58431543efbe9aed5e40beb540f0f2e102e35cba11f5ddd090e9ab05",
+    "Tests/OriginalQueryExecutionVerification/LinearPlaneWholeSupportPortable.swift": "0e2e98a842f2043ebd45b4b6ff90df80b76174529d0177a02148cff6c19d1df8",
+    "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/OriginalExactScalarDomain.swift": "c4ee94a22c08d44c5ed507a6c85586f97f1b949b6a6a60ded5012cade70c94ef",
+    "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/OriginalExactScalarDomain+RetainedRoot.swift": "62b509c7a551d92654b7ef0ae37715c749d3c40ed0ec57286c973e8f6a12c740",
+    "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/DESIGN.md": "16eff4710045217c65e423e8b2317cafb4a8461ed4b43e1029dedbfb87046346",
+    "Sources/CADGeometry/NativeExactRelations/DefaultOriginalLiftPlaneRelationResolver.swift": "5b81a9b2dd8769aa349b59b2b94a612feda897b92b7c7529bfdea6d1c0d94d09",
+    "Sources/CADGeometry/NativeExactRelations/OriginalAffinePlaneParameterRestriction.swift": "896e868a0b286d04b8de3a0e4c8daa5de6b5ffc461034c1092d0ca16b6a5ee90",
+    "Sources/CADGeometry/NativeExactRelations/OriginalLinearPlaneParameterRestriction.swift": "be69929b178d6f6863eebfaebb027a37f685f4cc669d09b1c24dcc4b84b7e990",
+    "Sources/CADGeometry/NativeExactRelations/DefaultOriginalPlaneGraphCompiler.swift": "2491ddb68a2ef398f4979f487f7965b3c64ebdba1d302c6ede38f1ab2f7998fb"
+  },
+  "predecessorR20ObservedLanes": {
+    "native": {
+      "groups": 8,
+      "clientReceiptSHA256": "064db0015400230fb5b3c159e46f2ce4e11b4d0f966057acb54a361df0cb96bd",
+      "moduleReceiptSHA256": "521b06fc3848f14a6101b048388daf36bed88b71823b49b7814a5dc71bd4be1b",
+      "receiptMember": "receipts/native-client.json",
+      "runtimeLogMember": "accepted/native-runtime.log",
+      "steps": {
+        "compiler-version": {
+          "exitCode": 0,
+          "elapsedSeconds": 0.24599450000096112,
+          "sampledPeakProcessTreeRSSBytes": 262144,
+          "stopReason": null
+        },
+        "test-build-and-list": {
+          "exitCode": 0,
+          "elapsedSeconds": 12.64948295801878,
+          "sampledPeakProcessTreeRSSBytes": 636370944,
+          "stopReason": null
+        },
+        "test-runtime": {
+          "exitCode": 0,
+          "elapsedSeconds": 17.055497666995507,
+          "sampledPeakProcessTreeRSSBytes": 131694592,
+          "stopReason": null
+        }
+      }
+    },
+    "asan": {
+      "groups": 8,
+      "receiptSHA256": "bb17c4b0cc6ddc22ee196fb63a9e8d6a0b3ad4caf048bd9204be506abe1f9ab2",
+      "receiptMember": "receipts/asan.json",
+      "runtimeLogMember": "accepted/asan-runtime.log",
+      "phases": [
+        {
+          "name": "asan-compile",
+          "exitCode": 0,
+          "elapsedSeconds": 129.10631137498422,
+          "sampledPeakProcessTreeRSSBytes": 5539430400,
+          "stopReason": null
+        },
+        {
+          "name": "asan-link",
+          "exitCode": 0,
+          "elapsedSeconds": 2.758303291979246,
+          "sampledPeakProcessTreeRSSBytes": 768884736,
+          "stopReason": null
+        },
+        {
+          "name": "asan-runtime",
+          "exitCode": 0,
+          "elapsedSeconds": 54.551494457991794,
+          "sampledPeakProcessTreeRSSBytes": 855441408,
+          "stopReason": null
+        }
+      ],
+      "matchedOracleLines": [
+        "PASS line whole-plane finite and ordinary parity",
+        "PASS line whole-plane endpoint empty and parallel",
+        "PASS line whole-plane contained and requested UV",
+        "PASS line whole-plane nonsquare normal and scale",
+        "PASS line whole-plane exact work and storage",
+        "PASS line whole-plane selected scope and independent axes",
+        "PASS line whole-plane entry interior publication cancellation",
+        "PASS line whole-plane retained source lifetime and COW"
+      ],
+      "allDrift": []
+    },
+    "wasm": {
+      "groups": 8,
+      "receiptSHA256": "26f913418926362bcc92480af27b6e30bc7d8534e7727b04419aa1c4a9141d50",
+      "receiptMember": "receipts/wasm.json",
+      "runtimeLogMember": "accepted/wasm-runtime.log",
+      "phases": [
+        {
+          "name": "wasm-compile",
+          "exitCode": 0,
+          "elapsedSeconds": 116.38211883298936,
+          "sampledPeakProcessTreeRSSBytes": 4989173760,
+          "stopReason": null
+        },
+        {
+          "name": "wasm-link",
+          "exitCode": 0,
+          "elapsedSeconds": 2.081715417007217,
+          "sampledPeakProcessTreeRSSBytes": 770801664,
+          "stopReason": null
+        },
+        {
+          "name": "wasm-runtime",
+          "exitCode": 0,
+          "elapsedSeconds": 25.285254374990473,
+          "sampledPeakProcessTreeRSSBytes": 487030784,
+          "stopReason": null
+        }
+      ],
+      "matchedOracleLines": [
+        "PASS line whole-plane finite and ordinary parity",
+        "PASS line whole-plane endpoint empty and parallel",
+        "PASS line whole-plane contained and requested UV",
+        "PASS line whole-plane nonsquare normal and scale",
+        "PASS line whole-plane exact work and storage",
+        "PASS line whole-plane selected scope and independent axes",
+        "PASS line whole-plane entry interior publication cancellation",
+        "PASS line whole-plane retained source lifetime and COW"
+      ],
+      "allDrift": []
+    },
+    "embedded": {
+      "groups": 8,
+      "receiptSHA256": "ac15e864f1c07f04726f77c187feba94bdeb6204fc120a4c8046158e16f268aa",
+      "receiptMember": "receipts/embedded.json",
+      "runtimeLogMember": "accepted/embedded-runtime.log",
+      "phases": [
+        {
+          "name": "embedded-compile",
+          "exitCode": 0,
+          "elapsedSeconds": 66.27934616699349,
+          "sampledPeakProcessTreeRSSBytes": 2668478464,
+          "stopReason": null
+        },
+        {
+          "name": "embedded-link",
+          "exitCode": 0,
+          "elapsedSeconds": 46.97002795798471,
+          "sampledPeakProcessTreeRSSBytes": 2931195904,
+          "stopReason": null
+        },
+        {
+          "name": "embedded-runtime",
+          "exitCode": 0,
+          "elapsedSeconds": 6.686687750014244,
+          "sampledPeakProcessTreeRSSBytes": 213499904,
+          "stopReason": null
+        }
+      ],
+      "matchedOracleLines": [
+        "PASS line whole-plane finite and ordinary parity",
+        "PASS line whole-plane endpoint empty and parallel",
+        "PASS line whole-plane contained and requested UV",
+        "PASS line whole-plane nonsquare normal and scale",
+        "PASS line whole-plane exact work and storage",
+        "PASS line whole-plane selected scope and independent axes",
+        "PASS line whole-plane entry interior publication cancellation",
+        "PASS line whole-plane retained source lifetime and COW"
+      ],
+      "allDrift": []
+    }
+  },
+  "finalR22Lanes": {
+    "native": {
+      "receiptMember": "final/native-client-receipt.json",
+      "sha256": "d84f74667099ebf83f335037ba3cdc23d820189cd20a8a16fc6ed326d47a2cc9",
+      "actualChangedGroups": 3,
+      "sourceAndProductsUnchanged": true,
+      "metrics": {
+        "compiler-version": {
+          "exitCode": 0,
+          "elapsedSeconds": 0.689451166021172,
+          "sampledPeakProcessTreeRSSBytes": 34013184,
+          "stopReason": null
+        },
+        "test-build-and-list": {
+          "exitCode": 0,
+          "elapsedSeconds": 59.882720541994786,
+          "sampledPeakProcessTreeRSSBytes": 585908224,
+          "stopReason": null
+        },
+        "test-runtime": {
+          "exitCode": 0,
+          "elapsedSeconds": 6.343889707990456,
+          "sampledPeakProcessTreeRSSBytes": 131350528,
+          "stopReason": null
+        }
+      }
+    },
+    "asan": {
+      "receiptMember": "final/asan-receipt.json",
+      "sha256": "cda9cc1d05d75731a56fb328e43b5535db59dd5db85b69d91e6dd7ead5bf4b18",
+      "actualChangedGroups": 3,
+      "allDrift": [],
+      "matchedOracleLines": [
+        "PASS line whole-plane exact work and storage",
+        "PASS line whole-plane contained and requested UV",
+        "PASS line whole-plane entry interior publication cancellation"
+      ],
+      "metrics": [
+        {
+          "name": "asan-compile",
+          "exitCode": 0,
+          "elapsedSeconds": 565.4830009580182,
+          "sampledPeakProcessTreeRSSBytes": 5156782080,
+          "stopReason": null
+        },
+        {
+          "name": "asan-link",
+          "exitCode": 0,
+          "elapsedSeconds": 7.808216125005856,
+          "sampledPeakProcessTreeRSSBytes": 720322560,
+          "stopReason": null
+        },
+        {
+          "name": "asan-runtime",
+          "exitCode": 0,
+          "elapsedSeconds": 8.885825624980498,
+          "sampledPeakProcessTreeRSSBytes": 595050496,
+          "stopReason": null
+        }
+      ]
+    },
+    "wasm": {
+      "receiptMember": "final/wasm-receipt.json",
+      "sha256": "e8acd9eab1f7e12d9787b228191431d6ce4a2d7d16660386a7eab1721fc66a84",
+      "actualChangedGroups": 3,
+      "allDrift": [],
+      "matchedOracleLines": [
+        "PASS line whole-plane exact work and storage",
+        "PASS line whole-plane contained and requested UV",
+        "PASS line whole-plane entry interior publication cancellation"
+      ],
+      "metrics": [
+        {
+          "name": "wasm-compile",
+          "exitCode": 0,
+          "elapsedSeconds": 198.88306779201957,
+          "sampledPeakProcessTreeRSSBytes": 8290123776,
+          "stopReason": null
+        },
+        {
+          "name": "wasm-link",
+          "exitCode": 0,
+          "elapsedSeconds": 2.083984083001269,
+          "sampledPeakProcessTreeRSSBytes": 769916928,
+          "stopReason": null
+        },
+        {
+          "name": "wasm-runtime",
+          "exitCode": 0,
+          "elapsedSeconds": 1.400974916992709,
+          "sampledPeakProcessTreeRSSBytes": 489799680,
+          "stopReason": null
+        }
+      ]
+    },
+    "embedded": {
+      "receiptMember": "final/embedded-receipt.json",
+      "sha256": "7de2ba7a58882984e52efadf6dde035fedf4f2bcce24703704029609a60a687a",
+      "actualChangedGroups": 3,
+      "allDrift": [],
+      "matchedOracleLines": [
+        "PASS line whole-plane exact work and storage",
+        "PASS line whole-plane contained and requested UV",
+        "PASS line whole-plane entry interior publication cancellation"
+      ],
+      "metrics": [
+        {
+          "name": "embedded-compile",
+          "exitCode": 0,
+          "elapsedSeconds": 58.48928549999255,
+          "sampledPeakProcessTreeRSSBytes": 4165599232,
+          "stopReason": null
+        },
+        {
+          "name": "embedded-link",
+          "exitCode": 0,
+          "elapsedSeconds": 45.798503416997846,
+          "sampledPeakProcessTreeRSSBytes": 5343379456,
+          "stopReason": null
+        },
+        {
+          "name": "embedded-runtime",
+          "exitCode": 0,
+          "elapsedSeconds": 0.6980773330142256,
+          "sampledPeakProcessTreeRSSBytes": 210173952,
+          "stopReason": null
+        }
+      ]
+    }
+  },
+  "proofComposition": {
+    "groupsPerEnvironment": 8,
+    "R22ActualChangedFunctions": [
+      "exactWorkAndStorageBoundaries",
+      "containedAndRequestedUV",
+      "cancellationAtEntryInteriorAndPublication"
+    ],
+    "R20ReusedUnchangedFunctions": [
+      "finiteAndOrdinaryParity",
+      "endpointEmptyAndParallel",
+      "nonsquareNormalAndScale",
+      "selectedScopeAndIndependentAxes",
+      "retainedSourceLifetimeAndCOW"
+    ],
+    "bindingMember": "final/binding.json",
+    "aggregateMember": "final/aggregate.json",
+    "reuseMeaning": "Five function bodies unchanged; exact production inverse preserves source/math/roots/guards/selection/results/caps. Changed fee timing and quantities verified by three actual R22 functions in each environment. Not a claim of rerunning all eight on R22 or forty-four distinct cases."
+  },
+  "sourceParity": {
+    "rootRecord": "final/source-main-parity.json",
+    "all2244SourceInputsMatchedAtPackaging": true,
+    "owned20MatchedAtPackaging": true
+  },
+  "finalPostflight": {
+    "source": [],
+    "owned": [],
+    "products": [],
+    "CoreOrigins": [],
+    "matchingFixtures": []
+  },
+  "findingClosure": {
+    "F1F2SourceMember": "reviews/finding-only-r21.json",
+    "F2IndependentOracleMember": "reviews/finding-F2-R22.json",
+    "firstComprehensiveMember": "reviews/comprehensive-final-r1.json",
+    "newReviewByPackager": 0
+  },
+  "documentation": {
+    "VERIFICATION.md": {
+      "sha256": "bfe027fffaee2106f1ba38df2f36dcffd15fa190fdadb8e47717d4eecc8b1238",
+      "bytes": 9396
+    },
+    "REVIEW.md": {
+      "sha256": "8ee7bf2da935736a18c41bb5204cb18700251949912e1697fa207b5d89e19ffa",
+      "bytes": 3810
+    }
+  },
+  "predecessorR20SourceFreezeSHA256": "2c0f5bbbfe22c4ebba45872fcf388a3e84119239052a783af61e39bb122b10ae"
+}

@@ -33,7 +33,7 @@ extension OriginalExactScalarDomain {
                 isolation: .init(lower: root.isolation.lower, upper: root.isolation.upper,
                     excludesLower: root.isolation.excludesLowerEndpoint,
                     excludesUpper: root.isolation.excludesUpperEndpoint, depth: root.isolation.isolationDepth),
-                admissionDomain: axis == .value ? .parameter : .coefficient(maximumDepth: parent.maximumCoefficientDepth))
+                admissionDomain: axis == .value ? .parameter : .coefficient(maximumDepth: parent.maximumCoefficientDepth)).retainingRationalIsolation(root)
             let child = try OriginalSingularFieldContext(root: selected, usage: &usage)
             guard case .extended(let zero, let unit) = child.constantAuthority else {
                 throw ExactScalarFailure.invalidEvidence

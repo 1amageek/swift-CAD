@@ -217,6 +217,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     options: CurveSurfaceIntersectionOptions, tolerance: ModelingTolerance,
     using execution: inout OriginalQueryExecution
   ) throws -> [CurveSurfaceIntersection] {
+      if let linear = try OriginalLinearPlanePublicProducer().resolve(curve: curve, surface: surface,
+        options: options, tolerance: tolerance, using: &execution) { return linear.points }
       if let periodic = try OriginalPeriodicOffsetCurvePublicProducer().resolve(curve:curve,surface:surface,
         options:options,tolerance:tolerance,using:&execution) { return periodic.points }
       if let pairLift = try OriginalCertifiedPairLiftPublicProducer().resolve(curve:curve,surface:surface,

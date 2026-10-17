@@ -82,6 +82,26 @@ failures use ExactScalarFailure and Swift cancellation directly.
 
 ## Contracts and Invariants
 
+### Sealed rational roots in retained original fields
+
+Both `OriginalExactScalarDomain(root:axis:...)` and
+`OriginalExactScalarDomain(extending:root:axis:...)` retain the supplied sealed
+`ExactAlgebraicRealRoot` inside the existing immutable singular-field root.
+The source polynomial, unique-root selector, isolating bracket and causal depth
+remain identical; field binding does not discard and later reconstruct that
+authority. This uses the existing retained-root payload and adds no cache,
+scalar representation, root search or solver.
+
+Every later sign, comparison and refinement still uses its incoming admission,
+including the selected parameter/coefficient proof scope, depth readmission,
+work, storage and cancellation. A retained equal bracket reuses its existing
+Sturm authority after those checks. Independent readers with insufficient depth
+or cancellation fail explicitly; releasing the issuing field or source does
+not release the retained proof. Existing line/whole-plane public checks exercise
+the two coefficient extensions and unchanged whole-domain relation, alongside
+focused field-law, independent-reader and lifetime controls.
+
+
 ### Ordered shared-divisor arithmetic
 
 `ExactScalarArithmetic.dividing(_:by:using:)` divides an ordered borrowed array

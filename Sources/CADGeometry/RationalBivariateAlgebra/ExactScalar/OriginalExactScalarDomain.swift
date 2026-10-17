@@ -47,7 +47,7 @@ public struct OriginalExactScalarDomain: ExactScalarArithmetic, ExactScalarOrder
                 isolation: .init(lower: root.isolation.lower, upper: root.isolation.upper,
                     excludesLower: root.isolation.excludesLowerEndpoint,
                     excludesUpper: root.isolation.excludesUpperEndpoint, depth: root.isolation.isolationDepth),
-                admissionDomain: axis == .value ? .parameter : .coefficient(maximumDepth: maximumCoefficientDepth))
+                admissionDomain: axis == .value ? .parameter : .coefficient(maximumDepth: maximumCoefficientDepth)).retainingRationalIsolation(root)
             return try OriginalSingularFieldContext(root: selected, usage: &usage)
         }
         context = result.value; self.maximumValueDepth = maximumValueDepth

@@ -78,6 +78,32 @@ public struct DefaultOriginalPlaneGraphCompiler<S: OriginalPlaneSourceReading>: 
                     }
                     try append(.and,to:&program,&a)
                 }
+                // Specialize only on proved closed singleton domains; retain both
+                // authored parameter slots and every original membership guard.
+                var replacements: [Polynomial] = []
+                for axis in 0..<2 {
+                    try a.consumeWork(1)
+                    let selected = domains[axis]
+                    guard selected.includesLower, selected.includesUpper,
+                        case .finite(let lower) = selected.lower,
+                        case .finite(let upper) = selected.upper,
+                        try field.compare(lower, upper, using: &a) == .equal else { continue }
+                    if replacements.isEmpty {
+                        try a.retainStorage(bytes: exactScalarPayloadBytes(count: 2, of: Polynomial.self))
+                        replacements.reserveCapacity(2)
+                        for index in 0..<2 {
+                            try a.consumeWork(1)
+                            replacements.append(try ring.variable(index, using: &a))
+                        }
+                    }
+                    replacements[axis] = try ring.constant(lower, using: &a)
+                }
+                if !replacements.isEmpty {
+                    for index in laws.indices {
+                        try a.consumeWork(1)
+                        laws[index] = try ring.substituted(laws[index], with: replacements, using: &a)
+                    }
+                }
                 let source = try cells.bind(polynomials:laws,domains:domains,using:&a)
                 let predicate = try cells.predicate(instructions:program,for:source,using:&a)
                 let solver = ExactParametricRelationDomain<Base,Cells,ExactRealTopology<Base>>(cells:Cells.self,topology:.init(cells:Cells.self))

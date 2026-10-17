@@ -1183,3 +1183,207 @@ preserves discovery of the retained failure. This changes neither error storage
 nor shared-state synchronization. The common four-target runtime fixture checks
 the original typed cause and immutable context after publication, beyond link
 success.
+
+## Finite Line / Whole-Plane Public Composition
+
+Both ordinary and direct bare/rich CS entries select the same original linear
+plane producer. It consumes the retained complete graph product described by
+[Native Exact Relations](../NativeExactRelations/DESIGN.md#finite-line-and-whole-original-plane).
+Existing L6 publication supplies exact XYZ, original T/UV and image/fibre evidence.
+The numerical point publisher refines only those proved tuples and checks the
+original forward line and plane laws; numerical residuals are publication accuracy,
+not existence or completeness authority. A line/regular plane product has at most
+one isolated original tuple; every decomposed incident is retained and exact tuple
+equality is checked before numerical grouping.
+
+Complete empty, isolated endpoint/interior contact and contained positive-dimensional
+components remain distinct. Bare entries reject positive-dimensional solutions;
+rich entries retain them without manufacturing endpoint-only overlap or empty
+success. Requested UV membership is composed by the existing plane domain issuer.
+All source preparation, graph solving, typed buffers, tuple refinement and terminal
+cancellation use the incoming execution and its active contribution scopes.
+Owners retain immutable source/DI values, have no mutable query ledger, and share
+the same Sendable/COW contract on Native, WASM and Embedded.
+
+Verification uses the shared LinearPlaneWholeSupport checks through public ordinary
+and direct entries, exact tuple/image/fibre reads, complete-empty/contained controls,
+explicit UV restrictions, exact work/storage boundaries, cancellation and retained
+source lifetime. The existing real box Section positive remains the integration
+consumer; it is not replaced by a synthetic graph fixture.
+
+The two plane normalization lengths are coefficient preparation only. Their raw
+square sums come from the retained original normal; the existing basis issuer
+rechecks both square equations and all orthonormal laws and remains the only
+plane position/UV authority. The complete field is selected before either line
+or plane graph is issued. Coefficient proof scopes retain the actual Sturm
+isolation depth and sealed root owner; field extension count is not a depth
+proxy. Pure primitive source depth and geometric subdivision remain independent.
+
+### One primitive field for the two plane coefficient lengths
+
+The public producer owns only coefficient-field preparation; the existing
+`DefaultOriginalPlaneBasisIssuer` remains the authority for the authored basis,
+position and UV laws. It selects a positive, exactly representable power of two
+`p` from the largest raw normal component's binary exponent. Each original
+binary64 component is imported exactly and divided by `p` in rational arithmetic.
+No rounded vector normalization or floating square root is used. The resulting
+normal and reference-cross squared lengths are positive rationals `s` and `t`.
+The reference axis still comes from the original source issuer.
+
+| Exact coefficient case | Preparation |
+|---|---|
+| Both rational square roots | Keep the rational field |
+| One rational square root | Adjoin only the other positive sealed quadratic root |
+| Both nonsquare, `t/s` a rational square | Adjoin the positive root of `s` once and multiply by the positive rational ratio root |
+| Both nonsquare, `t/s` not a rational square | Adjoin only `a = sqrt(s) + sqrt(t)` and recover both lengths in that same field |
+
+For the final case the existing L2 Sturm isolator solves the exact source
+polynomial `a^4 - 2(s+t)a^2 + (s-t)^2`. Here `s != t`, so it has exactly two
+positive real roots. Both are isolated over `[0, 1+s+t]`; the isolator's complete
+root list and paid rational bracket ordering select the larger root. The upper
+bound exceeds `sqrt(s)+sqrt(t)` because `(1+s+t)^2 > 2(s+t)` and
+`(sqrt(s)+sqrt(t))^2 <= 2(s+t)`. The chosen root is sealed by the existing L2
+constructor and retained through the existing coefficient-axis field binding.
+The field expressions `(a + (s-t)/a)/2` and `(a - (s-t)/a)/2` recover the two
+positive lengths. Multiplication by the exact positive `p` restores the original
+raw source lengths. The existing basis issuer checks both original square laws,
+positivity and orthonormality before issuing any graph.
+
+The power-of-two scaling bounds coefficient magnitudes without promising an
+unproved isolation depth or bypassing a limit. Every isolation/refinement uses
+the actual caller's coefficient proof scope and maximum depth. Root counts,
+ordering, exact divisions, guards and restoration consume that same admission;
+insufficient depth/work/storage and cancellation remain typed failures. All
+charts and graphs use the one final field, preserving the complete finite T by
+whole-plane UV request. There is no nested coefficient tower, new solver, cache,
+finite search window, altered output layout or fallback after selection.
+
+The line/plane relation consumes the shared source-bound plane-incidence
+restriction described in [Native Exact Relations](../NativeExactRelations/DESIGN.md#shared-original-graph--plane-preimage-restriction).
+It retains the original full family and restriction separately from the actual
+selected graph used by L5. L6 parameter publication uses that selected graph's
+transport and the original template ordinal; it does not relabel a solved
+singleton as an unrestricted original graph. Necessary affine preselection
+never proves contact by itself. On a proved isolated T, the same retained source
+endpoint and original plane basis inverse select the necessary exact UV tuple
+on the original request frame. Both actual selected graphs reach L5/L6, while
+the original complete plane request and complementary exclusion remain retained
+by the restriction owner; contained requests keep their whole domain.
+
+The new owner uses the existing public `OriginalIssuedGeometricRelationReading`
+requirements, pairs and exact points. No result field or public reader witness is
+added solely for a fixture. The immutable relation owner has one static factory: it
+admits the existing typed stored payload plus two-word class header before
+constructing its preparation receipt, then invokes a private nonthrowing initializer.
+No allocation-capable initializer bypasses that same-caller admission. The fee and
+preparation order remain unchanged; only allocation now follows successful admission.
+Existing preparation receipts retain active contributions internally. First-query
+scope accounting and source/COW lifetime are exercised through actual public
+results; their immutable metadata reads do not perform a new unbudgeted solve.
+
+
+### Finite line/plane numerical continuation
+
+The numerical publisher consumes the already proved complete isolated tuple.
+For the primitive coefficient representation above, all six coordinates belong
+to the same retained field: either rational constants, or rational functions of
+one sealed rational algebraic coefficient root. The invocation owns one local
+continuation of that root, not six independent bisection searches for coordinate
+values. Each coordinate keeps its original exact value and the original
+numerator/denominator polynomial coefficients. The existing rational polynomial
+range owner encloses those polynomials over the current certified root bracket.
+A denominator range must have one strict sign before division; otherwise the
+same original root is refined further. Negative denominator ranges are negated
+exactly before the existing positive-denominator quotient enclosure is used.
+
+The continuation invokes the existing sealed L2 root refinement in its original
+coefficient proof scope, retains every achieved bracket/depth for the next
+iteration and all six coordinates, and admits its actual typed buffers and
+retained owners under the same caller execution. It introduces no root equation,
+root selection, cache, alternative scalar domain, numerical equality, or assumed
+precision/depth bound. Rational coordinates use their exact outward conversion.
+Unexpected foreign fields or non-rational parent coefficients are rejected as
+invalid evidence, since this source-specific primitive-field producer cannot
+issue them. They are not silently reinterpreted or solved independently.
+
+The numerical continuation selects the existing `refinedForSeparation` variant
+of that same sealed root refiner. Its existing Sturm-counted bisection preserves
+the unique selected root and endpoint exclusions, and admits each actual step
+on the coefficient axis under the unchanged caller ceiling. The source's
+rational dyadic initial bracket stays dyadic, gaining only one bisection level
+per step. The interval-Newton variant can instead produce general rational
+endpoints whose denominators then enter every coordinate Bernstein range and
+quotient operation. The r12 diagnostic located both this refinement and those
+range quotients (the final stack return at `bounds +3800` follows its quotient
+call) before publication reached final distance checks. This local choice avoids
+that intermediate rational growth without adding a solver, changing the field,
+assuming a precision/depth bound, or bypassing any admission. Failure at the
+actual coefficient depth or other resource ceiling remains explicit.
+
+The final numerical checks consume certified rational enclosures of their
+original exact differences over that same invocation-local coefficient root.
+For any same-field scalar, the publisher admits its original and inherited
+scalar depths, verifies the original field and parent-polynomial contexts, and
+uses the existing Bernstein numerator/denominator range owner. A denominator
+range must have a strict sign; a negative range is negated before the existing
+positive quotient operation. Rational scalars have singleton rational bounds.
+Only the source's retained sealed root and its certified refinements enter this
+helper. It does not invoke a separate sign refinement or reconstruct a field.
+
+Root retention is also checked when an arbitrary final-check scalar is first
+classified. Initial T/UV/XYZ values may all be rational even though the plane's
+coefficient field is extended. Original forward arithmetic can then retain a
+zero numerator over a nonconstant coefficient denominator. That value still
+needs the field's exact root bracket for its quotient enclosure; rational initial
+coordinates do not imply that later scalars never need it. The helper classifies
+each scalar once under the same numeric admission. For a fraction with no local
+root yet, it retains only that exact field context's existing sealed rational
+coefficient root, admits its actual isolation depth, and merges that observation
+into the same invocation-local depth before range evaluation. It neither issues
+nor selects a new root. Unseparated denominator ranges remain inconclusive and
+continue through the existing root refiner and width schedule. Missing or
+incompatible retained evidence remains failure. The concrete normal `(1,2,0)`
+control keeps this rational-point/irrational-basis case in the original suite.
+
+The private accuracy result has exactly two meanings:
+
+| Result | Guarantee / next action |
+| --- | --- |
+| `provenWithin` | The complete enclosure proves the original requested inequality. |
+| `needsRefinement` | This enclosure does not prove it; continue the original width-halving loop. |
+
+For each of the three original parameter differences, an interval contained in
+`[-epsilon, epsilon]` proves the unchanged absolute error bound. For a distance,
+each of its three original coordinate differences is enclosed and squared:
+an interval crossing zero has square lower bound zero, otherwise its square
+lower bound is the smaller squared endpoint; its upper bound is always the
+larger squared endpoint. Adding the three exact rational upper bounds and
+proving their sum no greater than the exact binary64 tolerance squared proves
+the original Euclidean inequality. This proof is applied independently to all
+four original pairs: exact XYZ versus numeric point, original curve versus
+original plane at numeric parameters, curve versus numeric point, and plane
+versus numeric point. The original forward evaluations and exact source
+identity/incident proofs remain unchanged.
+
+An enclosure crossing a denominator zero or failing containment is only
+`needsRefinement`, never source exclusion, equality, absence or a complete
+numeric result. Arithmetic, evidence, admission, resource and cancellation
+failures propagate; no catch converts them to that result. All interval
+arithmetic, typed scratch and actual attained depths use the same caller.
+The r15 actual nonsquare request stopped on coefficient depth in the publisher's
+refinement stage; its precise lower throw branch was not observed. The attempted
+single debugger observation stopped before loading the test bundle. This
+positive enclosure proof implements the original numerical contract directly;
+its cost and success remain unclaimed until the unchanged eight real controls
+execute. It does not establish a specific cause for the earlier depth failure.
+
+The original iteration ceiling and exact width-halving schedule remain. The
+same finite request clamping, finite enclosing candidate checks, parameter and
+XYZ distance proofs, original curve/plane evaluations, angle classification,
+closed-cell incident ordinals and final cancellation remain required before
+publication. A range too wide, denominator not yet separated, exhausted
+coefficient depth/work/storage or cancellation cannot become a numerical result.
+This connection is justified by the one diagnostic original query whose work
+stations 1M through 8.38M all reached coordinate-value bisection and repeated
+local root sign/refinement. Those stations do not claim exact phase-transition
+costs, and that intended-failure diagnostic is excluded from normal test gates.
