@@ -1,0 +1,121 @@
+{
+  "status": "main-integration-verified-before-normal-push",
+  "scope": "Finite authored line x whole original plane CS only",
+  "featureCommit": "8574bb9b5e767051d0ace4962197a4b635b2c308",
+  "parentMain": "28d425ab0ff1d29616b5315fd4b20532ba6fd931",
+  "sourceFreeze": {
+    "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/source-freeze-r22.json",
+    "sha256": "9f64b32a0cdc10bfdaee6c4431d547a7123d78a28ab677330a3c02d97a272333"
+  },
+  "mainSourceBinding": {
+    "original": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/main-source-binding-r1/receipt.json",
+    "sha256": "5ccb770417f874c6f4797b0dc87e011e55f7953bca155d9b3d2da4e1d66deb69",
+    "all2244CurrentCompilerInputsMatch": true,
+    "producerRegeneration": 0,
+    "reusedModules": [
+      "CADCore",
+      "CADGeometry"
+    ],
+    "oldGenerationCommandsAndTimesUnchanged": true
+  },
+  "mainPublicReplay": {
+    "receipt": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/main-public-integration-r2/receipt.json",
+    "sha256": "e270f3abee94572399a6e1b190fea9ff5b77e7791cc7baaefa85d0df2d2452d2",
+    "cases": 2,
+    "groups": [
+      "finiteAndOrdinaryParity",
+      "containedAndRequestedUV"
+    ],
+    "compileSeconds": 11.509847792010987,
+    "runtimeSeconds": 0.929349459009245,
+    "allCurrentSourcesProductsToolSDKCollectionsPinsUnchanged": true
+  },
+  "preflightDiagnostic": {
+    "receipt": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/main-public-integration-r1/receipt.json",
+    "sha256": "dcdddad04df1d73cbbca2c9361463c53a61203d5d6ce6575a3edee5e8ec91649",
+    "cause": "Different producer checkout identity; refused before compiler/runtime. Fixed through canonical strict full-prefix reuse binding, without editing old receipts or regenerating products.",
+    "acceptedAsTest": false
+  },
+  "acceptance": "R22 actual changed3 per target + R20 five unchanged groups reused by exact inverse/finding confirmation. No claim of eight R22 reruns, real box Section or whole CS/SSI/U1 completion.",
+  "sevenRequirementsCompleted": 1,
+  "sevenRequirementsTotal": 7,
+  "artifacts": [
+    {
+      "archive": "main-delivery-records.tar.gz",
+      "member": "main-public-integration-r1-plan.json",
+      "original": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/main-public-integration-r1-plan.json",
+      "sha256": "4fbc7c8ac791d4a6764c9fb4cfe6047e1089542de3d131d0a95dce5f3e87c8d0",
+      "bytes": 1978
+    },
+    {
+      "archive": "main-delivery-records.tar.gz",
+      "member": "main-public-integration-r1/receipt.json",
+      "original": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/main-public-integration-r1/receipt.json",
+      "sha256": "dcdddad04df1d73cbbca2c9361463c53a61203d5d6ce6575a3edee5e8ec91649",
+      "bytes": 572
+    },
+    {
+      "archive": "main-delivery-records.tar.gz",
+      "member": "main-source-binding-r1/receipt.json",
+      "original": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/main-source-binding-r1/receipt.json",
+      "sha256": "5ccb770417f874c6f4797b0dc87e011e55f7953bca155d9b3d2da4e1d66deb69",
+      "bytes": 835795
+    },
+    {
+      "archive": "main-delivery-records.tar.gz",
+      "member": "main-public-integration-r2-plan.json",
+      "original": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/main-public-integration-r2-plan.json",
+      "sha256": "c6e63f9c039e8f554c7a5735c75b70187bb9991df9ca80423a38559657f3bca2",
+      "bytes": 2329
+    },
+    {
+      "archive": "main-delivery-records.tar.gz",
+      "member": "main-public-integration-r2/receipt.json",
+      "original": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/main-public-integration-r2/receipt.json",
+      "sha256": "e270f3abee94572399a6e1b190fea9ff5b77e7791cc7baaefa85d0df2d2452d2",
+      "bytes": 367395
+    },
+    {
+      "archive": "main-delivery-logs.tar.gz",
+      "member": "main-public-integration-r2/compiler-version.log",
+      "original": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/main-public-integration-r2/compiler-version.log",
+      "sha256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c",
+      "bytes": 77
+    },
+    {
+      "archive": "main-delivery-logs.tar.gz",
+      "member": "main-public-integration-r2/test-build-and-list.log",
+      "original": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/main-public-integration-r2/test-build-and-list.log",
+      "sha256": "64145e5758435fb0220d8f772c663d9ba4255d4d761d0f45dac90706b98f9674",
+      "bytes": 45338
+    },
+    {
+      "archive": "main-delivery-logs.tar.gz",
+      "member": "main-public-integration-r2/test-runtime.log",
+      "original": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/main-public-integration-r2/test-runtime.log",
+      "sha256": "f6ceec1c987280c0b6fc266a7c6fc36ce07b354171d3eb5dc070a6b236680cf4",
+      "bytes": 736
+    },
+    {
+      "archive": "main-delivery-logs.tar.gz",
+      "member": "main-public-integration-r2/results.xml",
+      "original": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-bridge-20261017/main-public-integration-r2/results.xml",
+      "sha256": "8311e50403ac442ed39132b13c6121475ff4f343ee0363c0eafb7eb557fde4d5",
+      "bytes": 425
+    }
+  ],
+  "archivePins": {
+    "main-delivery-records.tar.gz": {
+      "sha256": "1feb3c7b6db009fedf0f1d35ba4fd5072ef374fd210759fc7779d39998b296a6",
+      "bytes": 243789
+    },
+    "main-delivery-logs.tar.gz": {
+      "sha256": "ef64bcacea891f8530ae771e672836d105eb9b9a56db132de5b3890b4e283864",
+      "bytes": 4921
+    }
+  },
+  "toolScriptPins": {
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalQueryExecutionVerification/typecheck.py": "9a290a4391c71a3308753fbefb116d6fb8ed73ba6af679e1ec5d6822cbeab3c6",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalQueryExecutionVerification/native_tests.py": "2161f2832d083f9414a1bf84f083f132f70f376f35255adff051d5cd8b1dc028"
+  }
+}
