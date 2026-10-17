@@ -4,12 +4,12 @@ import CADTopology
 
 /// Encodes original source fields owned by `CADIR.SpatialPathKnot`.
 extension CADIR.SpatialPathKnot: PortableSourceEncodable {
-    public func encodeSource(to encoder: inout PortableSourceEncoder) throws {
-        try encoder.record("CADIR.SpatialPathKnot", fields: 5)
-        try encoder.field("id", id)
-        try encoder.field("incoming", incoming)
-        try encoder.field("mode", mode)
-        try encoder.field("outgoing", outgoing)
-        try encoder.field("position", position)
+    public func encodeSource<A: NumericWorkAdmission & ~Copyable>(to encoder: inout PortableSourceEncoder, using admission: inout A) throws {
+        try encoder.record("CADIR.SpatialPathKnot", fields: 5, using: &admission)
+        try encoder.field("id", id, using: &admission)
+        try encoder.field("incoming", incoming, using: &admission)
+        try encoder.field("mode", mode, using: &admission)
+        try encoder.field("outgoing", outgoing, using: &admission)
+        try encoder.field("position", position, using: &admission)
     }
 }

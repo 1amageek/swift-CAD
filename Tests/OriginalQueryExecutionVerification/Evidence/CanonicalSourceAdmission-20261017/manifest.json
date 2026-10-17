@@ -1,0 +1,741 @@
+{
+  "scope": "Canonical generic Core source admission, all IR writers/SHA/memo, sole actual Kernel codec witness",
+  "status": "focused-source-witness-gates-passed-main-integration-pending",
+  "sourceRoot": "/Users/1amageek/.codex/worktrees/u1-section-validation-20261017/swift-CAD",
+  "baseMainForSeparateIntegration": "d6cca5ea",
+  "acceptedIndexes": {
+    "core": {
+      "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/section-source-encoder-source-r3/verification-index.json",
+      "sha256": "8b323544670fa8958606e091ff291f6e5f0f998373a06283ad598cde15e353f5",
+      "member": "indexes/core.json"
+    },
+    "ir": {
+      "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-section-validation-20261017/fingerprint-verification-plan-r1/verification-index.json",
+      "sha256": "9a5862719a157174ec6cac1077b7a519fdbd5ec19187674970127214a0daba84",
+      "member": "indexes/ir.json"
+    },
+    "codec": {
+      "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-section-validation-20261017/codec-witness-plan-r2/verification-index.json",
+      "sha256": "617325b767b771d64624975092abefa709feb10800a92668f2aa6d23d2520e32",
+      "member": "indexes/codec.json"
+    }
+  },
+  "lanes": {
+    "core": {
+      "native": {
+        "groups": 3,
+        "receiptMember": "receipts/core-native.json",
+        "runtimeLogMember": "runtime/core-native.log",
+        "steps": {
+          "compiler-version": {
+            "elapsedSeconds": 0.23986991599667817,
+            "sampledPeakProcessTreeRSSBytes": 262144,
+            "exitCode": 0
+          },
+          "test-build-and-list": {
+            "elapsedSeconds": 35.79377791599836,
+            "sampledPeakProcessTreeRSSBytes": 566149120,
+            "exitCode": 0
+          },
+          "test-runtime": {
+            "elapsedSeconds": 1.7328695000032894,
+            "sampledPeakProcessTreeRSSBytes": 88850432,
+            "exitCode": 0
+          }
+        }
+      },
+      "asan": {
+        "groups": 3,
+        "receiptMember": "receipts/core-asan.json",
+        "runtimeLogMember": "runtime/core-asan.log",
+        "steps": {
+          "compiler-version": {
+            "elapsedSeconds": 0.27409412499400787,
+            "sampledPeakProcessTreeRSSBytes": 245760,
+            "exitCode": 0
+          },
+          "CADCore": {
+            "elapsedSeconds": 7.876115374994697,
+            "sampledPeakProcessTreeRSSBytes": 373538816,
+            "exitCode": 0
+          },
+          "client-link": {
+            "elapsedSeconds": 2.000109875021735,
+            "sampledPeakProcessTreeRSSBytes": 175439872,
+            "exitCode": 0
+          },
+          "runtime": {
+            "elapsedSeconds": 1.001559999975143,
+            "sampledPeakProcessTreeRSSBytes": 1900544,
+            "exitCode": 0
+          }
+        }
+      },
+      "wasm": {
+        "groups": 3,
+        "receiptMember": "receipts/core-wasm.json",
+        "runtimeLogMember": "runtime/core-wasm.log",
+        "steps": {
+          "compiler-version": {
+            "elapsedSeconds": 0.2696975839789957,
+            "sampledPeakProcessTreeRSSBytes": 278528,
+            "exitCode": 0
+          },
+          "CADCore": {
+            "elapsedSeconds": 6.665895708021708,
+            "sampledPeakProcessTreeRSSBytes": 354467840,
+            "exitCode": 0
+          },
+          "client-link": {
+            "elapsedSeconds": 2.902344542002538,
+            "sampledPeakProcessTreeRSSBytes": 413417472,
+            "exitCode": 0
+          },
+          "runtime": {
+            "elapsedSeconds": 0.33866716700140387,
+            "sampledPeakProcessTreeRSSBytes": 1114112,
+            "exitCode": 0
+          }
+        }
+      },
+      "embedded": {
+        "groups": 3,
+        "receiptMember": "receipts/core-embedded.json",
+        "runtimeLogMember": "runtime/core-embedded.log",
+        "steps": {
+          "compiler-version": {
+            "elapsedSeconds": 0.5317787079839036,
+            "sampledPeakProcessTreeRSSBytes": 36225024,
+            "exitCode": 0
+          },
+          "client-link": {
+            "elapsedSeconds": 3.2766802920086775,
+            "sampledPeakProcessTreeRSSBytes": 254279680,
+            "exitCode": 0
+          },
+          "runtime": {
+            "elapsedSeconds": 0.2745402909931727,
+            "sampledPeakProcessTreeRSSBytes": 1015808,
+            "exitCode": 0
+          }
+        }
+      }
+    },
+    "ir": {
+      "native": {
+        "groups": 4,
+        "receiptMember": "receipts/ir-native.json",
+        "runtimeLogMember": "runtime/ir-native.log",
+        "steps": {
+          "compiler-version": {
+            "elapsedSeconds": 0.23300304199801758,
+            "sampledPeakProcessTreeRSSBytes": 262144,
+            "exitCode": 0
+          },
+          "test-build-and-list": {
+            "elapsedSeconds": 11.323983333975775,
+            "sampledPeakProcessTreeRSSBytes": 882851840,
+            "exitCode": 0
+          },
+          "test-runtime": {
+            "elapsedSeconds": 0.6915988329856191,
+            "sampledPeakProcessTreeRSSBytes": 60964864,
+            "exitCode": 0
+          }
+        }
+      },
+      "asan": {
+        "groups": 4,
+        "receiptMember": "receipts/ir-asan.json",
+        "runtimeLogMember": "runtime/ir-asan.log",
+        "steps": {
+          "compiler-version": {
+            "elapsedSeconds": 0.23473445800482295,
+            "sampledPeakProcessTreeRSSBytes": 245760,
+            "exitCode": 0
+          },
+          "CADGeometry": {
+            "elapsedSeconds": 124.3239239579998,
+            "sampledPeakProcessTreeRSSBytes": 7993606144,
+            "exitCode": 0
+          },
+          "CADTopology": {
+            "elapsedSeconds": 14.766775665979367,
+            "sampledPeakProcessTreeRSSBytes": 1508573184,
+            "exitCode": 0
+          },
+          "CADIR": {
+            "elapsedSeconds": 25.84020825001062,
+            "sampledPeakProcessTreeRSSBytes": 3210592256,
+            "exitCode": 0
+          },
+          "client-link": {
+            "elapsedSeconds": 2.7708848750044126,
+            "sampledPeakProcessTreeRSSBytes": 902184960,
+            "exitCode": 0
+          },
+          "runtime": {
+            "elapsedSeconds": 1.3973906250030268,
+            "sampledPeakProcessTreeRSSBytes": 1916928,
+            "exitCode": 0
+          }
+        }
+      },
+      "wasm": {
+        "groups": 4,
+        "receiptMember": "receipts/ir-wasm.json",
+        "runtimeLogMember": "runtime/ir-wasm.log",
+        "steps": {
+          "compiler-version": {
+            "elapsedSeconds": 0.2322666670079343,
+            "sampledPeakProcessTreeRSSBytes": 262144,
+            "exitCode": 0
+          },
+          "CADGeometry": {
+            "elapsedSeconds": 112.22957620798843,
+            "sampledPeakProcessTreeRSSBytes": 6389596160,
+            "exitCode": 0
+          },
+          "CADTopology": {
+            "elapsedSeconds": 13.82278249997762,
+            "sampledPeakProcessTreeRSSBytes": 1933131776,
+            "exitCode": 0
+          },
+          "CADIR": {
+            "elapsedSeconds": 25.100737083004788,
+            "sampledPeakProcessTreeRSSBytes": 4168499200,
+            "exitCode": 0
+          },
+          "client-link": {
+            "elapsedSeconds": 1.8442289590020664,
+            "sampledPeakProcessTreeRSSBytes": 983089152,
+            "exitCode": 0
+          },
+          "runtime": {
+            "elapsedSeconds": 0.23146595800062642,
+            "sampledPeakProcessTreeRSSBytes": 933888,
+            "exitCode": 0
+          }
+        }
+      },
+      "embedded": {
+        "groups": 4,
+        "receiptMember": "receipts/ir-embedded.json",
+        "runtimeLogMember": "runtime/ir-embedded.log",
+        "steps": {
+          "compiler-version": {
+            "elapsedSeconds": 0.22972662499523722,
+            "sampledPeakProcessTreeRSSBytes": 245760,
+            "exitCode": 0
+          },
+          "CADGeometry": {
+            "elapsedSeconds": 59.72009612500551,
+            "sampledPeakProcessTreeRSSBytes": 3141402624,
+            "exitCode": 0
+          },
+          "CADTopology": {
+            "elapsedSeconds": 15.94718533399282,
+            "sampledPeakProcessTreeRSSBytes": 1498791936,
+            "exitCode": 0
+          },
+          "CADIR": {
+            "elapsedSeconds": 17.111204749991884,
+            "sampledPeakProcessTreeRSSBytes": 1877475328,
+            "exitCode": 0
+          },
+          "client-link": {
+            "elapsedSeconds": 74.84365512497607,
+            "sampledPeakProcessTreeRSSBytes": 5079089152,
+            "exitCode": 0
+          },
+          "runtime": {
+            "elapsedSeconds": 0.23307816698797978,
+            "sampledPeakProcessTreeRSSBytes": 933888,
+            "exitCode": 0
+          }
+        }
+      }
+    },
+    "codec": {
+      "native": {
+        "groups": 4,
+        "receiptMember": "receipts/codec-native.json",
+        "runtimeLogMember": "runtime/codec-native.log",
+        "steps": {
+          "compiler-version": {
+            "elapsedSeconds": 0.4751771249866579,
+            "sampledPeakProcessTreeRSSBytes": 5292032,
+            "exitCode": 0
+          },
+          "CADKernel": {
+            "elapsedSeconds": 0.7243325420131441,
+            "sampledPeakProcessTreeRSSBytes": 149258240,
+            "exitCode": 0
+          },
+          "test-build-and-list": {
+            "elapsedSeconds": 12.09791154100094,
+            "sampledPeakProcessTreeRSSBytes": 742309888,
+            "exitCode": 0
+          },
+          "runtime": {
+            "elapsedSeconds": 2.0943749160214793,
+            "sampledPeakProcessTreeRSSBytes": 131956736,
+            "exitCode": 0
+          }
+        }
+      },
+      "asan": {
+        "groups": 4,
+        "receiptMember": "receipts/codec-asan.json",
+        "runtimeLogMember": "runtime/codec-asan.log",
+        "steps": {
+          "compiler-version": {
+            "elapsedSeconds": 0.23610233300132677,
+            "sampledPeakProcessTreeRSSBytes": 475136,
+            "exitCode": 0
+          },
+          "CADKernel": {
+            "elapsedSeconds": 0.47256145798019134,
+            "sampledPeakProcessTreeRSSBytes": 159989760,
+            "exitCode": 0
+          },
+          "client-link": {
+            "elapsedSeconds": 3.112688249995699,
+            "sampledPeakProcessTreeRSSBytes": 877527040,
+            "exitCode": 0
+          },
+          "runtime": {
+            "elapsedSeconds": 7.6441682910081,
+            "sampledPeakProcessTreeRSSBytes": 187269120,
+            "exitCode": 0
+          }
+        }
+      },
+      "wasm": {
+        "groups": 4,
+        "receiptMember": "receipts/codec-wasm.json",
+        "runtimeLogMember": "runtime/codec-wasm.log",
+        "steps": {
+          "compiler-version": {
+            "elapsedSeconds": 0.23414350001257844,
+            "sampledPeakProcessTreeRSSBytes": 475136,
+            "exitCode": 0
+          },
+          "CADKernel": {
+            "elapsedSeconds": 0.47123354201903567,
+            "sampledPeakProcessTreeRSSBytes": 151388160,
+            "exitCode": 0
+          },
+          "client-link": {
+            "elapsedSeconds": 2.3379196249879897,
+            "sampledPeakProcessTreeRSSBytes": 918257664,
+            "exitCode": 0
+          },
+          "runtime": {
+            "elapsedSeconds": 5.352480750007089,
+            "sampledPeakProcessTreeRSSBytes": 542818304,
+            "exitCode": 0
+          }
+        }
+      },
+      "embedded": {
+        "groups": 4,
+        "receiptMember": "receipts/codec-embedded.json",
+        "runtimeLogMember": "runtime/codec-embedded.log",
+        "steps": {
+          "compiler-version": {
+            "elapsedSeconds": 0.23322958400240168,
+            "sampledPeakProcessTreeRSSBytes": 409600,
+            "exitCode": 0
+          },
+          "CADKernel": {
+            "elapsedSeconds": 0.4677820420183707,
+            "sampledPeakProcessTreeRSSBytes": 114966528,
+            "exitCode": 0
+          },
+          "client-link": {
+            "elapsedSeconds": 61.50339441600954,
+            "sampledPeakProcessTreeRSSBytes": 4003069952,
+            "exitCode": 0
+          },
+          "runtime": {
+            "elapsedSeconds": 1.3859552920039278,
+            "sampledPeakProcessTreeRSSBytes": 239173632,
+            "exitCode": 0
+          }
+        }
+      }
+    }
+  },
+  "archives": {
+    "proof-records.tar.gz": {
+      "sha256": "e5149caab561e4f0a49efa2c5ef847990cc77d247568ead97e9bdf1f646ae28e",
+      "bytes": 2010648,
+      "members": [
+        {
+          "member": "freezes/codec-r2.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-section-validation-20261017/kernel-cache-codec-r2/source-freeze.json",
+          "sha256": "c7e58ca258e948387a13b24f07057e02b59920e5019f8e91280f1677d31fa45d",
+          "bytes": 2184
+        },
+        {
+          "member": "freezes/core-r3.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/section-source-encoder-source-r3/source-freeze.json",
+          "sha256": "4022ee3c95a5e454062ab3994e9e4eb48aef8f57f5091e10860bb7ba24fc9ef7",
+          "bytes": 6401
+        },
+        {
+          "member": "freezes/ir-r2.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-section-validation-20261017/ir-source-encoding-r2/source-freeze.json",
+          "sha256": "ea68c86e84a04ffbddfe096419cc6eac347b57321f6fb27cae709ab19be35242",
+          "bytes": 79375
+        },
+        {
+          "member": "history/codec-embedded-r1-receipt.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-section-validation-20261017/codec-witness-embedded-r1/receipt.json",
+          "sha256": "a5df34ef8c9b3d83946fae830b0b1754fb2975933d3851ae756617e0a1dbe9de",
+          "bytes": 742938
+        },
+        {
+          "member": "history/codec-r1-index.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-section-validation-20261017/codec-witness-plan-r1/verification-index.json",
+          "sha256": "996573ae12d527fa4f380c456664a7fc753187bf2042066253a66089b8600bec",
+          "bytes": 5752
+        },
+        {
+          "member": "indexes/codec.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-section-validation-20261017/codec-witness-plan-r2/verification-index.json",
+          "sha256": "617325b767b771d64624975092abefa709feb10800a92668f2aa6d23d2520e32",
+          "bytes": 46926
+        },
+        {
+          "member": "indexes/core.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/section-source-encoder-source-r3/verification-index.json",
+          "sha256": "8b323544670fa8958606e091ff291f6e5f0f998373a06283ad598cde15e353f5",
+          "bytes": 16785
+        },
+        {
+          "member": "indexes/ir.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-section-validation-20261017/fingerprint-verification-plan-r1/verification-index.json",
+          "sha256": "9a5862719a157174ec6cac1077b7a519fdbd5ec19187674970127214a0daba84",
+          "bytes": 27939
+        },
+        {
+          "member": "plans/codec.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-section-validation-20261017/codec-witness-plan-r2/plan.json",
+          "sha256": "da6ed1dfd8692a176e5cb2efc906a6022790916deea4570cc40796b7bdb25079",
+          "bytes": 34129
+        },
+        {
+          "member": "plans/core.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/section-source-encoder-source-r3/command-plan.json",
+          "sha256": "3349b59359bbd43037ecc2fb43935fbe9e5999c1f4d31741367a6f627b92867c",
+          "bytes": 40091
+        },
+        {
+          "member": "plans/ir.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-section-validation-20261017/fingerprint-verification-plan-r1/plan.json",
+          "sha256": "64aca52bc6233d5f486bdc5d514a9615bc63f814c6722ff25c17b77ca804dff0",
+          "bytes": 541655
+        },
+        {
+          "member": "proofs/codec-inverse.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-section-validation-20261017/kernel-cache-codec-r1/body-inverse.json",
+          "sha256": "cfe4224b760bf3a618ba5e4f2a28b7a18b361323cc68371cb63234ef4cb92b4b",
+          "bytes": 547
+        },
+        {
+          "member": "proofs/core-oracle-extraction.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/section-source-encoder-source-r3/oracle-extraction.json",
+          "sha256": "46507c7772322e0de4827ff269cdfae43ceb88b16e85521fc8a19cd93a7b148c",
+          "bytes": 430
+        },
+        {
+          "member": "proofs/core-writer-inverse.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/section-source-encoder-source-r1/body-inverse.json",
+          "sha256": "2e59a163e0ccff6271a6b5eecb810f06c23aff3e5ec97b22f4d94aeac19bb626",
+          "bytes": 5625
+        },
+        {
+          "member": "proofs/ir-memo-inverse.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-section-validation-20261017/ir-source-encoding-r2/finding-inverse-and-allocation-contract.json",
+          "sha256": "eb8a3113d98b238518175ed5bf42195b1e6084734bb68b8ddb3cd71831f4a09e",
+          "bytes": 740
+        },
+        {
+          "member": "proofs/ir-writer-inverse.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-section-validation-20261017/ir-source-encoding-r2/writer-inverse.json",
+          "sha256": "5d9be5bdd79fc91c287a32a9826874591d4f6b12d9ff7a150ed30a418af28a5d",
+          "bytes": 172882
+        },
+        {
+          "member": "receipts/codec-asan.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-section-validation-20261017/codec-witness-asan-r2/receipt.json",
+          "sha256": "6d28c2c1d3d1991dacc58ef8dc9349eca69faea0fec5a940cde30c1e2d661f63",
+          "bytes": 749784
+        },
+        {
+          "member": "receipts/codec-embedded.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-section-validation-20261017/codec-witness-embedded-r2/receipt.json",
+          "sha256": "084a520f086ab43e6647a48f9a4c9fd027e183c67f10d407d74da2c0b5433423",
+          "bytes": 748708
+        },
+        {
+          "member": "receipts/codec-native.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-section-validation-20261017/codec-witness-native-r2/receipt.json",
+          "sha256": "1375fe62f8ed6f947b66354b7f071b66f229083b4a91391a956bcd361fa493d4",
+          "bytes": 749821
+        },
+        {
+          "member": "receipts/codec-wasm.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-section-validation-20261017/codec-witness-wasm-r2/receipt.json",
+          "sha256": "edb2c403e5d9d01990f9d2a137eab0bd19822e4ebaf69bd29f3867fff4fd080c",
+          "bytes": 751760
+        },
+        {
+          "member": "receipts/core-asan.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/section-encoder-core-asan-r3/receipt.json",
+          "sha256": "17fb08dbdf160161b2e959d7f00e1a3d9838ceecab5c04ba1d4c32cf668fd297",
+          "bytes": 46275
+        },
+        {
+          "member": "receipts/core-embedded.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/section-encoder-core-embedded-r4/receipt.json",
+          "sha256": "4386858b6cb300c53f65cc5ec86e925996c6c985bdec09132af4343753e0d797",
+          "bytes": 47968
+        },
+        {
+          "member": "receipts/core-native-module.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/section-encoder-core-native-r3/receipt.json",
+          "sha256": "503f6de46df9f62151bf4f7b6ca2dde809dacb399b41028980355b1769d9996c",
+          "bytes": 25108
+        },
+        {
+          "member": "receipts/core-native.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/section-encoder-core-native-client-r3/receipt.json",
+          "sha256": "3d8c1954822c968a3fcf0f6c89a3cab2b5956dded64bb78a127d31d6996f0cb0",
+          "bytes": 18763
+        },
+        {
+          "member": "receipts/core-wasm.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/section-encoder-core-wasm-r4/receipt.json",
+          "sha256": "6738c655109578f1c85518ad7d51b27c440794ecbab0b1b4ea8c34e54ae66a19",
+          "bytes": 48167
+        },
+        {
+          "member": "receipts/ir-asan.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-section-validation-20261017/fingerprint-asan-r1/receipt.json",
+          "sha256": "db45b060a387aaf38a349d9cb0b7de26a814d1bd0df159940958f6fb2f70510e",
+          "bytes": 1657175
+        },
+        {
+          "member": "receipts/ir-embedded.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-section-validation-20261017/fingerprint-embedded-r1/receipt.json",
+          "sha256": "6164578740f323a243df80c9707f7f88e117fe85b64f8cd22897ba5c625d1203",
+          "bytes": 1657633
+        },
+        {
+          "member": "receipts/ir-native-modules.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-section-validation-20261017/fingerprint-native-ir-r1/receipt.json",
+          "sha256": "9e36a65a2db4c3335c13624161ab9d9c09bee39e204999ce0c5361aec867b4a8",
+          "bytes": 1177976
+        },
+        {
+          "member": "receipts/ir-native.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-section-validation-20261017/fingerprint-native-client-r1/receipt.json",
+          "sha256": "6822142f8be12be27928f22d78ed0f50239b079a24d7077438d80df05daf3312",
+          "bytes": 505747
+        },
+        {
+          "member": "receipts/ir-wasm.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-section-validation-20261017/fingerprint-wasm-r1/receipt.json",
+          "sha256": "10debe0361356933b32924ab3336d80938cc9f8dd7ac7b1c8b8ecefeceaa6894",
+          "bytes": 1659948
+        },
+        {
+          "member": "results/codec-native.xml",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-section-validation-20261017/codec-witness-native-r2/results.xml",
+          "sha256": "3350bb76aba1d912a6eb7878a74e58c3757da3483368a9a11ba2c9f2a27e66a5",
+          "bytes": 751
+        },
+        {
+          "member": "results/core-native.xml",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/section-encoder-core-native-client-r3/results.xml",
+          "sha256": "856f7e9a68d02bde92711751d7723b5157b2107888bbb1c44202b1b556598000",
+          "bytes": 654
+        },
+        {
+          "member": "results/ir-native.xml",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-section-validation-20261017/fingerprint-native-client-r1/results.xml",
+          "sha256": "b3bc689f52e3347ad083055a8500dd6a97b108ed2c3ee547253db6f22170247a",
+          "bytes": 738
+        },
+        {
+          "member": "reviews/codec-fixture.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-section-validation-20261017/kernel-cache-codec-fixture-r1/root-review.json",
+          "sha256": "3d8863b4f730d6e1c6bce4ce4ad7412dc016f0cac88b609124d95c0e3a7f6b52",
+          "bytes": 1454
+        },
+        {
+          "member": "reviews/codec.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-section-validation-20261017/kernel-cache-codec-r1/root-review.json",
+          "sha256": "d7ba069eb2228c74cf2d3e3a793ced4a802137869765eb7ee8f03ef6e8cc746c",
+          "bytes": 847
+        },
+        {
+          "member": "reviews/core.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/section-source-encoder-review-r1/review.json",
+          "sha256": "2ec6a1b5cacefecf2d86ad01f1d476f5d4af65f6c5ec80ad2932d1d6f0fd02ff",
+          "bytes": 2226
+        },
+        {
+          "member": "reviews/ir.json",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-section-validation-20261017/ir-source-encoding-r2/root-review-record.json",
+          "sha256": "155a816fc06f72485f861ade7a1163de8c887b30c3d5e6837705c6b4b8e266d0",
+          "bytes": 1211
+        },
+        {
+          "member": "source-lists/CADGeometrySources.rsp",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-section-validation-20261017/fingerprint-verification-plan-r1/CADGeometrySources.rsp",
+          "sha256": "3ce89f5f2dda86ab29b969cd190d136aae86190d3a6a35291b84d98495523a2f",
+          "bytes": 463841
+        },
+        {
+          "member": "source-lists/CADIRSources.rsp",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-section-validation-20261017/fingerprint-verification-plan-r1/CADIRSources.rsp",
+          "sha256": "dc3aeb55b18fef32fd5de2c1dbb4ff4a0e1bd4d1610d1a0ccaf1b6df99b550fa",
+          "bytes": 162873
+        },
+        {
+          "member": "source-lists/CADTopologySources.rsp",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-section-validation-20261017/fingerprint-verification-plan-r1/CADTopologySources.rsp",
+          "sha256": "c4ea2e0d7f251f420af4549ad3c60f3ab82b61a8074b12029584bd1f99be4510",
+          "bytes": 26771
+        },
+        {
+          "member": "source-lists/CoreSources.rsp",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/section-source-encoder-source-r3/CoreSources.rsp",
+          "sha256": "959415bc436f6b445ba4e4b197e28df167fa49dcc44e1547dc7950164251acf6",
+          "bytes": 12296
+        }
+      ]
+    },
+    "runtime-logs.tar.gz": {
+      "sha256": "45b47f54cdfe1af5c749adb06ecfd6ee321f83ffeefb110361e75245b9e2587a",
+      "bytes": 2453,
+      "members": [
+        {
+          "member": "history/codec-embedded-r1-compile.log",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-section-validation-20261017/codec-witness-embedded-r1/CADKernel.log",
+          "sha256": "da52af3268af06d4a4535939be38af13756b91bb1866aa8f3c2da856a59edd9d",
+          "bytes": 9591
+        },
+        {
+          "member": "runtime/codec-asan.log",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-section-validation-20261017/codec-witness-asan-r2/runtime.log",
+          "sha256": "e1e1d28bf91af969ddb81ba361c19cd49b694b950863cf80c96b0a0b508aa0bf",
+          "bytes": 246
+        },
+        {
+          "member": "runtime/codec-embedded.log",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-section-validation-20261017/codec-witness-embedded-r2/runtime.log",
+          "sha256": "705cfe2619a042cfa41f3489e6fc5cbad9625bea0451044fe2c78ac23c042854",
+          "bytes": 413
+        },
+        {
+          "member": "runtime/codec-native.log",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-section-validation-20261017/codec-witness-native-r2/runtime.log",
+          "sha256": "d1f8fe5e3af3833976d211a6dc9d553eddae2ea3bfae26fdf466992b78c2a90c",
+          "bytes": 1118
+        },
+        {
+          "member": "runtime/codec-wasm.log",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-section-validation-20261017/codec-witness-wasm-r2/runtime.log",
+          "sha256": "cb8706fea18f432eaa941f9b040313c623feef46ae404cdb635333f6b8dd7bc4",
+          "bytes": 413
+        },
+        {
+          "member": "runtime/core-asan.log",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/section-encoder-core-asan-r3/runtime.log",
+          "sha256": "546c8608dd81b849911ce6290f3d5e021058287144dbbdd66838132f943e2324",
+          "bytes": 169
+        },
+        {
+          "member": "runtime/core-embedded.log",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/section-encoder-core-embedded-r4/runtime.log",
+          "sha256": "b54b879d069c84065632d7734060ff3d19c438821a14640a0873fe9ad0211a25",
+          "bytes": 336
+        },
+        {
+          "member": "runtime/core-native.log",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/section-encoder-core-native-client-r3/test-runtime.log",
+          "sha256": "ee4c9cce9350df68a03ed991a82f66d90d05d56ea7f4f76be4a53b72467ecfe7",
+          "bytes": 1021
+        },
+        {
+          "member": "runtime/core-wasm.log",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/section-encoder-core-wasm-r4/runtime.log",
+          "sha256": "e2084e23451873167a72e51cb91eb3efb2bde98a6353009b96758e45cc41337b",
+          "bytes": 336
+        },
+        {
+          "member": "runtime/ir-asan.log",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-section-validation-20261017/fingerprint-asan-r1/runtime.log",
+          "sha256": "1aed6690905801e9d2cb32d479bd3b6e236489fa8f0b794cc749ecd604407ba5",
+          "bytes": 229
+        },
+        {
+          "member": "runtime/ir-embedded.log",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-section-validation-20261017/fingerprint-embedded-r1/runtime.log",
+          "sha256": "b3fe455ec90e7d9fbd110ae73e48aa42205dba843761a9d49a0a3f7cd124d8cd",
+          "bytes": 396
+        },
+        {
+          "member": "runtime/ir-native.log",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-section-validation-20261017/fingerprint-native-client-r1/test-runtime.log",
+          "sha256": "f80e5bbdfe307c54c2aee3f94f79497e02bc9d70a1eeed46a20e0b61c4fdc0da",
+          "bytes": 1074
+        },
+        {
+          "member": "runtime/ir-wasm.log",
+          "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-section-validation-20261017/fingerprint-wasm-r1/runtime.log",
+          "sha256": "63b3fefb151be5066233aa331ef6efa65c331f15a958f60a3e90c9583829e9ce",
+          "bytes": 396
+        }
+      ]
+    }
+  },
+  "exclusions": [
+    "Full Section cache validation/evaluator/box execution",
+    "Section P+1 failure ordering and sink-empty acceptance",
+    "Positive Section nonempty SVG",
+    "UI",
+    "Full CADKernel production module",
+    "All U1 seven requirements",
+    "Main integration, commit and push"
+  ],
+  "integration": {
+    "owner": "Root",
+    "status": "not performed here",
+    "required": "Match current source/target against Main d6cca5ea and bind original compiler origins/products using exact before/after pins; ABI compatibility alone is insufficient"
+  },
+  "retiredProducts": "These records preserve historical proof. If any pinned product, tool, SDK or required snapshot is retired, the old command is not represented as runnable/reusable; reconstruct and verify a matching closure before a future run.",
+  "packaging": {
+    "newCompilerRuns": 0,
+    "newRuntimeRuns": 0,
+    "newReviews": 0,
+    "productBinariesIncluded": 0,
+    "duplicateJSONRepresentationsIncluded": 0
+  },
+  "totalExecutedGroups": 44,
+  "documentation": {
+    "VERIFICATION.md": {
+      "sha256": "ea92cb9b3698bc359644b2d5f797ab7a78b692d9a9a5acf848ce4bcd56596354",
+      "bytes": 6520
+    },
+    "REVIEW.md": {
+      "sha256": "784144cdaab8a8d139a41c37c3b26aef99b534aaf15aa9431a1a650140daaf0c",
+      "bytes": 2006
+    }
+  }
+}

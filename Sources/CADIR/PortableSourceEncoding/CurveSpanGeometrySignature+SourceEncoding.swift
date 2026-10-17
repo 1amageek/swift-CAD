@@ -4,12 +4,12 @@ import CADTopology
 
 /// Encodes original source fields owned by `CADIR.CurveSpanGeometrySignature`.
 extension CADIR.CurveSpanGeometrySignature: PortableSourceEncodable {
-    public func encodeSource(to encoder: inout PortableSourceEncoder) throws {
-        try encoder.record("CADIR.CurveSpanGeometrySignature", fields: 5)
-        try encoder.field("curve", curve)
-        try encoder.field("endParameter", endParameter)
-        try encoder.field("endPoint", endPoint)
-        try encoder.field("startParameter", startParameter)
-        try encoder.field("startPoint", startPoint)
+    public func encodeSource<A: NumericWorkAdmission & ~Copyable>(to encoder: inout PortableSourceEncoder, using admission: inout A) throws {
+        try encoder.record("CADIR.CurveSpanGeometrySignature", fields: 5, using: &admission)
+        try encoder.field("curve", curve, using: &admission)
+        try encoder.field("endParameter", endParameter, using: &admission)
+        try encoder.field("endPoint", endPoint, using: &admission)
+        try encoder.field("startParameter", startParameter, using: &admission)
+        try encoder.field("startPoint", startPoint, using: &admission)
     }
 }

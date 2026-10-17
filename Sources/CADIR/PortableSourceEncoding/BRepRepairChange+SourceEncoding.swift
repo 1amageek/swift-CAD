@@ -4,15 +4,15 @@ import CADTopology
 
 /// Encodes original source fields owned by `CADTopology.BRepRepairChange`.
 extension CADTopology.BRepRepairChange: PortableSourceEncodable {
-    public func encodeSource(to encoder: inout PortableSourceEncoder) throws {
-        try encoder.record("CADTopology.BRepRepairChange", fields: 8)
-        try encoder.field("action", action)
-        try encoder.field("affectedEntityIDs", affectedEntityIDs)
-        try encoder.field("deletedEntityIDs", deletedEntityIDs)
-        try encoder.field("generatedEntityIDs", generatedEntityIDs)
-        try encoder.field("maximumDisplacement", maximumDisplacement)
-        try encoder.field("message", message)
-        try encoder.field("scope", scope)
-        try encoder.field("toleranceIncrease", toleranceIncrease)
+    public func encodeSource<A: NumericWorkAdmission & ~Copyable>(to encoder: inout PortableSourceEncoder, using admission: inout A) throws {
+        try encoder.record("CADTopology.BRepRepairChange", fields: 8, using: &admission)
+        try encoder.field("action", action, using: &admission)
+        try encoder.field("affectedEntityIDs", affectedEntityIDs, using: &admission)
+        try encoder.field("deletedEntityIDs", deletedEntityIDs, using: &admission)
+        try encoder.field("generatedEntityIDs", generatedEntityIDs, using: &admission)
+        try encoder.field("maximumDisplacement", maximumDisplacement, using: &admission)
+        try encoder.field("message", message, using: &admission)
+        try encoder.field("scope", scope, using: &admission)
+        try encoder.field("toleranceIncrease", toleranceIncrease, using: &admission)
     }
 }

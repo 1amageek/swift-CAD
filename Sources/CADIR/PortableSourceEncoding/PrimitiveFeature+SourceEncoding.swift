@@ -4,8 +4,8 @@ import CADTopology
 
 /// Encodes original source fields owned by `CADIR.PrimitiveFeature`.
 extension CADIR.PrimitiveFeature: PortableSourceEncodable {
-    public func encodeSource(to encoder: inout PortableSourceEncoder) throws {
-        try encoder.record("CADIR.PrimitiveFeature", fields: 1)
-        try encoder.field("definition", definition)
+    public func encodeSource<A: NumericWorkAdmission & ~Copyable>(to encoder: inout PortableSourceEncoder, using admission: inout A) throws {
+        try encoder.record("CADIR.PrimitiveFeature", fields: 1, using: &admission)
+        try encoder.field("definition", definition, using: &admission)
     }
 }

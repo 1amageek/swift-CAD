@@ -41,24 +41,56 @@ enum SHA256Digest {
         var words: [UInt32] { [h0, h1, h2, h3, h4, h5, h6, h7] }
     }
 
-    /// The lowercase hexadecimal digest of `data`.
-    static func hexDigest(for bytes: [UInt8]) -> String {
-        bytes.withUnsafeBytes { hexDigest(of: $0) }
+    /// The lowercase hexadecimal digest under the existing ordinary authoring policy.
+    static func hexDigest(for bytes: [UInt8]) throws -> String {
+        var admission = UnboundedAuthoringAdmission()
+        return try sourceHexDigest(for: bytes, using: &admission)
     }
 
-    static func hexDigest(of bytes: UnsafeRawBufferPointer) -> String {
-        hexDigest(words: digest(of: bytes))
+    static func hexDigest(of bytes: UnsafeRawBufferPointer) throws -> String {
+        var admission = UnboundedAuthoringAdmission()
+        var encoder = try PortableSourceEncoder(limits: unboundedLimits)
+        return try sourceHexDigest(of: bytes, encoding: &encoder, using: &admission)
     }
 
     static func sourceHexDigest(for bytes: [UInt8]) throws -> String {
+        var admission = UnboundedAuthoringAdmission()
+        return try sourceHexDigest(for: bytes, using: &admission)
+    }
+
+    static func sourceHexDigest<A: NumericWorkAdmission & ~Copyable>(for bytes: [UInt8],
+        using admission: inout A) throws -> String {
+        var encoder = try PortableSourceEncoder(limits: unboundedLimits)
+        return try sourceHexDigest(for: bytes, encoding: &encoder, using: &admission)
+    }
+
+    static func sourceHexDigest<A: NumericWorkAdmission & ~Copyable>(for bytes: [UInt8],
+        encoding encoder: inout PortableSourceEncoder, using admission: inout A) throws -> String {
         try bytes.withUnsafeBytes { buffer in
-            try hexDigest(words: digest(of: buffer, check: {
-                try CurrentTaskCancellationChecker().checkCancellation()
-            }))
+            try sourceHexDigest(of: buffer, encoding: &encoder, using: &admission)
         }
     }
 
-    private static func hexDigest(words: [UInt32]) -> String {
+    private static var unboundedLimits: PortableSourceEncodingLimits {
+        .init(maximumBytes: Int.max, maximumWork: Int.max, maximumDepth: Int.max)
+    }
+
+    private static func sourceHexDigest<A: NumericWorkAdmission & ~Copyable>(of bytes: UnsafeRawBufferPointer,
+        encoding encoder: inout PortableSourceEncoder, using admission: inout A) throws -> String {
+        let tailBlocks = bytes.count % 64 < 56 ? 1 : 2
+        let blockCount = bytes.count / 64 + tailBlocks
+        let (blockWork, overflow) = blockCount.multipliedReportingOverflow(by: 136)
+        let (inputWork, inputOverflow) = bytes.count.addingReportingOverflow(192)
+        guard !overflow, !inputOverflow else {
+            throw PortableSourceEncodingError.resourceLimitExceeded("Source SHA-256 work.")
+        }
+        // These are the original source-hash work units, paid once through both
+        // the local encoding allowance and the caller's cumulative admission.
+        try encoder.charge(work: inputWork, using: &admission)
+        try encoder.charge(work: blockWork, using: &admission)
+        let words = try digest(of: bytes, using: &admission)
+        try admission.retainStorage(count: 16, stride: MemoryLayout<UInt8>.stride)
+        try admission.retainStorage(count: 64, stride: MemoryLayout<UInt8>.stride)
         let digits = Array("0123456789abcdef".utf8)
         var output: [UInt8] = []
         output.reserveCapacity(64)
@@ -67,26 +99,35 @@ enum SHA256Digest {
                 output.append(digits[Int((word >> UInt32(shift)) & 0x0f)])
             }
         }
-        return String(decoding: output, as: UTF8.self)
+        try admission.retainStorage(count: 64, stride: MemoryLayout<UInt8>.stride)
+        let result = String(decoding: output, as: UTF8.self)
+        try admission.checkpoint()
+        return result
     }
 
-    /// The eight digest words of `message`.
-    static func digest(of message: UnsafeRawBufferPointer) -> [UInt32] {
-        digest(of: message, check: {})
+    /// The eight digest words of `message` under the existing ordinary policy.
+    static func digest(of message: UnsafeRawBufferPointer) throws -> [UInt32] {
+        var admission = UnboundedAuthoringAdmission()
+        return try digest(of: message, using: &admission)
     }
 
     // The caller owns the immutable buffer for this entire scoped borrow. Blocks and
     // padding are indexed only within derived counts; all tail bytes are initialized.
     // Temporary pointers never escape and are released exactly once by their scopes.
-    private static func digest(of message: UnsafeRawBufferPointer, check: () throws -> Void) rethrows -> [UInt32] {
-        try check()
+    private static func digest<A: NumericWorkAdmission & ~Copyable>(of message: UnsafeRawBufferPointer,
+        using admission: inout A) throws -> [UInt32] {
+        try admission.checkpoint()
+        try CurrentTaskCancellationChecker().checkCancellation()
+        try admission.retainStorage(count: 1, stride: MemoryLayout<State>.stride)
+        try admission.retainStorage(count: 64, stride: MemoryLayout<UInt32>.stride)
         var state = State()
         try roundConstants.withUnsafeBufferPointer { constants in
             try withUnsafeTemporaryAllocation(of: UInt32.self, capacity: 64) { schedule in
                 let fullBlockCount = message.count / 64
                 var start = 0
                 while start < fullBlockCount &* 64 {
-                    try check()
+                    try admission.checkpoint()
+                    try CurrentTaskCancellationChecker().checkCancellation()
                     compress(
                         UnsafeRawBufferPointer(rebasing: message[start..<(start &+ 64)]),
                         into: &state,
@@ -101,7 +142,8 @@ enum SHA256Digest {
                 let remainderStart = fullBlockCount * 64
                 let remainderCount = message.count - remainderStart
                 let tailCount = remainderCount < 56 ? 64 : 128
-                withUnsafeTemporaryAllocation(of: UInt8.self, capacity: 128) { tail in
+                try admission.retainStorage(count: 128, stride: MemoryLayout<UInt8>.stride)
+                try withUnsafeTemporaryAllocation(of: UInt8.self, capacity: 128) { tail in
                     tail.initialize(repeating: 0)
                     for index in 0..<remainderCount {
                         tail[index] = message[remainderStart + index]
@@ -113,6 +155,8 @@ enum SHA256Digest {
                     }
                     let tailBytes = UnsafeRawBufferPointer(tail)
                     for offset in stride(from: 0, to: tailCount, by: 64) {
+                        try admission.checkpoint()
+                        try CurrentTaskCancellationChecker().checkCancellation()
                         compress(
                             UnsafeRawBufferPointer(rebasing: tailBytes[offset..<(offset + 64)]),
                             into: &state,
@@ -123,7 +167,10 @@ enum SHA256Digest {
                 }
             }
         }
-        return state.words
+        try admission.retainStorage(count: 8, stride: MemoryLayout<UInt32>.stride)
+        let result = state.words
+        try admission.checkpoint()
+        return result
     }
 
     /// Folds one 64-byte block into `state`.

@@ -1,5 +1,6 @@
 import HashTreeCollections
 import CADCore
+import CADGeometry
 
 public struct ValidatedCADDocument: Sendable {
     public let document: CADDocument
@@ -8,16 +9,27 @@ public struct ValidatedCADDocument: Sendable {
     package let transition: ValidatedCADDocumentTransition?
     /// The fingerprint of `document`, computed on first use; a mutation makes a new validated
     /// document and therefore a new, empty memo.
-    let sourceFingerprintMemo = ValidatedCADDocumentSourceFingerprintMemo()
+    let sourceFingerprintMemo: ValidatedCADDocumentSourceFingerprintMemo
 
     public init(
         _ document: CADDocument,
         tolerance: ModelingTolerance
     ) throws {
         try tolerance.validate()
-        try document.validate(tolerance: tolerance)
+        var execution = try IndependentShapeSourceExecutionOwner.execution(limits: .standard,
+            check: { try CurrentTaskCancellationChecker().checkCancellation() })
+        try self.init(document, tolerance: tolerance, using: &execution)
+    }
+
+    public init(_ document: CADDocument, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.checkpoint()
+        try tolerance.validate()
+        let memo = try ValidatedCADDocumentSourceFingerprintMemo(using: &execution)
+        try document.validate(tolerance: tolerance, independentShapeLimits: .standard, using: &execution)
         self.document = document
         self.tolerance = tolerance
+        sourceFingerprintMemo = memo
         identity = ValidatedCADDocumentIdentity()
         transition = nil
     }
@@ -163,6 +175,7 @@ public struct ValidatedCADDocument: Sendable {
         tolerance: ModelingTolerance,
         transition: ValidatedCADDocumentTransition?
     ) {
+        sourceFingerprintMemo = ValidatedCADDocumentSourceFingerprintMemo()
         self.document = document
         self.tolerance = tolerance
         identity = ValidatedCADDocumentIdentity()

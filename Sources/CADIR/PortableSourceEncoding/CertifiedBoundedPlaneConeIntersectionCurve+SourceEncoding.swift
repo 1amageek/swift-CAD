@@ -4,14 +4,14 @@ import CADTopology
 
 /// Encodes original source fields owned by `CADGeometry.CertifiedBoundedPlaneConeIntersectionCurve`.
 extension CADGeometry.CertifiedBoundedPlaneConeIntersectionCurve: PortableSourceEncodable {
-    public func encodeSource(to encoder: inout PortableSourceEncoder) throws {
-        try encoder.record("CADGeometry.CertifiedBoundedPlaneConeIntersectionCurve", fields: 7)
-        try encoder.field("analyticCurve", analyticCurve)
-        try encoder.field("certificationTolerance", certificationTolerance)
-        try encoder.field("coneSurface", coneSurface)
-        try encoder.field("endParameter", endParameter)
-        try encoder.field("maximumResidualUpperBound", maximumResidualUpperBound)
-        try encoder.field("planeSurface", planeSurface)
-        try encoder.field("startParameter", startParameter)
+    public func encodeSource<A: NumericWorkAdmission & ~Copyable>(to encoder: inout PortableSourceEncoder, using admission: inout A) throws {
+        try encoder.record("CADGeometry.CertifiedBoundedPlaneConeIntersectionCurve", fields: 7, using: &admission)
+        try encoder.field("analyticCurve", analyticCurve, using: &admission)
+        try encoder.field("certificationTolerance", certificationTolerance, using: &admission)
+        try encoder.field("coneSurface", coneSurface, using: &admission)
+        try encoder.field("endParameter", endParameter, using: &admission)
+        try encoder.field("maximumResidualUpperBound", maximumResidualUpperBound, using: &admission)
+        try encoder.field("planeSurface", planeSurface, using: &admission)
+        try encoder.field("startParameter", startParameter, using: &admission)
     }
 }

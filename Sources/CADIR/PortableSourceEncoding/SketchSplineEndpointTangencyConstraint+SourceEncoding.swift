@@ -4,10 +4,10 @@ import CADTopology
 
 /// Encodes original source fields owned by `CADIR.SketchSplineEndpointTangencyConstraint`.
 extension CADIR.SketchSplineEndpointTangencyConstraint: PortableSourceEncodable {
-    public func encodeSource(to encoder: inout PortableSourceEncoder) throws {
-        try encoder.record("CADIR.SketchSplineEndpointTangencyConstraint", fields: 3)
-        try encoder.field("first", first)
-        try encoder.field("orientation", orientation)
-        try encoder.field("second", second)
+    public func encodeSource<A: NumericWorkAdmission & ~Copyable>(to encoder: inout PortableSourceEncoder, using admission: inout A) throws {
+        try encoder.record("CADIR.SketchSplineEndpointTangencyConstraint", fields: 3, using: &admission)
+        try encoder.field("first", first, using: &admission)
+        try encoder.field("orientation", orientation, using: &admission)
+        try encoder.field("second", second, using: &admission)
     }
 }

@@ -36,6 +36,14 @@ public overload preserves its no-new-ceiling policy with Int.max counters; the
 strict overload forwards caller encoding limits once. Metadata and tessellation
 limits keep their own contracts. Failure does not publish an admitted cache.
 
+The codec implements the sole generic `PortableSourceEncodable` requirement with
+an exclusive `NumericWorkAdmission & ~Copyable` argument. Child collection
+storage and visits, canonical ordering, schema records and all leaf writers
+forward that same admission without creating another allowance. The ordinary
+entry is Core's thin authoring wrapper over this body. Existing encoder-local
+limits, overflow checks and charge expressions retain their original order;
+this writer does not complete the upper full-cache validation migration.
+
 ## State, Ownership, and Lifecycle
 Original models and node wrappers are invocation-local immutable COW values;
 no mutable model storage is shared or changed. The same encoder owns all scratch

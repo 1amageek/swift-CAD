@@ -6,6 +6,9 @@ This Core component owns resource admission for the existing Natural, Arc,
 Soft and Reflective numeric authoring algorithms. Parent:
 [CADCore](../DESIGN.md). It owns the three-operation abstraction and the
 explicit adapter for existing ordinary authoring calls, not a budget or solver.
+The stateless adapter and its initializer are package-visible so original source
+encoding and fingerprint ordinary entries delegate to the same admitted body
+without creating a Geometry allowance. Direct entries never instantiate it.
 
 ## Responsibilities and Boundaries
 
@@ -21,6 +24,7 @@ ceilings; the abstraction has no parameter, coefficient, source or root depth.
 |---|---|---|---|---|
 | [CADCore](../DESIGN.md) | parent | Numeric producer and unit contracts | Owns the three existing algorithms | Ordinary and admitted calls share each algorithm body |
 | [Original Query Execution](../../CADGeometry/OriginalQueryExecution/DESIGN.md) | used by | Existing cumulative admission owner | Supplies the concrete three-operation witness | A direct call never creates another execution or budget |
+| [Portable Source Encoding](../PortableSourceEncoding/DESIGN.md) | used by | Same generic admission and existing ordinary policy | Admits original byte framing, scratch keys and comparisons | Local codec depth and byte schema remain encoder-owned |
 | [CADModeling](../../CADModeling/DESIGN.md) | used by | Direct expression evaluation | Passes its existing execution into coordinate evaluation | Expression-tree depth remains the interpreter's responsibility |
 
 ## Architecture

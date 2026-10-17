@@ -1,12 +1,14 @@
 /// The explicit existing ordinary authoring policy; direct calls never construct this adapter.
-struct UnboundedAuthoringAdmission: NumericWorkAdmission {
-    mutating func checkpoint() {}
+package struct UnboundedAuthoringAdmission: NumericWorkAdmission {
+    package init() {}
 
-    mutating func consumeWork(_ units: Int) throws {
+    package mutating func checkpoint() {}
+
+    package mutating func consumeWork(_ units: Int) throws {
         guard units >= 0 else { throw invalidCount() }
     }
 
-    mutating func retainStorage(count: Int, stride: Int) throws {
+    package mutating func retainStorage(count: Int, stride: Int) throws {
         let bytes = count.multipliedReportingOverflow(by: stride)
         guard count >= 0, stride >= 0, !bytes.overflow else { throw invalidCount() }
     }

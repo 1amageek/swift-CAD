@@ -4,14 +4,14 @@ import CADTopology
 
 /// Encodes original source fields owned by `CADGeometry.CertifiedConeCylinderIntersectionCurve`.
 extension CADGeometry.CertifiedConeCylinderIntersectionCurve: PortableSourceEncodable {
-    public func encodeSource(to encoder: inout PortableSourceEncoder) throws {
-        try encoder.record("CADGeometry.CertifiedConeCylinderIntersectionCurve", fields: 7)
-        try encoder.field("certificationTolerance", certificationTolerance)
-        try encoder.field("componentKind", componentKind)
-        try encoder.field("coneSurface", coneSurface)
-        try encoder.field("cylinderSurface", cylinderSurface)
-        try encoder.field("lowerAngle", lowerAngle)
-        try encoder.field("maximumResidualUpperBound", maximumResidualUpperBound)
-        try encoder.field("upperAngle", upperAngle)
+    public func encodeSource<A: NumericWorkAdmission & ~Copyable>(to encoder: inout PortableSourceEncoder, using admission: inout A) throws {
+        try encoder.record("CADGeometry.CertifiedConeCylinderIntersectionCurve", fields: 7, using: &admission)
+        try encoder.field("certificationTolerance", certificationTolerance, using: &admission)
+        try encoder.field("componentKind", componentKind, using: &admission)
+        try encoder.field("coneSurface", coneSurface, using: &admission)
+        try encoder.field("cylinderSurface", cylinderSurface, using: &admission)
+        try encoder.field("lowerAngle", lowerAngle, using: &admission)
+        try encoder.field("maximumResidualUpperBound", maximumResidualUpperBound, using: &admission)
+        try encoder.field("upperAngle", upperAngle, using: &admission)
     }
 }

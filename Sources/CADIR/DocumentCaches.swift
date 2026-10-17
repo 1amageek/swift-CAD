@@ -74,6 +74,11 @@ public struct BRepCache: Sendable {
         get throws { try sourceFingerprintRecord.resolve() }
     }
 
+    public func sourceFingerprint<A: NumericWorkAdmission & ~Copyable>(
+        using admission: inout A) throws -> CADDocumentSourceFingerprint {
+        try sourceFingerprintRecord.resolve(using: &admission)
+    }
+
     /// Records `fingerprint` as the source this cache was made from.
     public mutating func replaceSourceFingerprint(with fingerprint: CADDocumentSourceFingerprint) {
         sourceFingerprintRecord = .value(fingerprint)
@@ -213,6 +218,11 @@ public struct MeshCache: Sendable {
     /// made hashes its source only when this is first read (`CacheSourceFingerprint`).
     public var sourceFingerprint: CADDocumentSourceFingerprint {
         get throws { try sourceFingerprintRecord.resolve() }
+    }
+
+    public func sourceFingerprint<A: NumericWorkAdmission & ~Copyable>(
+        using admission: inout A) throws -> CADDocumentSourceFingerprint {
+        try sourceFingerprintRecord.resolve(using: &admission)
     }
 
     /// Records `fingerprint` as the source this artifact was made from.

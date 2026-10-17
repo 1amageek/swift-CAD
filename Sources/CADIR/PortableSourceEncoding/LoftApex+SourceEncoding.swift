@@ -4,10 +4,10 @@ import CADTopology
 
 /// Encodes original source fields owned by `CADIR.LoftApex`.
 extension CADIR.LoftApex: PortableSourceEncodable {
-    public func encodeSource(to encoder: inout PortableSourceEncoder) throws {
-        try encoder.record("CADIR.LoftApex", fields: 3)
-        try encoder.field("bodyRole", bodyRole)
-        try encoder.field("source", source)
-        try encoder.field("vertex", vertex)
+    public func encodeSource<A: NumericWorkAdmission & ~Copyable>(to encoder: inout PortableSourceEncoder, using admission: inout A) throws {
+        try encoder.record("CADIR.LoftApex", fields: 3, using: &admission)
+        try encoder.field("bodyRole", bodyRole, using: &admission)
+        try encoder.field("source", source, using: &admission)
+        try encoder.field("vertex", vertex, using: &admission)
     }
 }

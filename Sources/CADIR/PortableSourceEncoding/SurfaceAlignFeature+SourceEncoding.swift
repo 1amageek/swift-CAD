@@ -4,21 +4,21 @@ import CADTopology
 
 /// Encodes original source fields owned by `CADIR.SurfaceAlignFeature`.
 extension CADIR.SurfaceAlignFeature: PortableSourceEncodable {
-    public func encodeSource(to encoder: inout PortableSourceEncoder) throws {
-        try encoder.record("CADIR.SurfaceAlignFeature", fields: 14)
-        try encoder.field("blendRows", blendRows)
-        try encoder.field("boundaryFlow", boundaryFlow)
-        try encoder.field("continuity", continuity)
-        try encoder.field("inputShapeInfluence", inputShapeInfluence)
-        try encoder.field("keepsOtherEdges", keepsOtherEdges)
-        try encoder.field("layout", layout)
-        try encoder.field("partialEnd", partialEnd)
-        try encoder.field("partialStart", partialStart)
-        try encoder.field("reference", reference)
-        try encoder.field("referenceEdge", referenceEdge)
-        try encoder.field("referencePlacement", referencePlacement)
-        try encoder.field("target", target)
-        try encoder.field("targetEdge", targetEdge)
-        try encoder.field("tension", tension)
+    public func encodeSource<A: NumericWorkAdmission & ~Copyable>(to encoder: inout PortableSourceEncoder, using admission: inout A) throws {
+        try encoder.record("CADIR.SurfaceAlignFeature", fields: 14, using: &admission)
+        try encoder.field("blendRows", blendRows, using: &admission)
+        try encoder.field("boundaryFlow", boundaryFlow, using: &admission)
+        try encoder.field("continuity", continuity, using: &admission)
+        try encoder.field("inputShapeInfluence", inputShapeInfluence, using: &admission)
+        try encoder.field("keepsOtherEdges", keepsOtherEdges, using: &admission)
+        try encoder.field("layout", layout, using: &admission)
+        try encoder.field("partialEnd", partialEnd, using: &admission)
+        try encoder.field("partialStart", partialStart, using: &admission)
+        try encoder.field("reference", reference, using: &admission)
+        try encoder.field("referenceEdge", referenceEdge, using: &admission)
+        try encoder.field("referencePlacement", referencePlacement, using: &admission)
+        try encoder.field("target", target, using: &admission)
+        try encoder.field("targetEdge", targetEdge, using: &admission)
+        try encoder.field("tension", tension, using: &admission)
     }
 }

@@ -4,10 +4,10 @@ import CADTopology
 
 /// Encodes original source fields owned by `CADIR.CurveSectionReference`.
 extension CADIR.CurveSectionReference: PortableSourceEncodable {
-    public func encodeSource(to encoder: inout PortableSourceEncoder) throws {
-        try encoder.record("CADIR.CurveSectionReference", fields: 3)
-        try encoder.field("featureID", featureID)
-        try encoder.field("isReversed", isReversed)
-        try encoder.field("parameterDomain", parameterDomain)
+    public func encodeSource<A: NumericWorkAdmission & ~Copyable>(to encoder: inout PortableSourceEncoder, using admission: inout A) throws {
+        try encoder.record("CADIR.CurveSectionReference", fields: 3, using: &admission)
+        try encoder.field("featureID", featureID, using: &admission)
+        try encoder.field("isReversed", isReversed, using: &admission)
+        try encoder.field("parameterDomain", parameterDomain, using: &admission)
     }
 }

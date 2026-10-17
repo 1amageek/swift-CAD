@@ -96,8 +96,8 @@ remains with evaluation/transaction composition.
 Validated document copies share one immutable memo owner. Computation remains
 outside its Mutex and racing readers publish the same digest. Failure stores no
 value. Target capability must not change storage, Sendable or synchronization.
-Older Apple systems without Mutex use the existing pure recomputation boundary;
-this does not introduce mutable unsynchronized state.
+The same immutable memo owner and Mutex access contract apply on Native, WASM
+and Embedded; explicit caller admission never relies on an OS-version branch.
 
 ## Failure, Concurrency, and Constraints
 
@@ -202,3 +202,73 @@ Original boundary-corrected support source frames its native construction and fo
 Original drafted curve identity retains generator, raw normal/axis/pull and authored height/physical-radian angle. Its original ruled surface retains start and endHeight. Cached unit directions, trigonometric bounds and construction limits are derived and excluded; enum dispatch is added when the Geometry owner publishes the corresponding actual case.
 
 The actual Geometry originalDrafted enum cases now dispatch the retained raw draft values; no fitted candidate net participates in source encoding.
+
+### Direct Section source validation and fingerprints
+
+The single generic `PortableSourceEncodable` requirement and every IR writer
+forward the caller's same `NumericWorkAdmission` into every canonical encoder
+operation and child writer. Existing field names, case tags, ordering, optional
+framing, original values and unsupported-source guards remain unchanged. Core
+owns canonical encoding and checked local encoding ceilings; IR never replaces
+the caller with limits copied into a fresh accountant or a callback adapter.
+Local encoding ceilings and cumulative caller work/storage remain independent.
+
+Raw-document fingerprint entry first validates the original source through the
+existing `OriginalQueryExecution` direct validation API. Its validated immutable
+value is then encoded and hashed with that same admission. Ordinary source
+validation keeps its existing independent-source policy; ordinary encoding uses
+the existing Core authoring admission and delegates to the same generic body.
+The explicitly admitted fingerprint always performs its own complete traversal
+and hash, including a warm-memo read. Memoized ordinary fingerprints remain
+immutable identity values, not waivers of caller work, storage or cancellation.
+
+SHA-256 retains the existing FIPS words, round order, padding, scoped immutable
+input borrow, shared schedule and tail scratch. Input visits, block expansion,
+compression, folding and hexadecimal publication retain the existing checked
+work units and use the caller admission. Typed scratch/result storage is charged
+before allocation; cancellation is checked before each block, tail and final
+publication. No pointer escapes its buffer owner. A failed or cancelled direct
+call returns its original typed cause and publishes no memo value.
+
+| Logical state | Native / WASM / Embedded storage and access | Lifetime |
+|---|---|---|
+| Writer / encoder / hash state | Invocation-local values; one exclusive inout admission | Call scope |
+| Validated source and fingerprint memo | Same immutable source and existing `Mutex<Optional<Fingerprint>>`; read/publish under the same lock | Shared validated-document owner |
+| Direct fingerprint result | Complete admitted computation; no memo fast path | Returned value |
+
+Focused shared checks own original byte/digest parity, exact measured caller
+work/storage N and N-1, cumulative prefix charges, warm-memo non-waiver, entry
+and block cancellation and retained immutable-source lifetime. Actual Section
+SVG positive and freshness-budget negative remain upper integration evidence;
+these writers alone do not establish complete evaluated-document validation.
+
+#### Admitted memo construction
+
+A direct validated-document constructor has no stored default memo initializer.
+It checkpoints its caller and validates tolerance before asking the memo owner to
+admit construction, then performs the original source validation and publishes
+the validated value. Failed construction therefore cannot allocate its memo
+before the caller observes entry cancellation or an insufficient storage limit.
+Ordinary construction delegates with its existing source execution policy;
+existing ordinary transaction constructors still create the same memo owner.
+
+The memo's existing construction body is unchanged: one outer immutable owner,
+one Storage owner containing the actual `Mutex<Optional<Fingerprint>>`, and the
+existing read/publish closures each retaining that Storage. Its admitted entry
+charges the returned owner reference, the complete inline Mutex payload, the two
+stored closure values and their two strong Storage captures. The four managed
+allocation headers use the existing two-pointer heap-header accounting contract
+also used by the physical-angle source owner. Each part uses checked typed
+storage before the original constructor is entered. A class-reference stride is
+only a reference charge, never a claim for a whole heap object. This is a
+source-owned allocation envelope including the retained payload and captures,
+not a measurement of allocator size classes or compiler closure elision.
+The admission and any callbacks remain outside the memo's Mutex critical
+sections; no caller admission is stored or captured by the memo.
+
+The finding controls construct both a raw-document fingerprint and a validated
+document under independent caller work/storage zero. Storage must refuse before
+any source work. The memo owner itself is tested at exact measured storage N and
+N-1. Entry cancellation keeps zero source charges and its original typed cause.
+All target state, read/publish locks, immutable copy sharing and owner release
+remain identical; these controls do not alter source encoding or hash bytes.

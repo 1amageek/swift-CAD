@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 public struct CADDocumentSourceFingerprint: Hashable, Sendable {
     public var algorithm: String
@@ -22,6 +23,18 @@ public extension CADDocument {
     func sourceFingerprint(tolerance: ModelingTolerance, encodingLimits: PortableSourceEncodingLimits) throws -> CADDocumentSourceFingerprint {
         try ValidatedCADDocument(self, tolerance: tolerance).sourceFingerprint(encodingLimits: encodingLimits)
     }
+
+    func sourceFingerprint(tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> CADDocumentSourceFingerprint {
+        try sourceFingerprint(tolerance: tolerance, encodingLimits: PortableDocumentSourcePayload.defaultLimits,
+            using: &execution)
+    }
+
+    func sourceFingerprint(tolerance: ModelingTolerance, encodingLimits: PortableSourceEncodingLimits,
+        using execution: inout OriginalQueryExecution) throws -> CADDocumentSourceFingerprint {
+        let validated = try ValidatedCADDocument(self, tolerance: tolerance, using: &execution)
+        return try validated.sourceFingerprint(encodingLimits: encodingLimits, using: &execution)
+    }
 }
 
 public extension ValidatedCADDocument {
@@ -34,23 +47,26 @@ public extension ValidatedCADDocument {
 
     /// Explicit allowances always admit this invocation; a cache does not waive a smaller caller budget.
     func sourceFingerprint(encodingLimits: PortableSourceEncodingLimits) throws -> CADDocumentSourceFingerprint {
+        var admission = UnboundedAuthoringAdmission()
+        return try sourceFingerprint(encodingLimits: encodingLimits, using: &admission)
+    }
+
+    /// An explicit caller always pays its own traversal, even when the ordinary memo is warm.
+    func sourceFingerprint<A: NumericWorkAdmission & ~Copyable>(
+        using admission: inout A) throws -> CADDocumentSourceFingerprint {
+        try sourceFingerprint(encodingLimits: PortableDocumentSourcePayload.defaultLimits, using: &admission)
+    }
+
+    func sourceFingerprint<A: NumericWorkAdmission & ~Copyable>(encodingLimits: PortableSourceEncodingLimits,
+        using admission: inout A) throws -> CADDocumentSourceFingerprint {
+        try admission.checkpoint()
         var encoder = try PortableSourceEncoder(limits: encodingLimits)
-        try encoder.value(PortableDocumentSourcePayload(document: document))
+        try encoder.value(PortableDocumentSourcePayload(document: document), using: &admission)
         let bytes = encoder.bytes
-        let tailBlocks = bytes.count % 64 < 56 ? 1 : 2
-        let blockCount = bytes.count / 64 + tailBlocks
-        let (blockWork, overflow) = blockCount.multipliedReportingOverflow(by: 136)
-        let (inputWork, inputOverflow) = bytes.count.addingReportingOverflow(192)
-        guard !overflow, !inputOverflow else {
-            throw PortableSourceEncodingError.resourceLimitExceeded("Source SHA-256 work.")
-        }
-        // The same allowance pays source byte reads, schedule expansion, compression,
-        // state folding, initialized tail storage and final hexadecimal publication.
-        try encoder.charge(work: inputWork)
-        try encoder.charge(work: blockWork)
-        return CADDocumentSourceFingerprint(
-            algorithm: "sha256-cad-source-binary-v1",
-            value: try SHA256Digest.sourceHexDigest(for: bytes)
-        )
+        let digest = try SHA256Digest.sourceHexDigest(for: bytes, encoding: &encoder, using: &admission)
+        try admission.retainStorage(count: 1, stride: MemoryLayout<CADDocumentSourceFingerprint>.stride)
+        let result = CADDocumentSourceFingerprint(algorithm: "sha256-cad-source-binary-v1", value: digest)
+        try admission.checkpoint()
+        return result
     }
 }

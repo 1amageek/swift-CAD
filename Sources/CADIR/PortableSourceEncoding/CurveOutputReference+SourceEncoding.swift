@@ -4,9 +4,9 @@ import CADTopology
 
 /// Encodes original source fields owned by `CADIR.CurveOutputReference`.
 extension CADIR.CurveOutputReference: PortableSourceEncodable {
-    public func encodeSource(to encoder: inout PortableSourceEncoder) throws {
-        try encoder.record("CADIR.CurveOutputReference", fields: 2)
-        try encoder.field("curveIndex", curveIndex)
-        try encoder.field("featureID", featureID)
+    public func encodeSource<A: NumericWorkAdmission & ~Copyable>(to encoder: inout PortableSourceEncoder, using admission: inout A) throws {
+        try encoder.record("CADIR.CurveOutputReference", fields: 2, using: &admission)
+        try encoder.field("curveIndex", curveIndex, using: &admission)
+        try encoder.field("featureID", featureID, using: &admission)
     }
 }

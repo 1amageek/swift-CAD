@@ -11,17 +11,17 @@ struct PortableDocumentSourcePayload: PortableSourceEncodable {
             maximumWork: Int.max, maximumDepth: Int.max)
     }
 
-    func encodeSource(to encoder: inout PortableSourceEncoder) throws {
-        try encoder.record("CADIR.EvaluationSource.BinaryV1", fields: 9)
-        try encoder.field("assembly", document.assembly)
-        try encoder.field("designGraph", document.designGraph)
-        try encoder.field("documentFoundation", document.documentFoundation)
-        try encoder.field("independentShapes", document.independentShapes)
-        try encoder.field("parameters", document.parameters)
-        try encoder.field("productAttributes", document.productAttributes)
-        try encoder.field("schemaVersion", document.schemaVersion)
-        let dimensions = try encoder.canonicalOrder(document.selectionDimensions)
-        try encoder.field("selectionDimensions", dimensions)
-        try encoder.field("units", document.units)
+    func encodeSource<A: NumericWorkAdmission & ~Copyable>(to encoder: inout PortableSourceEncoder, using admission: inout A) throws {
+        try encoder.record("CADIR.EvaluationSource.BinaryV1", fields: 9, using: &admission)
+        try encoder.field("assembly", document.assembly, using: &admission)
+        try encoder.field("designGraph", document.designGraph, using: &admission)
+        try encoder.field("documentFoundation", document.documentFoundation, using: &admission)
+        try encoder.field("independentShapes", document.independentShapes, using: &admission)
+        try encoder.field("parameters", document.parameters, using: &admission)
+        try encoder.field("productAttributes", document.productAttributes, using: &admission)
+        try encoder.field("schemaVersion", document.schemaVersion, using: &admission)
+        let dimensions = try encoder.canonicalOrder(document.selectionDimensions, using: &admission)
+        try encoder.field("selectionDimensions", dimensions, using: &admission)
+        try encoder.field("units", document.units, using: &admission)
     }
 }
