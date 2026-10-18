@@ -107,4 +107,44 @@ struct OriginalNativeEndpointPositionRelationTests {
         }
         #expect(cancelled.snapshot.work == 0 && cancelled.snapshot.storageBytes == 0)
     }
+
+    @Test(.timeLimit(.minutes(1)))
+    func parameterImageSourceFieldsAndCOWRemainExact() throws {
+        var caller = Self.spline()
+        let original = caller
+        let image = Curve3D.parameterImage(try ParameterImageCurve3D(
+            source: .bSpline(caller), gain: 1, offset: 0, tolerance: Self.tolerance))
+        let nested = Curve3D.parameterImage(try ParameterImageCurve3D(
+            source: image, gain: 1, offset: 0, tolerance: Self.tolerance))
+        var admitted = try Self.execution(OriginalQueryBudget())
+        let retainedRelation = try Self.prove(image, 0.5, image, 0.5, using: &admitted)
+        let nestedRelation = try Self.prove(nested, 0.5, nested, 0.5, using: &admitted)
+        caller.controlPoints[1].x = 2
+        caller.weights[1] = 2
+        var changedChild = original
+        changedChild.controlPoints[1].x = 2
+        let alternatives: [Curve3D] = [
+            .parameterImage(try ParameterImageCurve3D(source: .bSpline(changedChild),
+                gain: 1, offset: 0, tolerance: Self.tolerance)),
+            .parameterImage(try ParameterImageCurve3D(source: .bSpline(original),
+                gain: 2, offset: 0, tolerance: Self.tolerance)),
+            .parameterImage(try ParameterImageCurve3D(source: .bSpline(original),
+                gain: 1, offset: 0.25, tolerance: Self.tolerance))
+        ]
+        for other in alternatives {
+            for pair in [(image, other), (other, image)] {
+                let unequal = try Self.prove(pair.0, 0.5, pair.1, 0.5, using: &admitted)
+                #expect(unequal == nil)
+            }
+        }
+        #expect(retainedRelation != nil && nestedRelation != nil)
+        guard let relation = retainedRelation,
+            case .parameterImage(let first) = relation.first,
+            case .parameterImage(let second) = relation.second,
+            case .bSpline(let firstNative) = first.source,
+            case .bSpline(let secondNative) = second.source else {
+            Issue.record("Parameter-image endpoint proof lost its retained source cases."); return
+        }
+        #expect(firstNative == original && secondNative == original && caller != original)
+    }
 }

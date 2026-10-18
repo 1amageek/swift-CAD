@@ -42,7 +42,48 @@ struct OriginalNativeEndpointPositionPortable {
         try require(caller != spline(), "The COW control did not mutate its caller input.")
         return relation
     }
+    static func parameterImageSourceControls() throws {
+        var caller = spline()
+        let original = caller
+        let image = Curve3D.parameterImage(try ParameterImageCurve3D(
+            source: .bSpline(caller), gain: 1, offset: 0, tolerance: tolerance))
+        let nested = Curve3D.parameterImage(try ParameterImageCurve3D(
+            source: image, gain: 1, offset: 0, tolerance: tolerance))
+        var admitted = try execution(OriginalQueryBudget())
+        let retainedRelation = try prove(image, 0.5, image, 0.5, using: &admitted)
+        let nestedRelation = try prove(nested, 0.5, nested, 0.5, using: &admitted)
+        caller.controlPoints[1].x = 2
+        caller.weights[1] = 2
+        var changedChild = original
+        changedChild.controlPoints[1].x = 2
+        let alternatives: [Curve3D] = [
+            .parameterImage(try ParameterImageCurve3D(source: .bSpline(changedChild),
+                gain: 1, offset: 0, tolerance: tolerance)),
+            .parameterImage(try ParameterImageCurve3D(source: .bSpline(original),
+                gain: 2, offset: 0, tolerance: tolerance)),
+            .parameterImage(try ParameterImageCurve3D(source: .bSpline(original),
+                gain: 1, offset: 0.25, tolerance: tolerance))
+        ]
+        for other in alternatives {
+            for pair in [(image, other), (other, image)] {
+                let unequal = try prove(pair.0, 0.5, pair.1, 0.5, using: &admitted)
+                try require(unequal == nil, "A changed parameter-image child, gain or offset became equal at the same station.")
+            }
+        }
+        try require(retainedRelation != nil && nestedRelation != nil, "Identical or nested parameter images lost endpoint equality.")
+        guard let relation = retainedRelation,
+            case .parameterImage(let first) = relation.first,
+            case .parameterImage(let second) = relation.second,
+            case .bSpline(let firstNative) = first.source,
+            case .bSpline(let secondNative) = second.source else {
+            throw Failure(detail: "Parameter-image endpoint proof lost its retained source cases.")
+        }
+        try require(firstNative == original && secondNative == original && caller != original,
+            "Caller COW mutation changed a retained parameter-image endpoint source.")
+        print("PASS parameter-image endpoint child/gain/offset equality and COW lifetime")
+    }
     static func main() throws {
+        try parameterImageSourceControls()
         let source = Curve3D.bSpline(spline())
         var admitted = try execution(OriginalQueryBudget())
         let relation = try retained(using: &admitted)

@@ -1,0 +1,598 @@
+{
+  "status": "verified-limited-endpoint-delivery-unit",
+  "mainBaseHEAD": "73e4edfc6456807302d73aa5d4376285e273e327",
+  "sourceCounts": {
+    "CADCore": 67,
+    "CADGeometry": 2177,
+    "CADTopology": 142
+  },
+  "sourceMapSHA256": "51d102ff6434cf40935991d51a9e67f4a09ac1a2bb0b6dcf053b04404a0d1bde",
+  "sourceMapReference": "native.json.gz#/sourceSHA256",
+  "deliverySourceIdentity": {
+    "Sources/CADGeometry/OriginalRootSpan/OriginalCurveEndpointPositionRelation.swift": {
+      "afterSHA256": "89799ef622a135064733c5a94902f7cf3ab776090906e5f0eab194e33230af02",
+      "beforeSHA256": "6405ba51cc173606afe95e45bf8703d98be9fecd35e066ec42ef37fc288bd09c",
+      "verifiedRuntimeInputPaths": [
+        "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-pair-20261017/main-endpoint-delivery-verification-r2/source-view/Sources/CADGeometry/OriginalRootSpan/OriginalCurveEndpointPositionRelation.swift"
+      ]
+    },
+    "Tests/CADGeometryTests/OriginalNativeEndpointPositionRelationTests.swift": {
+      "afterSHA256": "9e41c2a74c4e37d2852a6cc9b1784f173494cf1d7aa39225a1493fc341b78b5e",
+      "beforeSHA256": "94bb76fcf3eb8be4df4bb70f572acd84baffc162fd655ce1e80d61fb4dfeb97d",
+      "verifiedRuntimeInputPaths": [
+        "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-pair-20261017/main-endpoint-delivery-verification-r2/outputs/native/client/swift-cad/Tests/FocusedTests/OriginalNativeEndpointPositionRelationTests.swift",
+        "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-pair-20261017/main-endpoint-delivery-verification-r2/outputs/asan/client/swift-cad/Tests/FocusedTests/OriginalNativeEndpointPositionRelationTests.swift"
+      ]
+    },
+    "Tests/OriginalQueryExecutionVerification/OriginalNativeEndpointPositionPortable.swift": {
+      "afterSHA256": "540bbb7204149c38daab2b9605f76391c8276dda66d320e9ce3c8ffb4f1b3604",
+      "beforeSHA256": "426e6319bc2c77057bde29ff878c60172cc9067abe536e55ba0c9636339cbea4",
+      "verifiedRuntimeInputPaths": [
+        "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-pair-20261017/main-endpoint-delivery-verification-r2/source-view/Tests/OriginalQueryExecutionVerification/OriginalNativeEndpointPositionPortable.swift"
+      ]
+    },
+    "Sources/CADGeometry/OriginalRootSpan/DESIGN.md": {
+      "afterSHA256": "8064b3ef3dcb8da911998bf7a2011d7d382f9335ddaa412d8c6f4fac872c1eec",
+      "beforeSHA256": "d2297bc8bd70559f508f13b6c64a7383e9a86018d49c0f87affd56b314a31c8a",
+      "verifiedRuntimeInputPaths": [
+        "Direct design owner; same reviewed source contract, not a runtime input"
+      ]
+    },
+    "Tests/CADTopologyTests/ParameterImageEdgeClassificationChecks.swift": {
+      "afterSHA256": "29fcfb9dd79ff37803a9b7fae670b0cb2c7f871f9fc06dbf39e5d4ed1059a0bc",
+      "beforeSHA256": null,
+      "verifiedRuntimeInputPaths": [
+        "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-pair-20261017/main-endpoint-delivery-pending-r2/fixtures/ParameterImageEdgeClassificationChecks.swift"
+      ]
+    },
+    "Tests/CADTopologyTests/ParameterImageEdgeClassificationTests.swift": {
+      "afterSHA256": "e4468b36d25beae475bee91183bff98b6d916c815e9929b087aefc464d9aadae",
+      "beforeSHA256": null,
+      "verifiedRuntimeInputPaths": [
+        "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-pair-20261017/main-endpoint-delivery-verification-r2/outputs/native/client/swift-cad/Tests/FocusedTests/ParameterImageEdgeClassificationTests.swift",
+        "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-pair-20261017/main-endpoint-delivery-verification-r2/outputs/asan/client/swift-cad/Tests/FocusedTests/ParameterImageEdgeClassificationTests.swift"
+      ]
+    },
+    "Tests/OriginalQueryExecutionVerification/ParameterImageEdgeClassificationPortable.swift": {
+      "afterSHA256": "04080bacb2be43466c2c0d3f4c2fdca191eae1d29fa2e6e8d3f6676ccba759b9",
+      "beforeSHA256": null,
+      "verifiedRuntimeInputPaths": [
+        "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-pair-20261017/main-endpoint-delivery-pending-r2/fixtures/ParameterImageEdgeClassificationPortable.swift"
+      ]
+    }
+  },
+  "lanes": {
+    "native": {
+      "status": "passed-endpoint-unit-only",
+      "acceptedPredicateCount": 10,
+      "elapsedSeconds": 20.09213112501311,
+      "inheritedElapsedSeconds": 112.49770620901836,
+      "laneLedgerSeconds": 132.58983733403147,
+      "peakRSSBytes": 5710561280,
+      "sourceMapSHA256": "51d102ff6434cf40935991d51a9e67f4a09ac1a2bb0b6dcf053b04404a0d1bde",
+      "sourceMapReference": "native.json.gz#/sourceSHA256",
+      "receipt": "native.json.gz",
+      "workerObservation": [
+        {
+          "stackBytes": 536576,
+          "mainThread": false
+        },
+        {
+          "stackBytes": 536576,
+          "mainThread": false
+        },
+        {
+          "stackBytes": 536576,
+          "mainThread": false
+        },
+        {
+          "stackBytes": 536576,
+          "mainThread": false
+        }
+      ],
+      "sourceProductDrift": [],
+      "allCommandLogProductHashesRechecked": true,
+      "cleanupIncomplete": false
+    },
+    "asan": {
+      "status": "passed-endpoint-unit-only",
+      "acceptedPredicateCount": 10,
+      "elapsedSeconds": 141.572391624999,
+      "inheritedElapsedSeconds": 0,
+      "laneLedgerSeconds": 141.572391624999,
+      "peakRSSBytes": 7625670656,
+      "sourceMapSHA256": "51d102ff6434cf40935991d51a9e67f4a09ac1a2bb0b6dcf053b04404a0d1bde",
+      "sourceMapReference": "asan.json.gz#/sourceSHA256",
+      "receipt": "asan.json.gz",
+      "workerObservation": [
+        {
+          "stackBytes": 536576,
+          "mainThread": false
+        },
+        {
+          "stackBytes": 536576,
+          "mainThread": false
+        },
+        {
+          "stackBytes": 536576,
+          "mainThread": false
+        },
+        {
+          "stackBytes": 536576,
+          "mainThread": false
+        }
+      ],
+      "sourceProductDrift": [],
+      "allCommandLogProductHashesRechecked": true,
+      "cleanupIncomplete": false
+    },
+    "wasm": {
+      "status": "passed-endpoint-unit-only",
+      "acceptedPredicateCount": 5,
+      "elapsedSeconds": 136.72079816600308,
+      "inheritedElapsedSeconds": 0,
+      "laneLedgerSeconds": 136.72079816600308,
+      "peakRSSBytes": 8496906240,
+      "sourceMapSHA256": "51d102ff6434cf40935991d51a9e67f4a09ac1a2bb0b6dcf053b04404a0d1bde",
+      "sourceMapReference": "wasm.json.gz#/sourceSHA256",
+      "receipt": "wasm.json.gz",
+      "workerObservation": [],
+      "sourceProductDrift": [],
+      "allCommandLogProductHashesRechecked": true,
+      "cleanupIncomplete": false
+    },
+    "embedded": {
+      "status": "passed-endpoint-unit-only",
+      "acceptedPredicateCount": 5,
+      "elapsedSeconds": 163.64870316701126,
+      "inheritedElapsedSeconds": 0,
+      "laneLedgerSeconds": 163.64870316701126,
+      "peakRSSBytes": 6333300736,
+      "sourceMapSHA256": "51d102ff6434cf40935991d51a9e67f4a09ac1a2bb0b6dcf053b04404a0d1bde",
+      "sourceMapReference": "embedded.json.gz#/sourceSHA256",
+      "receipt": "embedded.json.gz",
+      "workerObservation": [],
+      "sourceProductDrift": [],
+      "allCommandLogProductHashesRechecked": true,
+      "cleanupIncomplete": false
+    }
+  },
+  "sourceResponses": {
+    "native/CADGeometry": {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-pair-20261017/main-endpoint-delivery-verification-r1/responses/native-CADGeometry.rsp",
+      "SHA256": "a4f2a8bfde826c5cd84b94eb0db91f383209224cbe52ce3d5efdda35f2655ecf",
+      "sourceCount": 2177,
+      "sourceMapSHA256": "c7c997acc3f03d58ba04bdbf5112305663017369819904ae0e4abbc67aefd12b",
+      "compilerCommandReference": "original-native-failure.json.gz#/steps/CADGeometry/command"
+    },
+    "native/CADTopology": {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-pair-20261017/main-endpoint-delivery-verification-r1/responses/native-CADTopology.rsp",
+      "SHA256": "bda891c9e77663ebba78fe107700559e23f824af69d0ef32ba6c87950dfcaeb0",
+      "sourceCount": 142,
+      "sourceMapSHA256": "61a69ea26af63528ab7dd2da7cfc5bea3433827a3ac811c490e93028c0c2ce3a",
+      "compilerCommandReference": "original-native-failure.json.gz#/steps/CADTopology/command"
+    },
+    "asan/CADGeometry": {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-pair-20261017/main-endpoint-delivery-verification-r2/responses/asan-CADGeometry.rsp",
+      "SHA256": "75cd4c9a2fb083f850d9119bc240c49d3d77c57912c805e886f1ca014b5d4583",
+      "sourceCount": 2177,
+      "sourceMapSHA256": "c7c997acc3f03d58ba04bdbf5112305663017369819904ae0e4abbc67aefd12b",
+      "compilerCommandReference": "asan.json.gz#/steps/CADGeometry/command"
+    },
+    "asan/CADTopology": {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-pair-20261017/main-endpoint-delivery-verification-r2/responses/asan-CADTopology.rsp",
+      "SHA256": "a7727e2b858d11633e1dcce798586f0c63c2fd885abb3522729bd5173b4e0095",
+      "sourceCount": 142,
+      "sourceMapSHA256": "61a69ea26af63528ab7dd2da7cfc5bea3433827a3ac811c490e93028c0c2ce3a",
+      "compilerCommandReference": "asan.json.gz#/steps/CADTopology/command"
+    },
+    "wasm/CADGeometry": {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-pair-20261017/main-endpoint-delivery-verification-r2/responses/wasm-CADGeometry.rsp",
+      "SHA256": "75cd4c9a2fb083f850d9119bc240c49d3d77c57912c805e886f1ca014b5d4583",
+      "sourceCount": 2177,
+      "sourceMapSHA256": "c7c997acc3f03d58ba04bdbf5112305663017369819904ae0e4abbc67aefd12b",
+      "compilerCommandReference": "wasm.json.gz#/steps/CADGeometry/command"
+    },
+    "wasm/CADTopology": {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-pair-20261017/main-endpoint-delivery-verification-r2/responses/wasm-CADTopology.rsp",
+      "SHA256": "a7727e2b858d11633e1dcce798586f0c63c2fd885abb3522729bd5173b4e0095",
+      "sourceCount": 142,
+      "sourceMapSHA256": "61a69ea26af63528ab7dd2da7cfc5bea3433827a3ac811c490e93028c0c2ce3a",
+      "compilerCommandReference": "wasm.json.gz#/steps/CADTopology/command"
+    },
+    "embedded/CADGeometry": {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-pair-20261017/main-endpoint-delivery-verification-r2/responses/embedded-CADGeometry.rsp",
+      "SHA256": "75cd4c9a2fb083f850d9119bc240c49d3d77c57912c805e886f1ca014b5d4583",
+      "sourceCount": 2177,
+      "sourceMapSHA256": "c7c997acc3f03d58ba04bdbf5112305663017369819904ae0e4abbc67aefd12b",
+      "compilerCommandReference": "embedded.json.gz#/steps/CADGeometry/command"
+    },
+    "embedded/CADTopology": {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-pair-20261017/main-endpoint-delivery-verification-r2/responses/embedded-CADTopology.rsp",
+      "SHA256": "a7727e2b858d11633e1dcce798586f0c63c2fd885abb3522729bd5173b4e0095",
+      "sourceCount": 142,
+      "sourceMapSHA256": "61a69ea26af63528ab7dd2da7cfc5bea3433827a3ac811c490e93028c0c2ce3a",
+      "compilerCommandReference": "embedded.json.gz#/steps/CADTopology/command"
+    }
+  },
+  "lowerReuse": {
+    "native": {
+      "receipt": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/section-encoder-core-native-r3/receipt.json",
+      "receiptSHA256": "503f6de46df9f62151bf4f7b6ca2dde809dacb399b41028980355b1769d9996c",
+      "sourceCount": 67,
+      "sourceMapSHA256": "02605fe4d7698e99c44b078ed1444a471337e8eeb744abcb7a7c8854aacb08fc",
+      "productPins": [
+        {
+          "name": "CADCore.swiftmodule",
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/section-encoder-core-native-r3/modules/CADCore.swiftmodule",
+          "sha256": "6b4275c2d736b64cb3dd28cc7378704fda9d95db2d240593b50370e7d6547bb4",
+          "instrumentation": "unchanged-original-product"
+        },
+        {
+          "name": "CADCore.o",
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/section-encoder-core-native-r3/modules/CADCore.o",
+          "sha256": "5985a71ac3aaae5d32743096e1c21271dee0c5fe7f2628069b16261cc749cce0",
+          "instrumentation": "unchanged-original-product"
+        },
+        {
+          "name": "InternalCollectionsUtilities.swiftmodule",
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/dependencies/collections-native-r1/accepted/native/InternalCollectionsUtilities.swiftmodule",
+          "sha256": "eef0445b79b8842fd56b5615f0c430e605836b43339a21c642d662fa5839f9d2",
+          "instrumentation": "unchanged-original-product"
+        },
+        {
+          "name": "InternalCollectionsUtilities.o",
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/dependencies/collections-native-r1/accepted/native/InternalCollectionsUtilities.o",
+          "sha256": "356d36fb97ab3a4ac6394cf61cb3f6a4f44877b1a8a818cf00b80ec6c9de4a6b",
+          "instrumentation": "unchanged-original-product"
+        },
+        {
+          "name": "HashTreeCollections.swiftmodule",
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/dependencies/collections-native-r1/accepted/native/HashTreeCollections.swiftmodule",
+          "sha256": "d450a858236ef5e0a3bf502e16efe85e4df05d0dbf9a1ba1ef10f91a7b5cb90b",
+          "instrumentation": "unchanged-original-product"
+        },
+        {
+          "name": "HashTreeCollections.o",
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/dependencies/collections-native-r1/accepted/native/HashTreeCollections.o",
+          "sha256": "6f4d87baac6d4264eb1ce4ea31f0af38215094bb5910271058226b92c35bc13b",
+          "instrumentation": "unchanged-original-product"
+        }
+      ],
+      "dependencyProvenance": [
+        "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/dependencies/collections-native-r1/products.json",
+        "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/dependencies/collections-native-r1/receipt.json"
+      ],
+      "fullReference": "native.json.gz#/coreReuse"
+    },
+    "asan": {
+      "receipt": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/section-encoder-core-asan-r3/receipt.json",
+      "receiptSHA256": "17fb08dbdf160161b2e959d7f00e1a3d9838ceecab5c04ba1d4c32cf668fd297",
+      "sourceCount": 67,
+      "sourceMapSHA256": "02605fe4d7698e99c44b078ed1444a471337e8eeb744abcb7a7c8854aacb08fc",
+      "productPins": [
+        {
+          "name": "CADCore.swiftmodule",
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/section-encoder-core-asan-r3/modules/CADCore.swiftmodule",
+          "sha256": "c50704fd4c2963db178c8c2d394da17f0479e4a6a7cc3277f9f4c5ca199ff85d",
+          "instrumentation": "address"
+        },
+        {
+          "name": "CADCore.o",
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/section-encoder-core-asan-r3/modules/CADCore.o",
+          "sha256": "47ccb76f0465bdcf968650ea5994d5656fcb37248229544c9a19442515f4b80f",
+          "instrumentation": "address"
+        },
+        {
+          "name": "InternalCollectionsUtilities.swiftmodule",
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/section-encoder-core-asan-r3/modules/InternalCollectionsUtilities.swiftmodule",
+          "sha256": "3fc85570a4ea70654140f935502abeccb90318927a62f0db7426621873e6dad1",
+          "instrumentation": "unchanged-original-product"
+        },
+        {
+          "name": "InternalCollectionsUtilities.o",
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/section-encoder-core-asan-r3/modules/InternalCollectionsUtilities.o",
+          "sha256": "9f3dc10f3f0adb524020c06c3f4178c043d9f07648d7ad74ed29bd44b6ddc297",
+          "instrumentation": "unchanged-original-product"
+        },
+        {
+          "name": "HashTreeCollections.swiftmodule",
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/section-encoder-core-asan-r3/modules/HashTreeCollections.swiftmodule",
+          "sha256": "060cda3aa340304244cf6004e208e94fabd80476c8cdc267ce748e33343636ae",
+          "instrumentation": "unchanged-original-product"
+        },
+        {
+          "name": "HashTreeCollections.o",
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/section-encoder-core-asan-r3/modules/HashTreeCollections.o",
+          "sha256": "43289ecd457d19fd545c9cde973f38fb656a4fd69a64448f34320d90ec3d0891",
+          "instrumentation": "unchanged-original-product"
+        }
+      ],
+      "dependencyProvenance": [
+        "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/asan/receipt.json"
+      ],
+      "fullReference": "asan.json.gz#/coreReuse"
+    },
+    "wasm": {
+      "receipt": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/section-encoder-core-wasm-r4/receipt.json",
+      "receiptSHA256": "6738c655109578f1c85518ad7d51b27c440794ecbab0b1b4ea8c34e54ae66a19",
+      "sourceCount": 67,
+      "sourceMapSHA256": "02605fe4d7698e99c44b078ed1444a471337e8eeb744abcb7a7c8854aacb08fc",
+      "productPins": [
+        {
+          "name": "CADCore.swiftmodule",
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/section-encoder-core-wasm-r4/modules/CADCore.swiftmodule",
+          "sha256": "134f3cf96b31329293f4348f5bab96fc9a754d7831cbfe8b4368436a83c12a9d",
+          "instrumentation": "unchanged-original-product"
+        },
+        {
+          "name": "CADCore.code.o",
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/section-encoder-core-wasm-r4/modules/CADCore.code.o",
+          "sha256": "9167f1305c7114eb69f7769e9ddb503277588f3a0221ee69423f13d486dbd13d",
+          "instrumentation": "unchanged-original-product"
+        },
+        {
+          "name": "InternalCollectionsUtilities.swiftmodule",
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/section-encoder-core-wasm-r4/modules/InternalCollectionsUtilities.swiftmodule",
+          "sha256": "2df6fad7b836fdb183efa9fbd16f0462c02c4c475206f5006312bf3c0389e646",
+          "instrumentation": "unchanged-original-product"
+        },
+        {
+          "name": "InternalCollectionsUtilities.o",
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/section-encoder-core-wasm-r4/modules/InternalCollectionsUtilities.o",
+          "sha256": "426a9ab5bc68e56396855cb8b448a30fdc1bdf968757e9f09b9c3959d0c525f8",
+          "instrumentation": "unchanged-original-product"
+        },
+        {
+          "name": "HashTreeCollections.swiftmodule",
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/section-encoder-core-wasm-r4/modules/HashTreeCollections.swiftmodule",
+          "sha256": "1f3c02497561d6e89d576b4de6aba862745eb06112cbd8f1e376d63170d88d3f",
+          "instrumentation": "unchanged-original-product"
+        },
+        {
+          "name": "HashTreeCollections.o",
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/section-encoder-core-wasm-r4/modules/HashTreeCollections.o",
+          "sha256": "4402f8e94277245696ad78f319c3e67e06542d10e3cb35b1d933009292331d81",
+          "instrumentation": "unchanged-original-product"
+        }
+      ],
+      "dependencyProvenance": [
+        "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/wasm/receipt.json"
+      ],
+      "fullReference": "wasm.json.gz#/coreReuse"
+    },
+    "embedded": {
+      "receipt": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/section-encoder-core-embedded-r3/receipt.json",
+      "receiptSHA256": "d385007fd2304479ff2e673d303f2d3c9bb2449c5571d5420b4b230c549c9706",
+      "sourceCount": 67,
+      "sourceMapSHA256": "02605fe4d7698e99c44b078ed1444a471337e8eeb744abcb7a7c8854aacb08fc",
+      "productPins": [
+        {
+          "name": "CADCore.swiftmodule",
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/section-encoder-core-embedded-r3/modules/CADCore.swiftmodule",
+          "sha256": "a606ed7ffcc43904d22fbf2ea1a56c8c0396bb0f9a19782e5e49c7f720a66850",
+          "instrumentation": "unchanged-original-product"
+        },
+        {
+          "name": "InternalCollectionsUtilities.swiftmodule",
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/section-encoder-core-embedded-r3/modules/InternalCollectionsUtilities.swiftmodule",
+          "sha256": "37a015e7fdc6ff70f6cda2cb750ab86de0589471b99e7f0cc83f473a57caf17a",
+          "instrumentation": "unchanged-original-product"
+        },
+        {
+          "name": "HashTreeCollections.swiftmodule",
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/section-encoder-core-embedded-r3/modules/HashTreeCollections.swiftmodule",
+          "sha256": "e6dc2c0dac2351702fd6f67bb3625b7d04415be14251068d759104c1a11e7357",
+          "instrumentation": "unchanged-original-product"
+        }
+      ],
+      "dependencyProvenance": [
+        "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/volume-caller-portable-r1/embedded/receipt.json"
+      ],
+      "fullReference": "embedded.json.gz#/coreReuse"
+    }
+  },
+  "nativeSuccessfulModuleReuse": {
+    "reference": "original-native-failure.json.gz#/steps",
+    "completeMainCompilerProductReference": "original-native-failure.json.gz#/products",
+    "compilerCommandReferences": [
+      "original-native-failure.json.gz#/steps/CADGeometry",
+      "original-native-failure.json.gz#/steps/CADTopology"
+    ],
+    "successfulSourceMapSHA256": "51d102ff6434cf40935991d51a9e67f4a09ac1a2bb0b6dcf053b04404a0d1bde",
+    "originalFailurePreserved": true,
+    "priorEndpoint4IndividualPASSReference": "original-native-failure.json.gz#/steps/worker5",
+    "scope": "Only successful complete Main Geometry/Topology products and individually successful unchanged Endpoint4 predicates. The old outer failed worker test remains failed.",
+    "productPins": [
+      {
+        "name": "CADGeometry.swiftmodule",
+        "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-pair-20261017/main-endpoint-delivery-verification-r1/outputs/native/modules/CADGeometry.swiftmodule",
+        "sha256": "b9e6277789d79c7fc4f2d451cda89b7fba9f922c36846dedfdbaa4baf1d7196f"
+      },
+      {
+        "name": "CADGeometry.o",
+        "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-pair-20261017/main-endpoint-delivery-verification-r1/outputs/native/modules/CADGeometry.o",
+        "sha256": "c978fd6509661182d742abf7e4ae09c953bb0778cb8b1d4a4235d5e90cf43a4a"
+      },
+      {
+        "name": "CADTopology.swiftmodule",
+        "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-pair-20261017/main-endpoint-delivery-verification-r1/outputs/native/modules/CADTopology.swiftmodule",
+        "sha256": "190ba1ffde3e156a19b57f7509379e97496b3eaa99b0c2c11e505e7171baf3a6"
+      },
+      {
+        "name": "CADTopology.o",
+        "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-pair-20261017/main-endpoint-delivery-verification-r1/outputs/native/modules/CADTopology.o",
+        "sha256": "bb409c82c5efe0041c13824391acacdc2caebeb003072c1aa3a4086481425906"
+      }
+    ],
+    "endpoint4IndividualPASS": {
+      "originalXMLPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-pair-20261017/main-endpoint-delivery-verification-r1/outputs/native/worker5.xml",
+      "originalXMLSHA256": "6c9e5c0a0f91bc6863db4ba1e459100e159ef1e5c77d8361930a10bd01fc4c2a",
+      "originalLogSHA256": "348c3c6edd6a45ea75c810ecd5cdf620288c7f3dc4c4e774b4406b29d6851feb",
+      "successfulIndividualXMLCases": [
+        {
+          "classname": "FocusedTests.OriginalNativeEndpointPositionRelationTests",
+          "name": "sameAndUnequalNativeEndpointsRunOnCooperativeWorkers()",
+          "time": "0.007490708"
+        },
+        {
+          "classname": "FocusedTests.OriginalNativeEndpointPositionRelationTests",
+          "name": "foreignNativeSourcesRemainExactAndRetainTheirCOWPayload()",
+          "time": "0.007520667"
+        },
+        {
+          "classname": "FocusedTests.OriginalNativeEndpointPositionRelationTests",
+          "name": "measuredBudgetDoesNotTurnGeometricAgreementIntoSourceEquality()",
+          "time": "0.005460833"
+        },
+        {
+          "classname": "FocusedTests.OriginalNativeEndpointPositionRelationTests",
+          "name": "parameterImageSourceFieldsAndCOWRemainExact()",
+          "time": "0.012501542"
+        }
+      ],
+      "failedOuterStatusPreserved": true
+    }
+  },
+  "toolchain": {
+    "release": "swift-6.4.0-RELEASE",
+    "swiftcSHA256": "79ae5c26645489fb783ae980f0f1bdae810f90fb180c9ac39808807b65e9fd69",
+    "frontendSHA256": "32d565dc81f4e714f91da71cc1a501a335c20347c15d5ab522f9cacf9d225caf",
+    "SDKIdentifiers": {
+      "native": "macOS27.0",
+      "asan": "macOS27.0",
+      "wasm": "swift-6.4.0-RELEASE_wasm",
+      "embedded": "swift-6.4.0-RELEASE_wasm-embedded"
+    },
+    "targetTriples": {
+      "native": "arm64-apple-macosx27.0",
+      "asan": "arm64-apple-macos27.0",
+      "wasm": "wasm32-unknown-wasip1",
+      "embedded": "wasm32-unknown-wasip1"
+    },
+    "SDKMetadataPins": {
+      "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/info.json": "64a5553ce039aa78f142c9db5876cc7b8e81c4b952ef5d17859bb5a3f94530e9",
+      "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift-sdk.json": "5ce9854bf06caef51f4df3993e1c98f686b296e1029ea60a9fd0265df8966f04",
+      "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/embedded-swift-sdk.json": "7fa4767cd98af9f6ad8921e6effb25d29b8454e4eea55d450162c91c0d30aa75",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/SDKSettings.json": "7b93ad7e534cc4b31c6a4e39d19b5e0288acf2168c2649479a796d1cb51939fb"
+    }
+  },
+  "bounds": {
+    "eachLaneAggregateSeconds": 1200,
+    "processTreeRSSBytes": 10737418240,
+    "compilerJobs": 1,
+    "maximumActiveCompilers": 1,
+    "runtimeSeconds": 120,
+    "workerStackBytes": 557056,
+    "retry": 0,
+    "minimumFreeBytesBeforeLane": 2147483648
+  },
+  "archive": {
+    "native": {
+      "archive": "native.json.gz",
+      "archiveSHA256": "87069873a199ae916603afdd489aad3772c287e6b84960d2046ffcf0371d7cdd",
+      "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-pair-20261017/main-endpoint-delivery-verification-r2/outputs/native/receipt.json",
+      "originalSHA256": "1149100388a9b64aebf83b92d95a83a6992f6e21ef6b067d2c48d51a26624625",
+      "rawBytes": 417834,
+      "compressedBytes": 124528
+    },
+    "asan": {
+      "archive": "asan.json.gz",
+      "archiveSHA256": "bc7dae3c78f909a50b19f5ae9ce3e67e0c4bad2332ebe371874899ec333b6ca1",
+      "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-pair-20261017/main-endpoint-delivery-verification-r2/outputs/asan/receipt.json",
+      "originalSHA256": "f8c6c057882e5fa163013ab945fafa35d9a5d0d2aff806284c384cd2078a918c",
+      "rawBytes": 410958,
+      "compressedBytes": 124683
+    },
+    "wasm": {
+      "archive": "wasm.json.gz",
+      "archiveSHA256": "77c21db877fbeba131740177a09a120b7982938ffea1abb4f4f8f3a75099b731",
+      "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-pair-20261017/main-endpoint-delivery-verification-r2/outputs/wasm/receipt.json",
+      "originalSHA256": "6bda5132ce831917bd05b8deeac559191d367dbd56bb173297fefc4e1d1989c9",
+      "rawBytes": 411131,
+      "compressedBytes": 124191
+    },
+    "embedded": {
+      "archive": "embedded.json.gz",
+      "archiveSHA256": "b6349f31ed3fcba4d55d0c1cad1c0171e8066ba3f9c3803dca340f71d4fe9d2d",
+      "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-pair-20261017/main-endpoint-delivery-verification-r2/outputs/embedded/receipt.json",
+      "originalSHA256": "53987927318854efa627ce266b0baaa39d91b327c12bf7ee0e71604c4451def4",
+      "rawBytes": 407121,
+      "compressedBytes": 123867
+    },
+    "original-native-failure": {
+      "archive": "original-native-failure.json.gz",
+      "archiveSHA256": "9de848276d5d8d36971dab77a5153ac12851fff94372bd25230c2d053c18a697",
+      "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-pair-20261017/main-endpoint-delivery-verification-r1/outputs/native/receipt.json",
+      "originalSHA256": "0e6d33e2f36d3806ff3a37fb547ded95aa9a4f2b8139e3fab0d33099590380b2",
+      "rawBytes": 413080,
+      "compressedBytes": 123954
+    },
+    "source-review-r1": {
+      "archive": "source-review-r1.json.gz",
+      "archiveSHA256": "0c5e79f8d4c716435fd7f02fb091ac6d5cac4ea63757df34f54de1384b5c7876",
+      "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-pair-20261017/main-endpoint-delivery-review-r1/review.json",
+      "originalSHA256": "65522bc6110e0838b33edf308add07d8fc129d9b9e042b299163de43d55373ad",
+      "rawBytes": 6781,
+      "compressedBytes": 3071
+    },
+    "finding-review-r2": {
+      "archive": "finding-review-r2.json.gz",
+      "archiveSHA256": "1c23c12d7b01f425bf427a3ce191fe631ba3fa7f6c6b8dca03468152a0f37784",
+      "originalPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-pair-20261017/main-endpoint-delivery-review-r2/review.json",
+      "originalSHA256": "463099dcec9aed9683c86704e1d477b49c29784c9ea22675c5e7fd1c6385517b",
+      "rawBytes": 3962,
+      "compressedBytes": 2005
+    }
+  },
+  "sourceReview": {
+    "comprehensive": "source-review-r1.json.gz",
+    "findingOnly": "finding-review-r2.json.gz",
+    "noNewReviewCycle": true
+  },
+  "fixtureCorrection": {
+    "path": "Tests/CADTopologyTests/ParameterImageEdgeClassificationTests.swift",
+    "beforeSHA256": "32ab769ddfb8494a0e8e23e74030ced621f197492496928ca7cb395c7e697a17",
+    "afterSHA256": "e4468b36d25beae475bee91183bff98b6d916c815e9929b087aefc464d9aadae",
+    "reason": "The historical557056 bound is not an established exact pthread API return. Retain actual non-main four-child-task caller and enforce positive usable stack no greater than the unchanged557056 upper bound. Record actual values without fixing536576 as an expected constant.",
+    "workerConfigurationChanged": false,
+    "productionChanged": false,
+    "unchangedSixPathsVerified": true
+  },
+  "provenance": {
+    "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-pair-20261017/main-endpoint-delivery-pending-r2/provenance.json",
+    "SHA256": "d91c348569e0f071107e421be87c2be2a1ceb8a4a12082462720e8fa0eea23a9",
+    "changePatchSHA256": "f9089f0363e6f8bb51f16e7289f5f3181c827fd4ad84df4950847cfadcc9e956",
+    "planPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-pair-20261017/main-endpoint-delivery-verification-r2/plan.json",
+    "planSHA256": "69988422d0df7bd38ef298bd4ff2463b64018ad8a0d6c3a0910f0abcb7f0b7c7",
+    "finalPreflightPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-whole-plane-pair-20261017/main-endpoint-delivery-verification-r2/preflight.json",
+    "finalPreflightSHA256": "701d3d2f896a1643c3b6b3813ad758bb34eb9bb5f0ba65f3aa6a845286b8dfaf",
+    "finalPreflightStatus": "passed"
+  },
+  "countsMeaning": "Native10=4 reused Endpoint functions+1 corrected worker function+4 portable Endpoint markers+1 portable classifier marker. ASAN10 executes all equivalent functions/markers afresh. WASM5/Embedded5 are4 Endpoint markers+1 actual public classifier marker; these are predicate counts, not10 distinct geometric test cases.",
+  "remainingBoundaries": {
+    "MainCheckoutChanged": false,
+    "GitCommitPerformed": false,
+    "pushPerformed": false,
+    "wholeU1Complete": false,
+    "wholeProgressCompletedUnits": 1,
+    "wholeProgressTotalUnits": 7,
+    "excluded": [
+      "parent U1",
+      "full Spatial application composition",
+      "Section",
+      "Volume",
+      "package/combined callers",
+      "unfinished SourceUnit"
+    ],
+    "nextOwnedByRoot": "Index-only seven source paths plus this evidence and canonical PROGRESS, preserve I worktree extras, coherent commit, Main FF, then compare actual Main Core67/Geometry2177/Topology142 and fixtures to these verified maps before ordinary configured upstream push."
+  },
+  "packaging": {
+    "compilerInvocations": 0,
+    "runtimeQueries": 0,
+    "reviewInvocations": 0,
+    "rawJSONPreservedByteExact": true,
+    "binariesModulesSDKsCopied": false,
+    "MainISourceWrites": 0
+  }
+}

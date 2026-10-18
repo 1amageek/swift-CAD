@@ -402,3 +402,54 @@ exercise same/unequal Native stations, foreign exact sources, COW lifetime,
 cumulative N/N−1 work and cancellation on actual Swift Testing workers. The
 standalone `OriginalNativeEndpointPositionPortable.swift` exercises the same
 package issuer on ASAN, normal WASM and Embedded from real module products.
+
+
+### Endpoint source comparison and coordinate phases
+
+The endpoint relation keeps the original source validation, station/selected-side
+admission, structural work charges, retained-endpoint theorem and physical-angular
+test. A private non-inlined suffix owns the following ideal-periodic test, exact
+coordinate computation and result publication, so its scratch lifetime starts
+after the physical-angular phase declines.
+
+```text
+original validation and charged source comparison
+ -> retained/physical-angular endpoint tests
+ -> private suffix: ideal-periodic test -> exact coordinates -> relation or nil
+coordinates: cancellation -> one work debit -> nonnegative depth
+ -> typed parameter image / typed Native B-spline / remaining source families
+```
+
+The parameter-image phase multiplies the original exact gain and adds the original
+offset before the same positive child-depth guard and depth-minus-one recursion.
+The Native phase preserves selected positive knot-side admission, ordered span
+search, per-candidate work, the original homogeneous polynomial, positive weight
+guard, retained output capacity and ordered XYZ quotients. Its borrowed spline
+argument is explicitly copied into the existing owning polynomial initializer;
+the immutable/COW source buffers keep their original ownership. No new source,
+array materialization, proof ledger, capability, public API or source law is issued.
+
+The private source comparison handles parameter images by child-source equality,
+then exact parameterGain equality, then offset equality, in synthesized stored-
+property short-circuit order. Native B-splines retain the existing typed equality;
+other source tags retain enum equality. Both complete payloads remain charged
+before comparison. Source equality is structural authored equality; foreign
+representations still use the existing exact-coordinate proof. No tolerance
+becomes identity and no failure becomes nil or successful absence.
+
+| Owner/state | Native | WASM | Embedded WASM |
+|---|---|---|---|
+| Source and retained relation | Same immutable/COW values | Same | Same |
+| Admission and mutation | Original exclusive inout execution | Same | Same |
+| Temporary coordinates | Function-local values | Same | Same |
+| Release | Existing value/reference ownership | Same | Same |
+
+The four [Native endpoint fixtures](../../../Tests/CADGeometryTests/OriginalNativeEndpointPositionRelationTests.swift)
+cover exact same/unequal positions, changed child/gain/offset, nested images, COW
+lifetime, cumulative N/N-1 work and cancellation. The
+[portable fixture](../../../Tests/OriginalQueryExecutionVerification/OriginalNativeEndpointPositionPortable.swift)
+checks the same issuer on real module products. These private phases require
+fresh complete Main CADGeometry compile/link on Native, ASAN, normal WASM and
+Embedded WASM plus focused runtime. Main's unchanged public BRepEdgeGeometryClassifier path additionally requires
+original parameter-image open/closed fixtures that reach this endpoint issuer.
+Integration-worktree results alone do not prove Main's different composed stack.

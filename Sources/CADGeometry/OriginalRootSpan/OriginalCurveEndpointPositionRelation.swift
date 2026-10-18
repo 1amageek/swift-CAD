@@ -86,6 +86,17 @@ package struct OriginalCurveEndpointPositionRelation: Sendable {
             return .init(first: first, firstParameter: firstParameter, second: second,
                 secondParameter: secondParameter, firstNativeSpanIndex: nil, secondNativeSpanIndex: nil, tolerance: tolerance)
         }
+        return try proveAfterPhysicalAngularStation(first: first, at: firstParameter,
+            second: second, at: secondParameter, firstNativeSpanIndex: firstNativeSpanIndex,
+            secondNativeSpanIndex: secondNativeSpanIndex, remainingSourceDepth: remainingSourceDepth,
+            tolerance: tolerance, usage: &usage)
+    }
+
+    @inline(never)
+    private static func proveAfterPhysicalAngularStation(first: Curve3D, at firstParameter: Double,
+        second: Curve3D, at secondParameter: Double, firstNativeSpanIndex: Int?, secondNativeSpanIndex: Int?,
+        remainingSourceDepth: Int, tolerance: ModelingTolerance,
+        usage: inout OriginalQueryExecution) throws -> Self? {
         if try hasSameIdealPeriodicStation(first: first, at: .originalDouble(firstParameter, usage: &usage),
             second: second, at: .originalDouble(secondParameter, usage: &usage),
             remainingSourceDepth: remainingSourceDepth, usage: &usage) {
@@ -112,6 +123,11 @@ package struct OriginalCurveEndpointPositionRelation: Sendable {
         if case .bSpline(let a) = first {
             guard case .bSpline(let b) = second else { return false }
             return a == b
+        }
+        if case .parameterImage(let a) = first {
+            guard case .parameterImage(let b) = second else { return false }
+            return hasSameOriginalSource(first: a.source, second: b.source)
+                && a.parameterGain == b.parameterGain && a.offset == b.offset
         }
         return first == second
     }
@@ -229,6 +245,7 @@ package struct OriginalCurveEndpointPositionRelation: Sendable {
         return endpoint
     }
 
+    @inline(never)
     package static func coordinates<B: ExactScalarAdmission & ~Copyable>(_ source: Curve3D,
         at station: ExactRationalCoefficient, owningSpanIndex: Int? = nil, remainingSourceDepth: Int,
         tolerance: ModelingTolerance,
@@ -237,6 +254,82 @@ package struct OriginalCurveEndpointPositionRelation: Sendable {
         guard remainingSourceDepth >= 0 else {
             throw GeometryConversionError.resourceLimitExceeded("Original endpoint relation exhausted source depth.")
         }
+        if case .parameterImage(let image) = source {
+            return try parameterImageCoordinates(image, at: station, owningSpanIndex: owningSpanIndex,
+                remainingSourceDepth: remainingSourceDepth, tolerance: tolerance, usage: &usage)
+        }
+        if case .bSpline(let spline) = source {
+            return try bSplineCoordinates(spline, at: station, owningSpanIndex: owningSpanIndex,
+                tolerance: tolerance, usage: &usage)
+        }
+        return try familyCoordinates(source, at: station, owningSpanIndex: owningSpanIndex,
+            remainingSourceDepth: remainingSourceDepth, tolerance: tolerance, usage: &usage)
+    }
+
+    @inline(never)
+    private static func parameterImageCoordinates<B: ExactScalarAdmission & ~Copyable>(
+        _ image: borrowing ParameterImageCurve3D, at station: ExactRationalCoefficient,
+        owningSpanIndex: Int?, remainingSourceDepth: Int, tolerance: ModelingTolerance,
+        usage: inout B) throws -> [ExactRationalCoefficient] {
+        let native = try station.multiplied(by: image.parameterGain.exactCoefficient(usage: &usage), usage: &usage)
+            .adding(.originalDouble(image.offset, usage: &usage), usage: &usage)
+        guard remainingSourceDepth > 0 else {
+            throw GeometryConversionError.resourceLimitExceeded("Original endpoint image exhausted source depth.")
+        }
+        return try coordinates(image.source, at: native, owningSpanIndex: owningSpanIndex,
+            remainingSourceDepth: remainingSourceDepth - 1, tolerance: tolerance, usage: &usage)
+    }
+
+    @inline(never)
+    private static func bSplineCoordinates<B: ExactScalarAdmission & ~Copyable>(
+        _ spline: borrowing BSplineCurve3D, at station: ExactRationalCoefficient,
+        owningSpanIndex: Int?, tolerance: ModelingTolerance,
+        usage: inout B) throws -> [ExactRationalCoefficient] {
+        var selected: Int?
+        let candidates: Range<Int>
+        if let index = owningSpanIndex {
+            guard index >= spline.degree, index < spline.controlPoints.count,
+                  spline.knots[index] < spline.knots[index + 1] else {
+                throw GeometryConversionError.invalidInput("Original endpoint selected side is not a positive native owner.")
+            }
+            candidates = index..<(index + 1)
+        } else { candidates = spline.degree..<spline.controlPoints.count }
+        for index in candidates {
+            try usage.consumeWork(1)
+            if spline.knots[index] >= spline.knots[index + 1] { continue }
+            let lower = try ExactRationalCoefficient.originalDouble(spline.knots[index], usage: &usage)
+            let upper = try ExactRationalCoefficient.originalDouble(spline.knots[index + 1], usage: &usage)
+            if try station.subtracting(lower, usage: &usage).isNegative { continue }
+            if try upper.subtracting(station, usage: &usage).isNegative { continue }
+            selected = index; break
+        }
+        guard let selected else {
+            // FIXME(INCOMPLETE_IMPLEMENTATION): General endpoint repair and
+            // closed-edge classification need retained exact periodic lifts
+            // outside the base knot cover before those stations may succeed.
+            throw GeometryConversionError.invalidInput("Original endpoint lies outside the retained native knot cover.")
+        }
+        let polynomial = try OriginalRationalCurvePolynomial(source: copy spline, spanIndex: selected,
+            tolerance: tolerance, usage: &usage)
+        let weight = try polynomial.homogeneous[3].evaluated(atU: station, v: .zero, usage: &usage)
+        guard weight.isPositive else {
+            throw GeometryConversionError.invalidInput("Original endpoint homogeneous denominator is not positive.")
+        }
+        try retainBytes(3 * MemoryLayout<ExactRationalCoefficient>.stride, usage: &usage)
+        var result: [ExactRationalCoefficient] = []
+        result.reserveCapacity(3)
+        for axis in 0..<3 {
+            result.append(try polynomial.homogeneous[axis].evaluated(atU: station, v: .zero, usage: &usage)
+                .divided(by: weight, usage: &usage))
+        }
+        return result
+    }
+
+    @inline(never)
+    private static func familyCoordinates<B: ExactScalarAdmission & ~Copyable>(_ source: Curve3D,
+        at station: ExactRationalCoefficient, owningSpanIndex: Int? = nil, remainingSourceDepth: Int,
+        tolerance: ModelingTolerance,
+        usage: inout B) throws -> [ExactRationalCoefficient] {
         func child(_ curve: Curve3D, _ station: ExactRationalCoefficient) throws -> [ExactRationalCoefficient] {
             guard remainingSourceDepth > 0 else {
                 throw GeometryConversionError.resourceLimitExceeded("Original endpoint image exhausted source depth.")
@@ -369,9 +462,8 @@ package struct OriginalCurveEndpointPositionRelation: Sendable {
         case .line(let line): return try linear(line.origin, line.direction)
         case .analytic(.line(let origin, let direction)): return try linear(origin, direction)
         case .parameterImage(let image):
-            let native = try station.multiplied(by: image.parameterGain.exactCoefficient(usage: &usage), usage: &usage)
-                .adding(.originalDouble(image.offset, usage: &usage), usage: &usage)
-            return try child(image.source, native)
+            return try parameterImageCoordinates(image, at: station, owningSpanIndex: owningSpanIndex,
+                remainingSourceDepth: remainingSourceDepth, tolerance: tolerance, usage: &usage)
         case .rigidImage(let image):
             let q = try child(image.source, station), t = image.transform
             return try transformed(q, t.basisX, t.basisY, t.basisZ, t.translation)
@@ -399,44 +491,8 @@ package struct OriginalCurveEndpointPositionRelation: Sendable {
             }
             return result
         case .bSpline(let spline):
-            var selected: Int?
-            let candidates: Range<Int>
-            if let index = owningSpanIndex {
-                guard index >= spline.degree, index < spline.controlPoints.count,
-                      spline.knots[index] < spline.knots[index + 1] else {
-                    throw GeometryConversionError.invalidInput("Original endpoint selected side is not a positive native owner.")
-                }
-                candidates = index..<(index + 1)
-            } else { candidates = spline.degree..<spline.controlPoints.count }
-            for index in candidates {
-                try usage.consumeWork(1)
-                if spline.knots[index] >= spline.knots[index + 1] { continue }
-                let lower = try ExactRationalCoefficient.originalDouble(spline.knots[index], usage: &usage)
-                let upper = try ExactRationalCoefficient.originalDouble(spline.knots[index + 1], usage: &usage)
-                if try station.subtracting(lower, usage: &usage).isNegative { continue }
-                if try upper.subtracting(station, usage: &usage).isNegative { continue }
-                selected = index; break
-            }
-            guard let selected else {
-                // FIXME(INCOMPLETE_IMPLEMENTATION): General endpoint repair and
-                // closed-edge classification need retained exact periodic lifts
-                // outside the base knot cover before those stations may succeed.
-                throw GeometryConversionError.invalidInput("Original endpoint lies outside the retained native knot cover.")
-            }
-            let polynomial = try OriginalRationalCurvePolynomial(source: spline, spanIndex: selected,
+            return try bSplineCoordinates(spline, at: station, owningSpanIndex: owningSpanIndex,
                 tolerance: tolerance, usage: &usage)
-            let weight = try polynomial.homogeneous[3].evaluated(atU: station, v: .zero, usage: &usage)
-            guard weight.isPositive else {
-                throw GeometryConversionError.invalidInput("Original endpoint homogeneous denominator is not positive.")
-            }
-            try retainBytes(3 * MemoryLayout<ExactRationalCoefficient>.stride, usage: &usage)
-            var result: [ExactRationalCoefficient] = []
-            result.reserveCapacity(3)
-            for axis in 0..<3 {
-                result.append(try polynomial.homogeneous[axis].evaluated(atU: station, v: .zero, usage: &usage)
-                    .divided(by: weight, usage: &usage))
-            }
-            return result
         default:
             // FIXME(INCOMPLETE_IMPLEMENTATION): Production endpoint relation
             // consumers need original angular/algebraic/procedural coordinate
