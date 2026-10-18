@@ -60,3 +60,5 @@ Main/I source and Git state remain unchanged by this verification. Root owns the
 coherent index-only commit, Main fast-forward, actual-Main source/fixture equality
 check and ordinary configured upstream push. Four-target endpoint acceptance
 does not close the excluded parent obligations.
+
+Main implementation commit `418ae586` was fast-forwarded and pushed to its configured upstream. [Integration source/product receipt](integration.json.gz) matches all 2,386 compiled Core/Geometry/Topology sources, seven delivered paths and 45 retained artifact/reuse pins to the accepted four-target source view. No additional compiler or runtime was needed after exact source correspondence.
