@@ -78,6 +78,14 @@ replace them. A reused test executable requires matching production, test,
 resource and artifact hashes. Source, product and log drift are checked again
 after execution. Results preserve their production evidence owners.
 
+`native_tests.py` binds `ROOT` to its own package directory. Each `run` owns
+the exact `Popen` child, its new session and process group, and exclusive child
+reaping under the default `SIGCHLD` disposition. Cleanup retains the unreaped
+root child through TERM and KILL; no intervening poll or wait releases that
+identity. Only the root process group pinned by that child may be signaled,
+after checking current membership, UID and session. Observed descendant or
+subgroup identifiers alone do not authorize signals.
+
 ## Failure, Concurrency, and Constraints
 
 Native compiler and runtime phases use the recorded process-tree memory and
@@ -86,10 +94,20 @@ wall limits. Runtime groups have a 120-second bound; compilation has a
 Resource refusal and cancellation are checked by their original typed causes.
 An unexpected error cannot satisfy a specific refusal oracle.
 
+Launch, monitoring, signal, bounded wait and log metadata/hash failures remain
+explicit in the phase result. Unproven ownership, remaining observed processes,
+an unreaped child or cleanup errors set `cleanupIncomplete` and retain a
+non-success stop reason, including when the child exited zero. An unreadable log
+has a null hash and an explicit error; finalization must still return its result.
+Unknown descendant or subgroup ownership records incomplete cleanup without
+signaling that group. These diagnostics do not reclassify an OS failure as
+geometric absence or a verified timeout cause.
+
 ## Verification and Change Impact
 
 | Changed contract | Actual verification owner |
 |---|---|
+| Owned native runner finalization and signal boundaries | [verify_native_runner_finalization.py](verify_native_runner_finalization.py) selects the actual runner source and checks success, exit 7, wall limit, cancellation, signal denial, unproven session, hash denial, metadata denial and recycled foreign subgroup identity; all child/log scratch directories are owned temporary directories and the explicit result path is outside the package |
 | Core numerical admission and two-point lift bounds | [CoreBezierAdmissionPortable.swift](CoreBezierAdmissionPortable.swift), [selected Geometry tests](../CADGeometryTests/OriginalTwoPointPolylineBoundsTests.swift) |
 | All parameter expression cases | [ParameterExpressionAdmissionPortable.swift](ParameterExpressionAdmissionPortable.swift), [selected Modeling tests](../CADModelingTests/ParameterExpressionAdmissionTests.swift) |
 | Loop cap and immutable distance domains | [TopologyDistanceAdmissionPortable.swift](TopologyDistanceAdmissionPortable.swift), [loop tests](../CADTopologyTests/SurfaceParameterLoopAlgebraAdmissionTests.swift), [domain tests](../CADTopologyTests/DistanceDomainLifetimeTests.swift) |

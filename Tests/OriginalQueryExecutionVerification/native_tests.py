@@ -51,57 +51,139 @@ def run(command, log_path, env, deadline, stage_limit):
     started = time.monotonic()
     limit = min(stage_limit, deadline - started)
     require(limit > 0, 'The aggregate execution deadline was exhausted.')
-    peak = 0
+    process = None
+    peak = maximum_processes = 0
     stopped = None
     tracked = set()
-    maximum_processes = 0
-    with log_path.open('wb') as log:
-        process = subprocess.Popen(command, cwd=ROOT, env=env, stdout=log,
-                                   stderr=subprocess.STDOUT, start_new_session=True)
-        tracked.add(process.pid)
-        while process.poll() is None:
-            rows = subprocess.check_output(['/bin/ps', '-axo', 'pid=,ppid=,pgid=,rss='], text=True)
-            rows = [tuple(map(int, row.split())) for row in rows.splitlines()
-                    if len(row.split()) == 4]
-            tracked.intersection_update(pid for pid, parent, group, rss in rows)
-            while True:
-                expanded = tracked | {pid for pid, parent, group, rss in rows if parent in tracked}
-                if expanded == tracked:
-                    break
-                tracked = expanded
-            live = [(pid, group, rss) for pid, parent, group, rss in rows if pid in tracked]
-            rss = sum(rss * 1024 for pid, group, rss in live)
-            maximum_processes = max(maximum_processes, len(live))
-            peak = max(peak, rss)
-            if time.monotonic() - started >= limit or rss > RSS_BYTES:
-                stopped = 'wallLimit' if time.monotonic() - started >= limit else 'aggregateRSSLimit'
-                groups = {group for pid, group, rss in live} | {process.pid}
-                for group in groups:
-                    if group != os.getpgrp():
-                        try:
-                            os.killpg(group, signal.SIGTERM)
-                        except ProcessLookupError:
-                            pass
+    errors, signals, unresolved = [], [], []
+    identity = None
+    code = None
+
+    def failure(phase, error, **target):
+        errors.append(dict(phase=phase, type=type(error).__name__,
+                           errno=getattr(error, 'errno', None), message=str(error), **target))
+
+    def snapshot():
+        output = subprocess.check_output(
+            ['/bin/ps', '-axo', 'pid=,ppid=,pgid=,uid=,rss='], text=True)
+        rows = [tuple(map(int, row.split())) for row in output.splitlines()
+                if len(row.split()) == 5]
+        tracked.intersection_update(row[0] for row in rows)
+        while True:
+            expanded = tracked | {pid for pid, parent, group, uid, rss in rows
+                                  if parent in tracked}
+            if expanded == tracked:
+                return rows
+            tracked.update(expanded)
+
+    def signal_owned_groups(signum):
+        # Do not poll/wait between TERM and KILL: the exclusively owned, unreaped
+        # Popen child pins its PID/session identity until both signal phases finish.
+        try:
+            require(identity is not None and process.returncode is None,
+                    'The owned child identity is no longer held.')
+            rows = snapshot()
+            driver = next((row for row in rows if row[0] == process.pid), None)
+            if driver is None:
+                return
+            require(driver[2] == process.pid and driver[3] == identity['uid']
+                    and os.getsid(process.pid) == process.pid,
+                    'The owned child session identity differs.')
+            groups = {group for pid, parent, group, uid, rss in rows if pid in tracked}
+            for group in groups:
+                members = [row for row in rows if row[2] == group]
                 try:
-                    process.wait(timeout=2)
-                except subprocess.TimeoutExpired:
+                    require(group == process.pid and group != os.getpgrp() and all(
+                        uid == identity['uid'] and os.getsid(pid) == process.pid
+                        for pid, parent, pgid, uid, rss in members),
+                        'Group membership does not prove the owned session.')
+                    os.killpg(group, signum)
+                    signals.append(dict(group=group, signal=signum,
+                                        session=process.pid, members=[row[0] for row in members]))
+                except ProcessLookupError:
                     pass
-                # A detached compiler may ignore TERM after its driver exits.
-                # Every observed owned group must stop before the bounded run returns.
-                for group in groups:
-                    if group != os.getpgrp():
-                        try:
-                            os.killpg(group, signal.SIGKILL)
-                        except ProcessLookupError:
-                            pass
-                break
-            time.sleep(0.2)
-        code = process.wait()
-    return dict(command=command, exitCode=code, elapsedSeconds=time.monotonic() - started,
+                except (OSError, RuntimeError) as error:
+                    failure('cleanup', error, group=group, signal=signum)
+        except ProcessLookupError:
+            pass
+        except (OSError, RuntimeError, subprocess.SubprocessError) as error:
+            failure('cleanupIdentity', error, signal=signum)
+
+    try:
+        with log_path.open('wb') as log:
+            # SIGCHLD auto-reaping would invalidate the held-child ownership proof.
+            require(signal.getsignal(signal.SIGCHLD) == signal.SIG_DFL,
+                    'The runner requires exclusive child reaping with default SIGCHLD.')
+            process = subprocess.Popen(command, cwd=ROOT, env=env, stdout=log,
+                                       stderr=subprocess.STDOUT, start_new_session=True)
+            tracked.add(process.pid)
+            identity = dict(pid=process.pid, session=process.pid, group=process.pid,
+                            uid=os.getuid(), exclusivePopenWaitOwner=True)
+            require(os.getsid(process.pid) == process.pid
+                    and os.getpgid(process.pid) == process.pid,
+                    'The new child did not establish its owned session.')
+            try:
+                while process.poll() is None:
+                    rows = snapshot()
+                    live = [row for row in rows if row[0] in tracked]
+                    rss = sum(row[4] * 1024 for row in live)
+                    maximum_processes = max(maximum_processes, len(live))
+                    peak = max(peak, rss)
+                    if time.monotonic() - started >= limit or rss > RSS_BYTES:
+                        stopped = ('wallLimit' if time.monotonic() - started >= limit
+                                   else 'aggregateRSSLimit')
+                        break
+                    time.sleep(0.2)
+            except BaseException as error:
+                stopped = 'cancelled' if isinstance(error, KeyboardInterrupt) else 'monitorFailure'
+                failure('monitor', error)
+            finally:
+                if stopped is not None:
+                    signal_owned_groups(signal.SIGTERM)
+                    time.sleep(min(2, max(0, deadline - time.monotonic())))
+                    signal_owned_groups(signal.SIGKILL)
+                try:
+                    code = process.wait(timeout=min(2, max(0, deadline - time.monotonic())))
+                except (OSError, subprocess.TimeoutExpired) as error:
+                    failure('wait', error, pid=process.pid)
+    except BaseException as error:
+        stopped = stopped or ('cancelled' if isinstance(error, KeyboardInterrupt) else 'monitorFailure')
+        failure('launchOrFinalize', error)
+        if process is not None and process.returncode is None:
+            signal_owned_groups(signal.SIGTERM)
+            signal_owned_groups(signal.SIGKILL)
+            try:
+                code = process.wait(timeout=min(2, max(0, deadline - time.monotonic())))
+            except (OSError, subprocess.TimeoutExpired) as wait_error:
+                failure('wait', wait_error, pid=process.pid)
+    finally:
+        if process is not None:
+            try:
+                rows = snapshot()
+                unresolved = [dict(pid=pid, parent=parent, group=group, uid=uid)
+                              for pid, parent, group, uid, rss in rows if pid in tracked]
+            except (OSError, subprocess.SubprocessError) as error:
+                failure('finalSnapshot', error)
+        log_hash = None
+        try:
+            if log_path.is_file():
+                log_hash = digest(log_path)
+            else:
+                failure('logMetadata', FileNotFoundError(str(log_path)))
+        except OSError as error:
+            failure('logMetadata', error)
+        incomplete = bool(unresolved or errors or (process is not None and code is None))
+        if incomplete and stopped is None:
+            stopped = 'cleanupIncomplete'
+    return dict(command=command, exitCode=code if code is not None else -1,
+                elapsedSeconds=time.monotonic() - started,
                 sampledPeakProcessTreeRSSBytes=peak, stopReason=stopped,
                 rssAccounting='tracked PPID descendants including separate process groups',
                 maximumObservedProcessCount=maximum_processes,
-                wallLimitSeconds=limit, logSHA256=digest(log_path))
+                wallLimitSeconds=limit, logSHA256=log_hash,
+                cleanupIncomplete=incomplete, cleanupErrors=errors,
+                cleanupSignals=signals, unresolvedProcesses=unresolved,
+                launchIdentity=identity)
 
 
 def main():
